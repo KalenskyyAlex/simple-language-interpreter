@@ -1,0 +1,6 @@
+~ Hello world on ShitCode
+use io
+
+start main
+	out | "Hello, world!"
+end

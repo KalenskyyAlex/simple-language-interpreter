@@ -1,5 +1,8 @@
 ~ comments
 
+~ keyword 'use' for importing other .shc|.py files
+use io ~ input/output 
+
 ~ keyword 'start' means function beginning
 start new_func
 	~ function's body
