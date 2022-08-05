@@ -44,16 +44,44 @@ def getTokens(file_name):
 		token = ""
 
 		in_string = False
+		skip_next = False
 
 		for index in range(length):
-			if line[index] == "\"":
-				in_string = not in_string
+			
+			# next 3 if's cares about special symbols (\', \\, \", \n) and how to add them, properly, cause
+			# in string it doesn't recognize '\ + symbol' as special symbol, but as '\\ + \ + symbol'
+			
+			# we added special symbol in the previous iteration, so we must skip it
+			if skip_next:
+				skip_next = False
+				continue
 
+			if line[index] == '"' and not line[index - 1] == '\\':
+				in_string = not in_string
+				continue
+
+			# when we are in string we don't care about any operators, spaces, but care about '\'
+			if in_string and line[index] == '\\':
+				if line[index + 1] == 'n':
+					token += '\n'
+				elif line[index + 1] == '\'':
+					token += '\''
+				elif line[index + 1] == '\"':
+					token += '\"'
+				elif line[index + 1] == '\\':
+					tokem += '\\'
+
+				skip_next = True
+				continue
+			# till here
+
+
+			# when we're not in string things are easier
 			if line[index] in special_symbols and not in_string:
 				line_of_tokens.append(token)
 				token = ''
 				if line[index] != ' ':
-					line_of_tokens.append(line[index])
+					line_of_tokens.append(line[index]) # we count operators as tokens as well, except spaces
 			else:
 				token += line[index]
 
