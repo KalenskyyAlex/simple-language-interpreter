@@ -1,5 +1,5 @@
+# ON DEBUG
 from pprint import *
-
 
 # returns array of lines represented as array of tokens.
 def clearLines(lines_raw):
@@ -25,6 +25,9 @@ def clearLines(lines_raw):
 
 		lines.append(line)
 
+
+
+	# ON DEBUG
 	pprint(lines)
 
 	return lines
@@ -56,6 +59,7 @@ def getTokens(file_name):
 				skip_next = False
 				continue
 
+			# when we hit " it's time to count all text as string till we hit other ", however it MUSTN'T be a " in text 
 			if line[index] == '"' and not line[index - 1] == '\\':
 				in_string = not in_string
 				continue
@@ -85,13 +89,32 @@ def getTokens(file_name):
 			else:
 				token += line[index]
 
+
+		# extra cautiousness
 		if token != '':
 			line_of_tokens.append(token)
 
+
+
+		# ON DEBUG
 		print(line_of_tokens)
 
-special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%'] #when we 'hit' them, we add tokens
+special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%'] # when we 'hit' them, we add tokens
 
 
 # Test
 getTokens('../examples/hello-world-example.shc')
+
+
+# TO DO 
+# tokens' types / token's differentiation
+# - integer
+# - float
+# - string
+# - boolean
+# and
+# - variable
+# - operator
+# - keyword
+# and
+# - function
