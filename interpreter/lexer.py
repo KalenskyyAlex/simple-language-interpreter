@@ -90,76 +90,8 @@ def getTokens(file_name):
 
 		print(line_of_tokens)
 
-special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%']
+special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%'] #when we 'hit' them, we add tokens
 
 
-
+# Test
 getTokens('../examples/hello-world-example.shc')
-
-
-'''
-	* * * * * *   awful lexer example   * * * * * * 
-	* doesn't mind about commets, tabs, spaces etc*
-
-def checkNum(s):
-	if '-' in s:
-		s = s[1:]
-
-	has_coma = False
-	for i in s:
-		if not (i == '0' or i == '1' or i == '2' or i == '3' or i == '4' or i == '5' or i == '6' or i == '7' or i == '8' or i == '9'):
-			if i == '.':
-				if has_coma:
-					return False
-				else:
-					has_coma = True
-			else:
-				return False
-
-		return True
-
-def checkString(s):
-	return s[0] == "\"" and s[-1] == "\""
-
-def checkBool(s):
-	return s == "true" or s == "false"
-
-file = open("test.gc", "r")
-
-raw_lines_list = file.readlines()
-
-lines_list = []
-
-for line in raw_lines_list:
-	line = line.replace('\n', '')
-	line = line.replace('\t', '')
-
-	if not line == '':
-		lines_list.append(line)
-
-all_lines = []
-
-for line in lines_list:
-	tokens = line.split()
-
-	arr = []
-
-	index = 0
-
-	for token in tokens:
-		if token == "/" or token == "*" or token == "+" or token == "-" or token == "=":
-			arr.append({token : ["op", index]})
-		elif checkNum(token):
-			arr.append({token : ["num", index]})
-		elif checkBool(token):
-			arr.append({token : ["bool", index]})
-		elif checkString(token):
-			arr.append({token : ["str", index]})
-		else: 
-			arr.append({token : ["var", index]})
-
-		index += 1
-	all_lines.append(arr)
-
-pprint(all_lines)
-'''
