@@ -20,7 +20,7 @@ start add | num1, num2
 end
 
 start main ~ each .sch file schould contain main function
-	index is num
+	index is int
 	index = 0
 
 	~ loop
