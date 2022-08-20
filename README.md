@@ -1,6 +1,6 @@
-# Simple Interpretator for self-written language (ShitCode)
+# Simple Interpreter for self-written language (ShitCode)
 
-Interpretator(and language therefore) supports:
+Interpreter(and language therefore) supports:
 - variable definition
 	- basic types (integer, string, boolean)
 - simple mathematical operations
