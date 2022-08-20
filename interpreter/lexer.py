@@ -1,14 +1,14 @@
-# ON DEBUG
-from pprint import *
-
 # takes array of lines: ["line1", "line2" ...];
 # delete tabs, eol, comments;
-# returns array of 'cleared' lines : ["clearedline1", "clearedline2" ...]
+# returns array of 'cleared' lines : ["clearedline1", "clearedline2" ...] and line number for each line
 def clearLines(lines_raw):
 	lines = []
+	line_numbers = []
 
 	# removing comments, tabs, eol symbols
-	for line in lines_raw:
+	for index in range(len(lines_raw)):
+		line  = lines_raw[index]
+
 		line = line.split('~')[0]
 
 		if line == '':
@@ -25,19 +25,20 @@ def clearLines(lines_raw):
 		if line == '':
 			continue
 
+		line_numbers.append(index + 1)
 		lines.append(line)
 
 
-	return lines
+	return lines, line_numbers
 
-# takes 'file_name' (WITH extension) of .shc file
-# separates lines on tokens, with types
-# returns array of dicts: [ [ ["token" , "type"] ... ] ... ] 
+# takes 'file_name' (WITH extension) of .shc file;
+# separates lines on tokens, with types;
+# returns array of dicts: [ [ ["token" , "type"] ... ] ... ] and line numbers to each line
 def getTokens(file_name):
 	file = open(file_name, 'r')
 
 	raw_lines = file.readlines()
-	lines = clearLines(raw_lines)
+	lines, line_numbers = clearLines(raw_lines)
 
 	tokens_raw = [] # separated, but no types
 
@@ -83,13 +84,26 @@ def getTokens(file_name):
 
 			# when we're not in string things are easier
 			if line[index] in special_symbols and not in_string:
-				# several operators in raw creates '' tokens 
+				# several special symbols in raw creates '' tokens
 				if token != '': 
 					line_of_tokens.append(token)
 
 				token = ''
 				if line[index] != ' ':
 					line_of_tokens.append(line[index]) # we count operators as tokens as well, except spaces
+
+					# for 2-symbol operators, like '++', '--', '>=', '<=' or '==' 
+					if index + 1 < length:
+						if line[index + 1] == '+' and line[index] == '+':
+							line_of_tokens[-1] += '+'
+							skip_next = True
+						elif line[index + 1] == '-' and line[index] == '-':
+							line_of_tokens[-1] += '-'
+							skip_next = True
+						elif line[index + 1] == '=':
+							if line[index] in ['>', '<', '=']:
+								line_of_tokens[-1] += '='
+								skip_next = True
 			else:
 				token += line[index]
 
@@ -106,14 +120,11 @@ def getTokens(file_name):
 
 	tokens = recognizeTokens(tokens_raw) # differentiate tokens
 
-	# ON DEBUG
-	pprint(tokens)
+	return tokens, line_numbers
 
-	return tokens
+special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ','] # when we 'hit' them, we add tokens
 
-special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')'] # when we 'hit' them, we add tokens
-
-# takes array of lines represented as tokens
+# takes array of lines represented as tokens;
 # returns array of dicts: [ [ ["token" , "type"] ... ] ... ]
 def recognizeTokens(tokens_raw):
 	prev_token = ''
@@ -130,6 +141,8 @@ def recognizeTokens(tokens_raw):
 				if token == '|':
 					recognized_line[-1][1] = 'fnc'
 				recognized_line.append([token, 'opr'])
+			elif recognizeSeparator(token):
+				recognized_line.append([token, 'sep'])
 			elif recognizeType(token):
 				recognized_line.append([token, 'typ'])
 			elif recognizeBoolean(token):
@@ -209,19 +222,5 @@ def recognizeFloat(token):
 def recognizeString(token):
 	return token[0] == '"' and token[-1] == '"' 
 
-
-
-
-
-# Test
-getTokens('../SYNTAX.shc')
-
-# TO DO
-# recognition of 
-# --
-# ++
-# ==
-# >
-# <
-# >=
-# <=
+def recognizeSeparator(token):
+	return token == ','
