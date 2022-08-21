@@ -1,39 +1,3 @@
-[[['use', 'kwd'], ['io', 'lib']],
- [['start', 'kwd'], ['new_func', 'fnc']],
- [['end', 'kwd']],
- [['start', 'kwd'], ['add', 'fnc'], ['|', 'opr'], ['num1,', 'var'], ['num2', 'var']],
- [['res', 'var'], ['is', 'opr'], ['int', 'typ']],
- [['res', 'var'], ['=', 'opr'], ['num1', 'var'], ['+', 'opr'], ['num2', 'var'], ['*', 'opr'], ['2', 'int'], ['*', 'opr'], ['(', 'opr'], ['num1', 'var'], ['/', 'opr'], ['num2', 'var'], [')', 'opr'], ['-', 'opr'], ['1', 'int']],
- [['out', 'fnc'], ['|', 'opr'], ['res', 'var']],
- [['return', 'kwd'], ['res', 'var']],
- [['end', 'kwd']],
- [['start', 'kwd'], ['main', 'fnc']],
- [['index', 'var'], ['is', 'opr'], ['int', 'typ']],
- [['index', 'var'], ['=', 'opr'], ['0', 'int']],
- [['loop', 'kwd'], ['index', 'var'], ['++', 'var'], ['<', 'opr'], ['10', 'int']],
- [['out', 'fnc'], ['|', 'opr'], ['(', 'opr'], ['add', 'fnc'], ['|', 'opr'], ['index,', 'var'], ['index', 'var'], ['+', 'opr'], ['2', 'int'], [')', 'opr']],
- [['if', 'kwd'], ['index', 'var'], ['==', 'opr'], ['5', 'int']],
- [['break', 'kwd']],
- [['end', 'kwd']],
- [['if', 'kwd'], ['index', 'var'], ['<', 'opr'], ['2', 'int']],
- [['out', 'fnc'], ['|', 'opr'], ['"hello"', 'str']],
- [['elif', 'kwd'], ['index', 'var'], ['==', 'opr'], ['2', 'int']],
- [['out', 'fnc'], ['|', 'opr'], ['"how are you?"', 'str']],
- [['else', 'kwd']],
- [['out', 'fnc'], ['|', 'opr'], ['"bye"', 'str']],
- [['end', 'kwd']],
- [['end', 'kwd']],
- [['cool', 'var'], ['is', 'opr'], ['bool', 'typ']],
- [['cool', 'var'], ['=', 'opr'], ['true', 'bln']],
- [['s', 'var'], ['is', 'opr'], ['str', 'typ']],
- [['s', 'var'], ['=', 'opr'], ['"abcdef"', 'str']],
- [['coat', 'var'], ['is', 'opr'], ['float', 'typ']],
- [['coat', 'var'], ['=', 'opr'], ['1.4', 'flt']],
- [['end', 'kwd']]]
-
-
-what i want
-
 {
     {
         line: 1,
