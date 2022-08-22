@@ -73,13 +73,19 @@ def valid_start_syntax(line, line_number):
 
 	return False
 
-# takes array of lines of tokens as array between + index of FIRST line in line_numbers;
+# takes line of tokens as array with line_number and adds it to body;
 # forms body tree element
 body_tree_element = None;
-def fill_body(line, line_index):
-	global body_tree_element
+def fill_body(line, line_number):
+	global body_tree_elementc
 
-	body_tree_element = []
+	if ['is', 'opr'] in line:
+		if valid_is_syntax(line, line_number):
+			body_tree_element.append(variable_tree_element)
+		else:
+			return
+	else:
+		pass
 
 
 
@@ -114,37 +120,67 @@ def valid_is_syntax(block, line_number):
 	print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID VARIABLE ASSIGN")
 	return False	
 
+nested = 0
+
 in_function_body = False
-for index in range(len(tokens)):
-	line = tokens[index]
-	line_number = line_numbers[index]
 
-	if in_function_body:
-		if ['end', 'kwd'] in line:
-			if len(line) == 1:
-				in_function_body = False
-			else:
+def make_tree():
+	global in_function_body
+	global nested
+	global body_tree_element
+
+	for index in range(len(tokens)):
 
 
-	else:
-		if ['use', 'kwd'] in line:
-			if valid_use_syntax(line):
-				tree.append({
-					"line" : line_number,
-					"operation" : "use",
-					"lib": line[1][0]
-					})
-			else:
-				print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID LIBRARY CALL")
+		line = tokens[index]
+		line_number = line_numbers[index]
+
+		
+
+		if in_function_body:
+			if ['start', 'kwd'] in line:
+				print("INVALID SYNTAX ERROR AT LINE", line_number, ": CAN NOT ASSIGN FUNCTION IN FUNCTION'S BODY")
 				break
-		if ['start', 'kwd'] in line:
-			if valid_start_syntax(line, line_number):
-				tree.append(function_tree_element)
-				in_function_body = True
-			else:
-				print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID FUNCTION ASSIGN")
+
+			if ['if', 'kwd'] in line:
+				nested += 1
+			if ['loop', 'kwd'] in line:
+				nested += 1
+			if ['end', 'kwd'] in line:
+				nested -= 1
+
+			fill_body(line, line_number)
+		else:
+			if ['use', 'kwd'] in line:
+				if valid_use_syntax(line):
+					tree.append({
+						"line" : line_number,
+						"operation" : "use",
+						"lib": line[1][0]
+						})
+				else:
+					print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID LIBRARY CALL")
+					break
+			if ['start', 'kwd'] in line:
+				if valid_start_syntax(line, line_number):
+					tree.append(function_tree_element)
+					nested += 1
+					body_tree_element = []
+					in_function_body = True
+				else:
+					print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID FUNCTION ASSIGN")
+					break
+
+			if ['if', 'kwd'] in line or ['else', 'kwd'] in line or ['elif', 'kwd'] in line or ['loop', 'kwd'] in line or ['end', 'kdw'] in line:
+				print("INVALID SYNTAX ERROR AT LINE", line_number, ": CAN NOT USE KEYWORD OUTSIDE OF FUNCTION'S BODY")
 				break
-			
+
+		if nested == 0 and in_function_body:
+			in_function_body = False
+			tree[-1]['body'] = body_tree_element
 
 
-print(tree)
+	print(tree)
+
+
+make_tree()

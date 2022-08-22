@@ -19,37 +19,37 @@ start add | num1 is int, num2 is int
 	return res ~ function's return
 end
 
-~ start main ~ each .sch file schould contain main function
-~	index is int
-~	index = 0
-~
-~	~ loop
-~	loop index++ < 10
-~		out | (add | index, index + 2) 
-~
+start main ~ each .sch file schould contain main function
+	index is int
+	index = 0
+
+	~ loop
+	loop index++ < 10
+		out | (add | index, index + 2) 
+
 		~ simple if statement
-~		if index == 5
-~			break ~ exit loop
-~		end
+		if index == 5
+			break ~ exit loop
+		end
 
 		~ if|else|elif
-~		if index < 2
-~			out | "hello"
-~		elif index == 2
-~			out | "how are you?"
-~		else 
-~			out | "bye"
-~		end 
-~	end
+		if index < 2
+			out | "hello"
+		elif index == 2
+			out | "how are you?"
+		else 
+			out | "bye"
+		end 
+	end
 
-~	cool is bool
-~	cool = true
+	cool is bool
+	cool = true
 
-~	s is str
-~	s = "abcdef"
+	s is str
+	s = "abcdef"
 
-~	coat is float
-~	coat = 1.4 
-~end
+	coat is float
+	coat = 1.4 
+end
 
 ~ all
