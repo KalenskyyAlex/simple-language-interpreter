@@ -77,7 +77,7 @@ def valid_start_syntax(line, line_number):
 # forms body tree element
 body_tree_element = None;
 def fill_body(line, line_number):
-	global body_tree_elementc
+	global body_tree_element
 
 	if ['is', 'opr'] in line:
 		if valid_is_syntax(line, line_number):
@@ -85,9 +85,153 @@ def fill_body(line, line_number):
 		else:
 			return
 	else:
-		pass
+		line = nest(line, line_number)
+		if line == None:
+			body_tree_element = None
+			return
+
+		line = operate_1(line, line_number)
+
+		line = operate_2_helper(line, line_number)
+
+		line = operate_3_helper(line, line_number)
+		
+		body_tree_element.append({'line' : line_number, 'content' : line})
 
 
+# returns True if line has nesting, otherwise False
+def has_nesting(line):
+	if ['(', 'opr'] in line or [')', 'opr'] in line:
+		return True
+
+	return False 
+
+# nest given line recursively
+def nest(line, line_number):
+	#base case - no nesting
+	if not has_nesting(line):
+		return line
+	else:
+		nested_line = []
+		nested = 0;
+		nested_segment = [];
+		for token in line:
+			if token == ['(', 'opr']:
+				nested += 1
+
+				if nested == 1:
+					continue
+
+			if token == [')', 'opr']:
+				nested -= 1
+
+			if not nested == 0:
+				nested_segment.append(token);
+
+			if nested == 0:
+				if len(nested_segment) == 0:
+					nested_line.append(token)
+				else:
+					nested_segment = nest(nested_segment, line_number)
+					nested_line.append(nested_segment)
+					nested_segment = []
+
+		if not nested == 0:
+			print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID NESTING")
+			return None
+
+		return nested_line
+
+def operate_1(segment, line_number):
+	if len(segment) == 1:
+		return segment
+	else:
+		operated_segment = segment
+		for index in range(len(segment)):
+			token = segment[index]
+			if type(token[0]) == type(str()):
+				if token[1] == 'opr':
+					if token[0] == '=':
+						left = operate_1(segment[:index], line_number)
+						right = operate_1(segment[index + 1:], line_number)
+						operated_segment = {
+							'left' : left,
+							'operation' : token,
+							'right' : right
+						}
+						break
+			else:
+				token = operate_1(token, line_number)
+
+		return operated_segment
+					
+def operate_2_helper(line, line_number):
+	if type(line) == type(dict()):
+		line['left'] = operate_2(line['left'], line_number)
+		line['right'] = operate_2(line['right'], line_number)
+	else:
+		line = operate_2(line, line_number)
+
+	return line
+
+def operate_2(segment, line_number):
+	if len(segment) == 1:
+		return segment
+	else:
+		operated_segment = segment 
+
+		for index in range(len(segment)):
+			token = segment[index]
+			if type(token[0]) == type(str()):
+				if token[1] == 'opr':
+					if token[0] == '+' or token[0] == '-':
+						left = operate_2(segment[:index], line_number)
+						right = operate_2(segment[index + 1:], line_number)
+						operated_segment = {
+							'left' : left,
+							'operation' : token,
+							'right' : right
+						}
+						break
+			else:
+				token = operate_2(token, line_number)
+
+		return operated_segment
+
+def operate_3_helper(line, line_number):
+	if type(line) == type(dict()):
+		line['left'] = operate_3_helper(line['left'], line_number)
+		line['right'] = operate_3_helper(line['right'], line_number)
+
+		return line
+	else:
+		line = operate_3(line, line_number)
+		return line
+
+def operate_3(segment, line_number):
+	if len(segment) == 1:
+		return segment
+	else:
+		operated_segment = segment 
+
+		for index in range(len(segment)):
+			token = segment[index]
+			if type(token[0]) == type(str()):
+				if token[1] == 'opr':
+					if token[0] == '*' or token[0] == '/':
+						left = operate_3(segment[:index], line_number)
+						right = operate_3(segment[index + 1:], line_number)
+						operated_segment = {
+							'left' : left,
+							'operation' : token,
+							'right' : right
+						}
+						break
+			else:
+				print(token)
+				token = operate_3(token, line_number)
+
+		return operated_segment
 
 # default values of types;
 default_value = {'bool' : False, 'int' : 0, 'str' : '', 'float' : 0.0}
@@ -135,7 +279,6 @@ def make_tree():
 		line = tokens[index]
 		line_number = line_numbers[index]
 
-		
 
 		if in_function_body:
 			if ['start', 'kwd'] in line:
@@ -150,6 +293,9 @@ def make_tree():
 				nested -= 1
 
 			fill_body(line, line_number)
+			if body_tree_element == None:
+				return
+
 		else:
 			if ['use', 'kwd'] in line:
 				if valid_use_syntax(line):
@@ -177,10 +323,11 @@ def make_tree():
 
 		if nested == 0 and in_function_body:
 			in_function_body = False
+			body_tree_element = body_tree_element [:-1]
 			tree[-1]['body'] = body_tree_element
 
 
-	print(tree)
+	pprint(tree)
 
 
 make_tree()

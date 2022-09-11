@@ -1,4 +1,4 @@
-{
+[
     {
         line: 1,
         operation: "use",
@@ -64,4 +64,87 @@
             }
         }
     }
-}
+]
+
+
+
+
+
+line -> ((a + 2) * 2 + 1 - ( 2 - a )) * 2
+
+
+nest:
+    nested = 0
+    basic case:
+
+        no brackets - return itself
+
+    else:
+        nested_segment = []
+
+        for token in tokens:
+
+            if token = (:
+
+                nesting += 1
+                if nested == 1:
+                    continue
+
+            if token  = ):
+                nesting -= 1
+
+            if nested != 0 
+                nested_segment += token
+
+            if nested = 0
+                nested_segment = nest()
+
+
+
+
+func nest line:
+    for index in line:
+        if token = (:
+            start = index
+            end = index
+            while !nesting_closed:
+                end++
+
+            line [start] = line[start:end]
+
+            //remove all after start till end
+            
+            break
+
+    if
+
+
+
+for token in line:
+    nesting = {}
+    brackets = 0
+
+    if token = (:
+        brackets++
+
+    if token = ):
+        brackets--;
+
+    if brackets != 0:
+        nesting += token
+        line.remove(token)
+    else:
+        line[0] = nesting 
+
+
+
+
+[[a + 2] * 2 + 1 - [2 - a]]
+
+
+def func line:
+    for token in line:
+        if token = array:
+            line[token] = func[line]
+        if token = * or /:
+
