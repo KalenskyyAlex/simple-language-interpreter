@@ -5,9 +5,6 @@ from pprint import *
 
 tokens, line_numbers = getTokens('../SYNTAX.shc')
 
-# ON DEBUG
-# pprint(tokens)
-
 tree = []
 
 # takes line of tokens as array;
@@ -143,7 +140,7 @@ def nest(line, line_number):
 		return nested_line
 
 def operate_1(segment, line_number):
-	if len(segment) == 1:
+	if not ['=', 'opr'] in segment:
 		return segment
 	else:
 		operated_segment = segment
@@ -161,7 +158,7 @@ def operate_1(segment, line_number):
 						}
 						break
 			else:
-				token = operate_1(token, line_number)
+				segment[index] = operate_1(token, line_number)
 
 		return operated_segment
 					
@@ -175,7 +172,7 @@ def operate_2_helper(line, line_number):
 	return line
 
 def operate_2(segment, line_number):
-	if len(segment) == 1:
+	if not ['+', 'opr'] in segment and not ['-', 'opr'] in segment:
 		return segment
 	else:
 		operated_segment = segment 
@@ -194,7 +191,7 @@ def operate_2(segment, line_number):
 						}
 						break
 			else:
-				token = operate_2(token, line_number)
+				segment[index] = operate_2(token, line_number)
 
 		return operated_segment
 
@@ -209,16 +206,17 @@ def operate_3_helper(line, line_number):
 		return line
 
 def operate_3(segment, line_number):
-	if len(segment) == 1:
+	if not ['*', 'opr'] in segment and not ['/', 'opr'] in segment and not ['%', 'opr'] in segment:
 		return segment
 	else:
-		operated_segment = segment 
+		operated_segment = segment
 
 		for index in range(len(segment)):
 			token = segment[index]
+
 			if type(token[0]) == type(str()):
 				if token[1] == 'opr':
-					if token[0] == '*' or token[0] == '/':
+					if token[0] == '*' or token[0] == '/' or token[0] == '%':
 						left = operate_3(segment[:index], line_number)
 						right = operate_3(segment[index + 1:], line_number)
 						operated_segment = {
@@ -228,8 +226,7 @@ def operate_3(segment, line_number):
 						}
 						break
 			else:
-				print(token)
-				token = operate_3(token, line_number)
+				segment[index] = operate_3(token, line_number)
 
 		return operated_segment
 
