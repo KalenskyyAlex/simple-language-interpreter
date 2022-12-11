@@ -44,10 +44,10 @@ def valid_start_syntax(line, line_number):
 
                 split = []
 
-                valid = True;
+                valid = True
 
                 for token in line:
-                    # argunents are separated by coma
+                    # arguments are separated by coma
                     if token[1] == 'sep':
                         if valid_is_syntax(split, line_number):
                             function_tree_element['args'].append(variable_tree_element)
@@ -72,6 +72,7 @@ def valid_start_syntax(line, line_number):
 
     return False
 
+
 # default values of types;
 variable_tree_element = None
 
@@ -87,13 +88,10 @@ def valid_is_syntax(block, line_number):
         if block[1][0] == "is":
             if block[0][1] == "var":
                 if block[2][1] == "typ":
-                    type = block[2]
-                    name = block[0]
-
                     variable_tree_element['line'] = line_number
-                    variable_tree_element['left'] = name
+                    variable_tree_element['left'] = block[0]
                     variable_tree_element['operation'] = ['is', 'opr']
-                    variable_tree_element['right'] = type
+                    variable_tree_element['right'] = block[2]
 
                     return True
 
@@ -149,7 +147,7 @@ def valid_break_syntax(block, line_number):
 
 # takes line of tokens as array with line_number and adds it to body;
 # forms body tree element
-body_tree_element = None
+body_tree_element = []
 
 
 def fill_body(line, line_number):
@@ -173,8 +171,8 @@ def fill_body(line, line_number):
     else:
         if not line == ['end', 'kwd']:
             line = nest(line, line_number)
-            if line == None:
-                body_tree_element = None
+            if line is None:
+                body_tree_element = []
                 return
 
             line = operate_1(line, line_number)
@@ -183,8 +181,8 @@ def fill_body(line, line_number):
 
             line = operate_3_helper(line, line_number)
 
-            #ON DEBUG
-            if type(line) == type(dict()):
+            # ON DEBUG
+            if isinstance(line, dict):
                 line['line'] = line_number
 
             body_tree_element.append(line)
@@ -205,22 +203,22 @@ def nest(line, line_number):
         return line
     else:
         nested_line = []
-        nested = 0;
-        nested_segment = [];
+        nested_ = 0
+        nested_segment = []
         for token in line:
             if token == ['(', 'opr']:
-                nested += 1
+                nested_ += 1
 
-                if nested == 1:
+                if nested_ == 1:
                     continue
 
             if token == [')', 'opr']:
-                nested -= 1
+                nested_ -= 1
 
-            if not nested == 0:
-                nested_segment.append(token);
+            if not nested_ == 0:
+                nested_segment.append(token)
 
-            if nested == 0:
+            if nested_ == 0:
                 if len(nested_segment) == 0:
                     nested_line.append(token)
                 else:
@@ -228,7 +226,7 @@ def nest(line, line_number):
                     nested_line.append(nested_segment)
                     nested_segment = []
 
-        if not nested == 0:
+        if not nested_ == 0:
             print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID NESTING")
             return None
 
@@ -236,23 +234,23 @@ def nest(line, line_number):
 
 # nests tree by '=' operator
 def operate_1(segment, line_number):
-    if len(segment) == 1 and type(segment[0]) == type(str()):
+    if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
         operated_segment = segment
         for index in range(len(segment)):
             token = segment[index]
-            if type(token[0]) == type(str()):
+            if isinstance(token[0], str):
                 if token[1] == 'opr':
                     if token[0] == '=':
                         left = operate_1(segment[:index], line_number)
 
-                        if len(left) == 1 and type(left[0]) == type(dict()):
+                        if len(left) == 1 and isinstance(left[0], dict):
                             left = left[0]
 
                         right = operate_1(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and type(right[0]) == type(dict()):
+                        if len(right) == 1 and isinstance(right[0], dict):
                             right = right[0]
 
                         operated_segment = {
@@ -268,7 +266,7 @@ def operate_1(segment, line_number):
 
 # used to handle already nested segments
 def operate_2_helper(line, line_number):
-    if type(line) == type(dict()):
+    if isinstance(line, dict):
         line['left'] = operate_2(line['left'], line_number)
         line['right'] = operate_2(line['right'], line_number)
     else:
@@ -278,24 +276,24 @@ def operate_2_helper(line, line_number):
 
 # nests tree by '+' or(and) '-' operators
 def operate_2(segment, line_number):
-    if len(segment) == 1 and type(segment[0]) == type(str()):
+    if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
         operated_segment = segment
 
         for index in range(len(segment)):
             token = segment[index]
-            if type(token[0]) == type(str()):
+            if isinstance(token[0], str):
                 if token[1] == 'opr':
                     if token[0] == '+' or token[0] == '-':
                         left = operate_2(segment[:index], line_number)
 
-                        if len(left) == 1 and type(left[0]) == type(dict()):
+                        if len(left) == 1 and isinstance(left[0], dict):
                             left = left[0]
 
                         right = operate_2(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and type(right[0]) == type(dict()):
+                        if len(right) == 1 and isinstance(right[0], dict):
                             right = right[0]
 
                         operated_segment = {
@@ -311,7 +309,7 @@ def operate_2(segment, line_number):
 
 # used to handle already nested segments recursively
 def operate_3_helper(line, line_number):
-    if type(line) == type(dict()):
+    if isinstance(line, dict):
         line['left'] = operate_3_helper(line['left'], line_number)
         line['right'] = operate_3_helper(line['right'], line_number)
         return line
@@ -329,17 +327,17 @@ def operate_3(segment, line_number):
         for index in range(len(segment)):
             token = segment[index]
 
-            if type(token[0]) == type(str()):
+            if isinstance(token[0], str):
                 if token[1] == 'opr':
                     if token[0] == '*' or token[0] == '/' or token[0] == '%':
                         left = operate_3(segment[:index], line_number)
 
-                        if len(left) == 1 and type(left[0]) == type(dict()):
+                        if len(left) == 1 and isinstance(left[0], dict):
                             left = left[0]
 
                         right = operate_3(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and type(right[0]) == type(dict()):
+                        if len(right) == 1 and isinstance(right[0], dict):
                             right = right[0]
 
                         operated_segment = {
@@ -381,7 +379,7 @@ def make_tree():
                 nested -= 1
 
             fill_body(line, line_number)
-            if body_tree_element == None:
+            if len(body_tree_element) == 0:
                 return
         else:
             if ['use', 'kwd'] in line:
@@ -405,7 +403,11 @@ def make_tree():
                     print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID FUNCTION ASSIGN')
                     break
 
-            if ['if', 'kwd'] in line or ['else', 'kwd'] in line or ['elif', 'kwd'] in line or ['loop', 'kwd'] in line or ['end', 'kdw'] in line:
+            if ['if', 'kwd'] in line or\
+                    ['else', 'kwd'] in line or\
+                    ['elif', 'kwd'] in line or\
+                    ['loop', 'kwd'] in line or\
+                    ['end', 'kdw'] in line:
                 print('INVALID SYNTAX ERROR AT LINE', line_number, ': CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
                 break
 
@@ -414,6 +416,8 @@ def make_tree():
             body_tree_element = body_tree_element[:-1]
             tree[-1]['body'] = body_tree_element
 
-    pprint(tree, width = 120)
+    # ON DEBUG
+    pprint(tree, width=120)
+
 
 make_tree()
