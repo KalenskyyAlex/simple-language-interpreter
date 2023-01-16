@@ -350,12 +350,15 @@ def operate_3(segment, line_number):
 
         return operated_segment
 
-def nest_block(block):
+
+nested = 0
+
+def nest_vertical(block):
     new_block = []
     writing_inner_block = False
-    if_block = False
     block_nesting = 0
     inner_block = {}
+    writing_else = False
 
     for index in range(len(block)):
         line = block[index]
@@ -379,37 +382,39 @@ def nest_block(block):
                     inner_block = {
                         'left': condition,
                         'operation': operation,
-                        'right': []
+                        'right': [],
+                        'else': []
                     }
                     block_nesting += 1
                     writing_inner_block = True
-                    if_block = True
                 else:
                     new_block.append(line)
             else:
                 new_block.append(line)
         else:
             if not isinstance(line, dict):
-                if if_block:
-                    # TODO: bruh
-                    if ['if', 'kwd'] in line or \
-                            ['while', 'kwd'] in line:
-                        block_nesting += 1
-                    elif ['end', 'kwd'] in line:
-                        block_nesting -= 1
+                if ['if', 'kwd'] in line or \
+                        ['while', 'kwd'] in line:
+                    block_nesting += 1
+                elif ['end', 'kwd'] in line:
+                    block_nesting -= 1
+                elif block_nesting == 1 and ['else', 'kwd'] in line:
+                    writing_else = True
+                    continue
 
-                print(block_nesting, line)
                 if block_nesting == 0:
                     writing_inner_block = False
-                    inner_block['right'] = nest_block(inner_block['right'])
+                    writing_else = False
+                    inner_block['right'] = nest_vertical(inner_block['right'])
                     new_block.append(inner_block)
+                elif writing_else:
+                    inner_block['else'].append(line)
                 else:
                     inner_block['right'].append(line)
             else:
                 inner_block['right'].append(line)
     return new_block
 
-nested = 0
 
 in_function_body = False
 
@@ -470,10 +475,11 @@ def make_tree():
 
         if nested == 0 and in_function_body:
             in_function_body = False
-            body_tree_element = nest_block(body_tree_element)
+            body_tree_element = nest_vertical(body_tree_element)
             tree[-1]['body'] = body_tree_element
 
     # ON DEBUG
     pprint(tree, width=120)
+
 
 make_tree()
