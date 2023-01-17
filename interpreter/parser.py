@@ -21,6 +21,7 @@ def valid_use_syntax(line):
 
 function_tree_element = None
 
+
 # takes line of tokens as array + line number;
 # forms 'function' element of tree;
 # returns True if syntax with 'start' is correct, otherwise False + SYNTAX ERROR
@@ -100,6 +101,7 @@ def valid_is_syntax(block, line_number):
 
 return_tree_element = None
 
+
 # takes line of tokens as array;
 # forms 'return' element of tree;
 # returns True if syntax with 'return' is correct, otherwise False + SYNTAX ERROR
@@ -122,6 +124,7 @@ def valid_return_syntax(block, line_number):
 
 
 break_tree_element = None
+
 
 # takes line of tokens as array;
 # forms 'break' element of tree;
@@ -174,13 +177,14 @@ def fill_body(line, line_number):
                 body_tree_element = []
                 return
 
-            line = operate_1(line, line_number)
+            line = operate_calls(line, line_number)
+
+            line = operate_1_helper(line, line_number)
 
             line = operate_2_helper(line, line_number)
 
             line = operate_3_helper(line, line_number)
 
-            # ON DEBUG
             if isinstance(line, dict):
                 line['line'] = line_number
 
@@ -231,6 +235,88 @@ def nest(line, line_number):
 
         return nested_line
 
+
+def operate_separators(segment, line_number):
+    if len(segment) == 1 and isinstance(segment[0], str):
+        return segment
+    else:
+        operated_segment = segment
+        for index in range(len(segment)):
+            token = segment[index]
+            if isinstance(token[0], str):
+                if token[1] == 'sep':
+                    if token[0] == ',':
+                        left = operate_separators(segment[:index], line_number)
+
+                        if len(left) == 1 and isinstance(left[0], dict):
+                            left = left[0]
+
+                        right = operate_separators(segment[index + 1:], line_number)
+
+                        if len(right) == 1 and isinstance(right[0], dict):
+                            right = right[0]
+
+                        operated_segment = {
+                            'left': left[0] if len(left) == 1 else left,
+                            'operation': token,
+                            'right': right
+                        }
+                        break
+
+        return operated_segment
+
+
+def operate_calls(segment, line_number):
+    if len(segment) == 1 and isinstance(segment[0], str):
+        return segment
+    else:
+        operated_segment = segment
+        if isinstance(segment, dict):
+            operated_segment['right'] = operate_calls(segment['right'], line_number)
+            operated_segment['left'] = operate_calls(segment['left'], line_number)
+        else:
+            for index in range(len(segment)):
+                token = segment[index]
+                if isinstance(token[0], str):
+                    if token[1] == 'opr':
+                        if token[0] == '|':
+                            left = operate_calls(segment[:index], line_number)
+
+                            if len(left) == 1 and isinstance(left[0], dict):
+                                left = left[0]
+
+                            right = operate_separators(segment[index + 1:], line_number)
+
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
+
+                            right = operate_calls(right, line_number)
+
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
+
+                            operated_segment = {
+                                'left': left[0] if len(left) == 1 else left,
+                                'operation': token,
+                                'right': right
+                            }
+                            break
+                else:
+                    segment[index] = operate_calls(token, line_number)
+
+        return operated_segment
+
+
+def operate_1_helper(line, line_number):
+    if isinstance(line, dict):
+        line['left'] = operate_1_helper(line['left'], line_number)
+        line['right'] = operate_1_helper(line['right'], line_number)
+        return line
+    else:
+        line = operate_1(line, line_number)
+        return line
+
+
 # nests tree by '=' operator
 def operate_1(segment, line_number):
     if len(segment) == 1 and isinstance(segment[0], str):
@@ -263,15 +349,17 @@ def operate_1(segment, line_number):
 
         return operated_segment
 
+
 # used to handle already nested segments
 def operate_2_helper(line, line_number):
     if isinstance(line, dict):
-        line['left'] = operate_2(line['left'], line_number)
-        line['right'] = operate_2(line['right'], line_number)
+        line['left'] = operate_2_helper(line['left'], line_number)
+        line['right'] = operate_2_helper(line['right'], line_number)
+        return line
     else:
         line = operate_2(line, line_number)
+        return line
 
-    return line
 
 # nests tree by '+' or(and) '-' operators
 def operate_2(segment, line_number):
@@ -283,28 +371,30 @@ def operate_2(segment, line_number):
         for index in range(len(segment)):
             token = segment[index]
             if isinstance(token[0], str):
-                if token[1] == 'opr':
-                    if token[0] == '+' or token[0] == '-':
-                        left = operate_2(segment[:index], line_number)
+                if len(token) >= 2:
+                    if token[1] == 'opr':
+                        if token[0] == '+' or token[0] == '-':
+                            left = operate_2(segment[:index], line_number)
 
-                        if len(left) == 1 and isinstance(left[0], dict):
-                            left = left[0]
+                            if len(left) == 1 and isinstance(left[0], dict):
+                                left = left[0]
 
-                        right = operate_2(segment[index + 1:], line_number)
+                            right = operate_2(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and isinstance(right[0], dict):
-                            right = right[0]
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
 
-                        operated_segment = {
-                            'left': left[0] if len(left) == 1 else left,
-                            'operation': token,
-                            'right': right[0] if len(right) == 1 else right
-                        }
-                        break
+                            operated_segment = {
+                                'left': left[0] if len(left) == 1 else left,
+                                'operation': token,
+                                'right': right[0] if len(right) == 1 else right
+                            }
+                            break
             else:
                 segment[index] = operate_2(token, line_number)
 
         return operated_segment
+
 
 # used to handle already nested segments recursively
 def operate_3_helper(line, line_number):
@@ -315,6 +405,7 @@ def operate_3_helper(line, line_number):
     else:
         line = operate_3(line, line_number)
         return line
+
 
 # nests tree by '*' or(and) '/' or(and) '%' operators
 def operate_3(segment, line_number):
@@ -352,6 +443,7 @@ def operate_3(segment, line_number):
 
 
 nested = 0
+
 
 def nest_vertical(block):
     new_block = []
@@ -418,6 +510,7 @@ def nest_vertical(block):
 
 in_function_body = False
 
+
 def make_tree():
     global in_function_body
     global nested
@@ -435,7 +528,7 @@ def make_tree():
 
             if ['if', 'kwd'] in line:
                 nested += 1
-            if ['loop', 'kwd'] in line:
+            if ['while', 'kwd'] in line:
                 nested += 1
             if ['end', 'kwd'] in line:
                 nested -= 1
@@ -476,6 +569,8 @@ def make_tree():
         if nested == 0 and in_function_body:
             in_function_body = False
             body_tree_element = nest_vertical(body_tree_element)
+            if body_tree_element[-1] == [['end', 'kwd']]:
+                body_tree_element = body_tree_element[:-1]
             tree[-1]['body'] = body_tree_element
 
     # ON DEBUG
