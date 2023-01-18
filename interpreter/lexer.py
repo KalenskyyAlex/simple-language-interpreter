@@ -1,13 +1,13 @@
 # takes array of lines: ["line1", "line2" ...];
 # delete tabs, eol, comments;
-# returns array of 'cleared' lines : ["clearedline1", "clearedline2" ...] and line number for each line
-def clearLines(lines_raw):
+# returns array of 'cleared' lines : ["cleared line 1", "cleared line 2" ...] and line number for each line
+def clear_lines(lines_raw):
 	lines = []
 	line_numbers = []
 
 	# removing comments, tabs, eol symbols
 	for index in range(len(lines_raw)):
-		line  = lines_raw[index]
+		line = lines_raw[index]
 
 		line = line.split('~')[0]
 
@@ -28,19 +28,18 @@ def clearLines(lines_raw):
 		line_numbers.append(index + 1)
 		lines.append(line)
 
-
 	return lines, line_numbers
 
 # takes 'file_name' (WITH extension) of .shc file;
 # separates lines on tokens, with types;
 # returns array of dicts: [ [ ["token" , "type"] ... ] ... ] and line numbers to each line
-def getTokens(file_name):
+def get_tokens(file_name):
 	file = open(file_name, 'r')
 
 	raw_lines = file.readlines()
-	lines, line_numbers = clearLines(raw_lines)
+	lines, line_numbers = clear_lines(raw_lines)
 
-	tokens_raw = [] # separated, but no types
+	tokens_raw = []  # separated, but no types
 
 	for line in lines:
 		line_of_tokens = []
@@ -61,10 +60,10 @@ def getTokens(file_name):
 				skip_next = False
 				continue
 
-			# when we hit " it's time to count all text as string till we hit other ", however it MUSTN'T be a " in the text 
+			# when we hit " it's time to count all text as string till we hit other ", however it MUSTN'T be an " in the text
 			if line[index] == '"' and not line[index - 1] == '\\':
 				in_string = not in_string
-				# don't 'continue', cause we need " to recognize token as string
+				# don't 'continue', because we need " to recognize token as string
 
 			# when we are in string we don't care about any operators, spaces, but care about '\'
 			if in_string and line[index] == '\\':
@@ -78,9 +77,8 @@ def getTokens(file_name):
 					token += '\\'
 
 				skip_next = True
-				continue # we've already added token
+				continue  # we've already added token
 			# till here
-
 
 			# when we're not in string things are easier
 			if line[index] in special_symbols and not in_string:
@@ -90,7 +88,7 @@ def getTokens(file_name):
 
 				token = ''
 				if line[index] != ' ':
-					line_of_tokens.append(line[index]) # we count operators as tokens as well, except spaces
+					line_of_tokens.append(line[index])  # we count operators as tokens as well, except spaces
 
 					# for 2-symbol operators, like '++', '--', '>=', '<=' or '==' 
 					if index + 1 < length:
@@ -107,26 +105,24 @@ def getTokens(file_name):
 			else:
 				token += line[index]
 
-
 		# using previous method we don't recognize last token, so we add it manually
 		if token != '':
 			line_of_tokens.append(token)
 
-		
 		# extra cautiousness
 		if not line_of_tokens == []:
 			tokens_raw.append(line_of_tokens)
 
-
-	tokens = recognizeTokens(tokens_raw) # differentiate tokens
+	tokens = recognize_tokens(tokens_raw)  # differentiate tokens
 
 	return tokens, line_numbers
 
-special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ','] # when we 'hit' them, we add tokens
+
+special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']  # when we 'hit' them, we add tokens
 
 # takes array of lines represented as tokens;
 # returns array of dicts: [ [ ["token" , "type"] ... ] ... ]
-def recognizeTokens(tokens_raw):
+def recognize_tokens(tokens_raw):
 	prev_token = ''
 
 	tokens = []
@@ -135,23 +131,23 @@ def recognizeTokens(tokens_raw):
 		recognized_line = []
 
 		for token in line:
-			if recognizeKeyword(token):
+			if recognize_keyword(token):
 				recognized_line.append([token, 'kwd'])
-			elif recognizeOpeator(token):
+			elif recognize_operator(token):
 				if token == '|':
 					recognized_line[-1][1] = 'fnc'
 				recognized_line.append([token, 'opr'])
-			elif recognizeSeparator(token):
+			elif recognize_separator(token):
 				recognized_line.append([token, 'sep'])
-			elif recognizeType(token):
+			elif recognize_type(token):
 				recognized_line.append([token, 'typ'])
-			elif recognizeBoolean(token):
+			elif recognize_boolean(token):
 				recognized_line.append([token, 'bln'])
-			elif recognizeInteger(token):
+			elif recognize_integer(token):
 				recognized_line.append([token, 'int'])
-			elif recognizeFloat(token):
+			elif recognize_float(token):
 				recognized_line.append([token, 'flt'])
-			elif recognizeString(token):
+			elif recognize_string(token):
 				recognized_line.append([token, 'str'])
 			else:
 				if prev_token == 'start':
@@ -176,51 +172,51 @@ types = ['int', 'float', 'str', 'bool']
 
 # takes token as string;
 # returns True if token is a keyword, otherwise False
-def recognizeKeyword(token):
+def recognize_keyword(token):
 	return token in keywords
 
 # takes token as string;
 # returns True if token is an operator, otherwise False
-def recognizeOpeator(token):
+def recognize_operator(token):
 	return token in operators
 
 # takes token as string;
 # returns True if token is an operator, otherwise False
-def recognizeType(token):
+def recognize_type(token):
 	return token in types
 
 # takes token as string;
 # returns True if token is a boolean, otherwise False
-def recognizeBoolean(token):
+def recognize_boolean(token):
 	return token in booleans
 
 # takes token as string;
 # returns True if token is an integer, otherwise False
-def recognizeInteger(token):
+def recognize_integer(token):
 	if token[0] == '-':
 		token = token[1:]
 
 	for numeral in token:
-		if not numeral in numbers:
+		if numeral not in numbers:
 			return False
 
 	return True 
 
 # takes token as string;
 # returns True if token is a floating point number, otherwise False
-def recognizeFloat(token):
+def recognize_float(token):
 	parts = token.split('.')
 	
 	# if string has NO point '.', it isn't a floating point number
 	if len(parts) == 1: 
 		return False
 
-	return recognizeInteger(parts[0]) and recognizeInteger(parts[1]) 
+	return recognize_integer(parts[0]) and recognize_integer(parts[1])
 
 # takes token as string;
 # returns True if token is a string, otherwise False
-def recognizeString(token):
+def recognize_string(token):
 	return token[0] == '"' and token[-1] == '"' 
 
-def recognizeSeparator(token):
+def recognize_separator(token):
 	return token == ','

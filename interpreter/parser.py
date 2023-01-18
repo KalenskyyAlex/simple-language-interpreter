@@ -1,16 +1,14 @@
-from lexer import getTokens
+from lexer import get_tokens
 
-# ON DEBUG
-from pprint import *
-
-tokens, line_numbers = getTokens('../SYNTAX.shc')
+tokens, line_numbers = get_tokens('../SYNTAX.shc') # ON DEBUG
 
 tree = []
 
-
-# takes line of tokens as array;
-# returns True if syntax with 'use' is correct, otherwise False 
 def valid_use_syntax(line):
+    """
+     :param line: takes line of tokens as array
+     :return: True if syntax with 'use' is correct, otherwise False
+    """
     if len(line) == 2:
         if line[0][0] == 'use':
             if line[1][1] == "lib":
@@ -21,11 +19,13 @@ def valid_use_syntax(line):
 
 function_tree_element = None
 
-
-# takes line of tokens as array + line number;
-# forms 'function' element of tree;
-# returns True if syntax with 'start' is correct, otherwise False + SYNTAX ERROR
 def valid_start_syntax(line, line_number):
+    """
+    takes line of tokens as array + line number
+
+    forms 'function' element of tree
+    :return: returns True if syntax with 'start' is correct, otherwise False + SYNTAX ERROR
+    """
     global function_tree_element
 
     function_tree_element = {}
@@ -76,10 +76,15 @@ def valid_start_syntax(line, line_number):
 # default values of types;
 variable_tree_element = None
 
-# takes line of tokens as array;
-# forms 'variable' element of tree;
-# returns True if syntax with 'is' is correct, otherwise False + SYNTAX ERROR
+
 def valid_is_syntax(block, line_number):
+
+    """
+    takes line of tokens as array
+
+    forms 'variable' element of tree
+    :return: True if syntax with 'is' is correct, otherwise False + SYNTAX ERROR
+    """
     global variable_tree_element
 
     variable_tree_element = {}
@@ -101,11 +106,13 @@ def valid_is_syntax(block, line_number):
 
 return_tree_element = None
 
-
-# takes line of tokens as array;
-# forms 'return' element of tree;
-# returns True if syntax with 'return' is correct, otherwise False + SYNTAX ERROR
 def valid_return_syntax(block, line_number):
+    """
+    takes line of tokens as array
+
+    forms 'return' element of tree
+    :return: True if syntax with 'return' is correct, otherwise False + SYNTAX ERROR
+    """
     global return_tree_element
 
     return_tree_element = {}
@@ -125,11 +132,13 @@ def valid_return_syntax(block, line_number):
 
 break_tree_element = None
 
-
-# takes line of tokens as array;
-# forms 'break' element of tree;
-# returns True if syntax with 'break' is correct, otherwise False + SYNTAX ERROR
 def valid_break_syntax(block, line_number):
+    """
+    takes line of tokens as array
+
+    forms 'break' element of tree
+    :return: True if syntax with 'break' is correct, otherwise False + SYNTAX ERROR
+    """
     global break_tree_element
 
     break_tree_element = {}
@@ -150,7 +159,6 @@ def valid_break_syntax(block, line_number):
 # takes line of tokens as array with line_number and adds it to body;
 # forms body tree element
 body_tree_element = []
-
 
 def fill_body(line, line_number):
     global body_tree_element
@@ -191,16 +199,20 @@ def fill_body(line, line_number):
             body_tree_element.append(line)
 
 
-# returns True if line has nesting, otherwise False
 def has_nesting(line):
+    """
+    :return: True if line has nesting, otherwise False
+    """
     if ['(', 'opr'] in line or [')', 'opr'] in line:
         return True
 
     return False
 
 
-# nest given line recursively
 def nest(line, line_number):
+    """
+    nest given line recursively
+    """
     # base case - no nesting
     if not has_nesting(line):
         return line
@@ -317,8 +329,10 @@ def operate_1_helper(line, line_number):
         return line
 
 
-# nests tree by '=' operator
 def operate_1(segment, line_number):
+    """
+    nests tree by '=' operator
+    """
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
@@ -350,8 +364,10 @@ def operate_1(segment, line_number):
         return operated_segment
 
 
-# used to handle already nested segments
 def operate_2_helper(line, line_number):
+    """
+        used to handle already nested segments
+    """
     if isinstance(line, dict):
         line['left'] = operate_2_helper(line['left'], line_number)
         line['right'] = operate_2_helper(line['right'], line_number)
@@ -361,8 +377,10 @@ def operate_2_helper(line, line_number):
         return line
 
 
-# nests tree by '+' or(and) '-' operators
 def operate_2(segment, line_number):
+    """
+        nests tree by '+' or(and) '-' operators
+    """
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
@@ -396,8 +414,10 @@ def operate_2(segment, line_number):
         return operated_segment
 
 
-# used to handle already nested segments recursively
 def operate_3_helper(line, line_number):
+    """
+        used to handle already nested segments recursively
+    """
     if isinstance(line, dict):
         line['left'] = operate_3_helper(line['left'], line_number)
         line['right'] = operate_3_helper(line['right'], line_number)
@@ -407,8 +427,10 @@ def operate_3_helper(line, line_number):
         return line
 
 
-# nests tree by '*' or(and) '/' or(and) '%' operators
 def operate_3(segment, line_number):
+    """
+        nests tree by '*' or(and) '/' or(and) '%' operators
+    """
     if not ['*', 'opr'] in segment and not ['/', 'opr'] in segment and not ['%', 'opr'] in segment:
         return segment
     else:
@@ -572,9 +594,6 @@ def make_tree():
             if body_tree_element[-1] == [['end', 'kwd']]:
                 body_tree_element = body_tree_element[:-1]
             tree[-1]['body'] = body_tree_element
-
-    # ON DEBUG
-    pprint(tree, width=120)
 
 
 make_tree()
