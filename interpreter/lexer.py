@@ -30,7 +30,7 @@ def clear_lines(lines_raw):
 
 	return lines, line_numbers
 
-# takes 'file_name' (WITH extension) of .shc file;
+# takes 'file_name' (WITH extension) of .min file;
 # separates lines on tokens, with types;
 # returns array of dicts: [ [ ["token" , "type"] ... ] ... ] and line numbers to each line
 def get_tokens(file_name):

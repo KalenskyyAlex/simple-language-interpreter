@@ -1,6 +1,6 @@
 from lexer import get_tokens
 
-tokens, line_numbers = get_tokens('../SYNTAX.shc') # ON DEBUG
+tokens, line_numbers = get_tokens('../SYNTAX.min')  # ON DEBUG
 
 tree = []
 
