@@ -1,7 +1,11 @@
-# takes array of lines: ["line1", "line2" ...];
-# delete tabs, eol, comments;
-# returns array of 'cleared' lines : ["cleared line 1", "cleared line 2" ...] and line number for each line
 def clear_lines(lines_raw):
+	"""
+		takes array of lines: ["line1", "line2" ...]
+
+		delete tabs, eol, comments
+
+		:return: array of 'cleared' lines : ["cleared line 1", "cleared line 2" ...] and line number for each line
+	"""
 	lines = []
 	line_numbers = []
 
@@ -30,10 +34,15 @@ def clear_lines(lines_raw):
 
 	return lines, line_numbers
 
-# takes 'file_name' (WITH extension) of .min file;
-# separates lines on tokens, with types;
-# returns array of dicts: [ [ ["token" , "type"] ... ] ... ] and line numbers to each line
+
 def get_tokens(file_name):
+	"""
+		takes 'file_name' (WITH extension) of .min file
+
+		separate lines on tokens, with types
+
+		:return: array of dicts: [ [ ["token itself" , "type"] ... ] ... ] and line numbers to each line
+	"""
 	file = open(file_name, 'r')
 
 	raw_lines = file.readlines()
@@ -120,9 +129,12 @@ def get_tokens(file_name):
 
 special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']  # when we 'hit' them, we add tokens
 
-# takes array of lines represented as tokens;
-# returns array of dicts: [ [ ["token" , "type"] ... ] ... ]
+
 def recognize_tokens(tokens_raw):
+	"""
+		takes array of lines represented as tokens;
+		:return: array of dicts: [ [ ["token" , "type"] ... ] ... ]
+	"""
 	prev_token = ''
 
 	tokens = []
@@ -170,29 +182,44 @@ booleans = ['true', 'false']
 numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 types = ['int', 'float', 'str', 'bool']
 
-# takes token as string;
-# returns True if token is a keyword, otherwise False
+
 def recognize_keyword(token):
+	"""
+		takes token as string
+		:return: True if token is a keyword, otherwise False
+	"""
 	return token in keywords
 
-# takes token as string;
-# returns True if token is an operator, otherwise False
 def recognize_operator(token):
+	"""
+		takes token as string
+		:return: True if token is an operator, otherwise False
+	"""
 	return token in operators
 
 # takes token as string;
 # returns True if token is an operator, otherwise False
 def recognize_type(token):
+	"""
+		takes token as string
+		:return: True if token is a type, otherwise False
+	"""
 	return token in types
 
-# takes token as string;
-# returns True if token is a boolean, otherwise False
+
 def recognize_boolean(token):
+	"""
+		takes token as string
+		:return: True if token is a boolean, otherwise False
+	"""
 	return token in booleans
 
-# takes token as string;
-# returns True if token is an integer, otherwise False
+
 def recognize_integer(token):
+	"""
+		takes token as string
+		:return: True if token is a integer, otherwise False
+	"""
 	if token[0] == '-':
 		token = token[1:]
 
@@ -202,9 +229,11 @@ def recognize_integer(token):
 
 	return True 
 
-# takes token as string;
-# returns True if token is a floating point number, otherwise False
 def recognize_float(token):
+	"""
+		takes token as string
+		:return: True if token is a float, otherwise False
+	"""
 	parts = token.split('.')
 	
 	# if string has NO point '.', it isn't a floating point number
@@ -216,6 +245,10 @@ def recognize_float(token):
 # takes token as string;
 # returns True if token is a string, otherwise False
 def recognize_string(token):
+	"""
+		takes token as string
+		:return: True if token is a string, otherwise False
+	"""
 	return token[0] == '"' and token[-1] == '"' 
 
 def recognize_separator(token):
