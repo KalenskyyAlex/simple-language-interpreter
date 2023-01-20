@@ -1,1 +1,18 @@
-# I DON'T KNOW WHAT TO DO... :(
+def execute_line():
+    pass
+
+
+def execute_function():
+    pass
+
+
+def handle_libraries():
+    pass
+
+
+def complete_function_set():
+    """
+        fills functions_list, which are either Python callables or MINIMUM functions
+        :return:
+    """
+    pass
