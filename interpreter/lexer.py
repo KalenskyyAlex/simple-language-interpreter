@@ -1,3 +1,5 @@
+from pprint import pprint
+
 def clear_lines(lines_raw):
 	"""
 		takes array of lines: ["line1", "line2" ...]
@@ -253,3 +255,8 @@ def recognize_string(token):
 
 def recognize_separator(token):
 	return token == ','
+
+
+if __name__ == "__main__":
+	filename = input("Enter path to .min file you want to execute: ")
+	pprint(get_tokens(filename))

@@ -1,6 +1,9 @@
 from lexer import get_tokens
 
-tokens, line_numbers = get_tokens('../SYNTAX.min')  # ON DEBUG
+from pprint import pprint
+
+tokens = []
+line_numbers = []
 
 tree = []
 
@@ -533,10 +536,15 @@ def nest_vertical(block):
 in_function_body = False
 
 
-def make_tree():
+def make_tree(file_name):
     global in_function_body
     global nested
     global body_tree_element
+
+    global tokens
+    global line_numbers
+
+    tokens, line_numbers = get_tokens(file_name)  # ON DEBUG
 
     for index in range(len(tokens)):
 
@@ -596,4 +604,7 @@ def make_tree():
             tree[-1]['body'] = body_tree_element
 
 
-make_tree()
+if __name__ == "__main__":
+    filename = input("Enter path to .min file you want to execute: ")
+    make_tree(filename)
+    pprint(tree, width=140)

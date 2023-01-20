@@ -16,3 +16,6 @@ def complete_function_set():
         :return:
     """
     pass
+
+if __name__ == "__main__":
+    filename = input("Enter path to .min file you want to execute: ")
