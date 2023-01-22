@@ -256,7 +256,16 @@ def recognize_string(token):
 def recognize_separator(token):
 	return token == ','
 
+def print_tokens(file_name):
+	print("Raw tokens:")
+
+	tokens, line_numbers = get_tokens(file_name)
+	combined = zip(line_numbers, tokens)
+	pprint(dict(combined))
+
+	print("-" * 70)
+
 
 if __name__ == "__main__":
-	filename = input("Enter path to .min file you want to execute: ")
-	pprint(get_tokens(filename))
+	filename = input("Enter path to .min file you want to convert to tokens of: ")
+	print_tokens(filename)

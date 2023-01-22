@@ -93,9 +93,9 @@ end
 	b = true
 	
 	if b
-		out | "I'm happy"
+		write | "I'm happy"
 	else
-		out | "I'm sad"
+		write | "I'm sad"
 	end
 ```
 
@@ -107,7 +107,7 @@ index is int
 index = 0
 
 while index < 10
-	out | index ~ basic output function
+	write | index ~ basic output function
 	index = index + 1
 end 
 ```
@@ -119,7 +119,7 @@ index is int
 index = 0
 
 while true
-	out | index ~ basic output function
+	write | index ~ basic output function
 	index = index + 1
 	if index == 10
 		break ~ while loop can have 'break' statement

@@ -603,8 +603,17 @@ def make_tree(file_name):
                 body_tree_element = body_tree_element[:-1]
             tree[-1]['body'] = body_tree_element
 
+    return tree
+
+
+def print_tree(file_name):
+    print("Produced tree:")
+
+    pprint(make_tree(file_name),
+           width=140)
+
+    print("-" * 70)
 
 if __name__ == "__main__":
-    filename = input("Enter path to .min file you want to execute: ")
-    make_tree(filename)
-    pprint(tree, width=140)
+    filename = input("Enter path to .min file you want to parse: ")
+    print_tree(filename)

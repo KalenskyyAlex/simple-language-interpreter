@@ -1,6 +1,13 @@
-def write(obj):
+def get_methods():
+    return [
+            ['in', in_, [['every']]],
+            ['out', out, []]
+    ]
+
+
+def in_(obj):
     print(obj)
 
 
-def read():
+def out():
     return input()
