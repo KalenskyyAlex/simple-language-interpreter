@@ -1,15 +1,18 @@
+import os
+
 from parser import make_tree, print_tree
 from lexer import print_tokens
 import sys
+import importlib.util
 
-#ON DEBUG
+# ON DEBUG
 from pprint import pprint
 
 def execute_line():
     pass
 
 
-def execute_function():
+def execute_function(function_name):
     pass
 
 
@@ -27,19 +30,21 @@ def find_callables(tree):
     callables = {}
     for block in tree:
         if 'body' in block.keys():
-            #callables[block['name']] = {
-            #   'body': block['body'],
-            #    'args': block['args'],
-            #    'line': block['line']
-            #}
+            callables[block['name']] = {
+                'body': block['body'],
+                'args': block['args'],
+                'line': block['line']
+            }
             pass
         elif 'operation' in block.keys() and block['operation'] == 'use':
-            print("A")
-            module = __import__("/home/kao/Documents/proj/libraries/" + block['right'])
-            methods = module.get_methods()
+            root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+            path = root_directory + "/libraries/" + block['right'] + ".py"
+            spec = importlib.util.spec_from_file_location(block['right'], path)
 
-            print(block['right'])
-            print(module.get_methods)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            methods = module.get_methods()
 
             for method in methods:
                 name = method[0]
@@ -54,8 +59,12 @@ def find_callables(tree):
 def execute(file_name):
     tree = make_tree(file_name)
 
-    pprint(find_callables(tree))
+    callables = find_callables(tree)
 
+    if 'main' in callables.keys():
+        execute_function('main')
+    else:
+        print("COMPILATION ERROR : 'main' FUNCTION NOT FOUND")
 
 def print_code(file_name):
     print("Executed code:")
