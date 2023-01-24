@@ -6,13 +6,14 @@ import sys
 import importlib.util
 
 # ON DEBUG
-from pprint import pprint
+# from pprint import pprint
 
 def execute_line():
     pass
 
 
 def execute_function(function_name):
+    print(function_name)
     pass
 
 
