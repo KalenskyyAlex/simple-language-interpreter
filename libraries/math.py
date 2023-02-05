@@ -4,8 +4,8 @@ def get_methods():
         ['pow', pow_, ['flt|int']]
     ]
 
-def sqrt_(number):
-    return number ** 0.5
+def sqrt_(arg):
+    return arg[0] ** 0.5
 
-def pow_(number, power):
-    return number ** power
+def pow_(arg):
+    return arg[0] ** arg[1]

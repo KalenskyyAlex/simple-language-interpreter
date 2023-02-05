@@ -470,7 +470,7 @@ def operate_3(segment, line_number):
 nested = 0
 
 
-def nest_vertical(block):
+def nest_vertical(block, line_number):
     new_block = []
     writing_inner_block = False
     block_nesting = 0
@@ -488,7 +488,8 @@ def nest_vertical(block):
                     inner_block = {
                         'left': condition,
                         'operation': operation,
-                        'right': []
+                        'right': [],
+                        'line': line_number
                     }
 
                     block_nesting += 1
@@ -500,7 +501,8 @@ def nest_vertical(block):
                         'left': condition,
                         'operation': operation,
                         'right': [],
-                        'else': []
+                        'else': [],
+                        'line': line_number
                     }
                     block_nesting += 1
                     writing_inner_block = True
@@ -522,7 +524,7 @@ def nest_vertical(block):
                 if block_nesting == 0:
                     writing_inner_block = False
                     writing_else = False
-                    inner_block['right'] = nest_vertical(inner_block['right'])
+                    inner_block['right'] = nest_vertical(inner_block['right'], line_number)
                     new_block.append(inner_block)
                 elif writing_else:
                     inner_block['else'].append(line)
@@ -530,6 +532,8 @@ def nest_vertical(block):
                     inner_block['right'].append(line)
             else:
                 inner_block['right'].append(line)
+
+        line_number += 1
     return new_block
 
 
@@ -544,7 +548,7 @@ def make_tree(file_name):
     global tokens
     global line_numbers
 
-    tokens, line_numbers = get_tokens(file_name)  # ON DEBUG
+    tokens, line_numbers = get_tokens(file_name)
 
     for index in range(len(tokens)):
 
@@ -598,7 +602,7 @@ def make_tree(file_name):
 
         if nested == 0 and in_function_body:
             in_function_body = False
-            body_tree_element = nest_vertical(body_tree_element)
+            body_tree_element = nest_vertical(body_tree_element, tree[-1]['line'])
             if body_tree_element[-1] == [['end', 'kwd']]:
                 body_tree_element = body_tree_element[:-1]
             tree[-1]['body'] = body_tree_element
@@ -613,6 +617,7 @@ def print_tree(file_name):
            width=140)
 
     print("-" * 70)
+
 
 if __name__ == "__main__":
     filename = input("Enter path to .min file you want to parse: ")

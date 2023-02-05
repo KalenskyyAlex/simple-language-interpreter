@@ -162,7 +162,7 @@ def recognize_tokens(tokens_raw):
 			elif recognize_float(token):
 				recognized_line.append([token, 'flt'])
 			elif recognize_string(token):
-				recognized_line.append([token, 'str'])
+				recognized_line.append([token[1:-1], 'str'])
 			else:
 				if prev_token == 'start':
 					recognized_line.append([token, 'fnc'])

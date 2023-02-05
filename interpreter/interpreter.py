@@ -8,13 +8,71 @@ import importlib.util
 # ON DEBUG
 # from pprint import pprint
 
-def execute_line():
+def execute_line(line):
+    print(line)
     pass
 
 
-def execute_function(function_name):
-    print(function_name)
-    pass
+visible_variables = {}
+
+
+def args_pass(args, args_needed, function_name):
+    args_count_needed = len(args_needed)
+    args_count = len(args)
+
+    if args_count_needed == args_count:
+        for index in range(args_count):
+            token = args[index]
+            type_ = token[1]
+
+            types_available = args_needed[index]
+            if type_ not in types_available:
+                print("COMPILATION ERROR: FUNCTION ",
+                      function_name, "EXPECTS", types_available,
+                      "AS A PARAMETER, BUT", type_, "GIVEN")
+                return False
+        return True
+    else:
+        print("COMPILATION ERROR: FUNCTION ",
+              function_name, "REQUIRES", len(args_needed),
+              "BUT", len(args), "GIVEN")
+        return False
+
+
+def execute_function(function_name, callables, args):
+    global visible_variables
+    if 'args' in callables[function_name].keys():
+        args_needed = callables[function_name]['args']
+        args_needed = list(map(lambda arg: arg['right'][0], args_needed))
+
+        if args_pass(args, args_needed, function_name):
+            # TODO passing arguments
+
+            for line in callables[function_name]['body']:
+                execute_line(line)
+    else:
+        args_needed = callables[function_name][1]
+        function = callables[function_name][0]
+
+        if args_pass(args, args_needed, function_name):
+            args_count = len(args_needed)
+
+            args_values = []
+
+            for index in range(args_count):
+                token = args[index]
+                type_ = token[1]
+
+                if type_ == 'int':
+                    args_values.append(int(token[0]))
+                elif type_ == 'flt':
+                    args_values.append(float(token[0]))
+                elif type_ == 'str':
+                    args_values.append(token[0])
+                elif type_ == 'bln':
+                    args_values.append(token[0] == 'true')
+
+            function(args_values)
 
 
 def handle_libraries():
@@ -63,9 +121,10 @@ def execute(file_name):
     callables = find_callables(tree)
 
     if 'main' in callables.keys():
-        execute_function('main')
+        execute_function('main', callables, [])
     else:
         print("COMPILATION ERROR : 'main' FUNCTION NOT FOUND")
+
 
 def print_code(file_name):
     print("Executed code:")

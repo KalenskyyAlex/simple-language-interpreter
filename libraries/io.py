@@ -1,12 +1,12 @@
 def get_methods():
     return [
-            ['in', in_, [['every']]],
+            ['in', in_, [['int|flt|str|bln']]],
             ['out', out, []]
     ]
 
 
-def in_(obj):
-    print(obj)
+def in_(arg):
+    print(arg[0])
 
 
 def out():
