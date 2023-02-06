@@ -1,13 +1,13 @@
 def get_methods():
     return [
-            ['in', in_, [['int|flt|str|bln']]],
-            ['out', out, []]
+            ['in', in_, []],
+            ['out', out, ['int|float|str|bool']]
     ]
 
 
-def in_(arg):
+def out(arg):
     print(arg[0])
 
 
-def out():
+def in_():
     return input()

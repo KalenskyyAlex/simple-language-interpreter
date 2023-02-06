@@ -1,7 +1,7 @@
 def get_methods():
     return [
-        ['sqrt', sqrt_, ['flt|int']],
-        ['pow', pow_, ['flt|int']]
+        ['sqrt', sqrt_, ['float|int']],
+        ['pow', pow_, ['float|int']]
     ]
 
 def sqrt_(arg):
