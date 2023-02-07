@@ -1,0 +1,15 @@
+use io
+
+start main
+    index1 is int
+    index2 is int
+
+    index1 = 3
+    index2 = index1
+
+    index2 = 10
+
+    index1 = index2
+
+	out | "Hello, World!"
+end

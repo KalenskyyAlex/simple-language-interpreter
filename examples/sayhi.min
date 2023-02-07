@@ -1,0 +1,13 @@
+use io
+
+start main
+	name is str
+	
+	out | "Hi! What is your name?"
+	
+	name = in
+	
+	out | "Hello, "
+	out | name
+	out | "! Nice to meet you!"
+end

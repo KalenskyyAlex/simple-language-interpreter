@@ -1,0 +1,13 @@
+use io
+
+def factorial | num
+	if num == 0
+		return 1
+	else
+		return num * (factorial | n - 1)
+end
+
+start main
+	out | (factorial | 5)
+	out | "\n"
+end

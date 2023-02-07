@@ -8,7 +8,7 @@ import importlib.util
 # ON DEBUG
 # from pprint import pprint
 
-def execute_line(line, nesting_level, line_number):
+def execute_line(line, callables, nesting_level, line_number):
     global visible_variables
     # the simplest case
     if isinstance(line['right'], list) and \
@@ -39,6 +39,11 @@ def execute_line(line, nesting_level, line_number):
             var_name = left[0]
             type_ = visible_variables[nesting_level][var_name][1]
 
+            if type_ == 'var':
+                for index in range(1, nesting_level + 1):
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
+
             # type check
             if right[1] == type_:
                 visible_variables[nesting_level][var_name][0] = right[0]
@@ -51,6 +56,16 @@ def execute_line(line, nesting_level, line_number):
             # type check
             type_left = left[1]
             type_right = right[1]
+
+            if type_left == 'var':
+                for index in range(1, nesting_level + 1):
+                    if left[0] in visible_variables[index].keys():
+                        left = visible_variables[index][left[0]]
+            if type_right == 'var':
+                for index in range(1, nesting_level + 1):
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
+
             if type_left in 'int float' and type_right in 'int float':
                 sum_ = left[0] + right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
@@ -62,6 +77,16 @@ def execute_line(line, nesting_level, line_number):
         elif line['operation'] == ['-', 'opr']:
             type_left = left[1]
             type_right = right[1]
+
+            if type_left == 'var':
+                for index in range(1, nesting_level + 1):
+                    if left[0] in visible_variables[index].keys():
+                        left = visible_variables[index][left[0]]
+            if type_right == 'var':
+                for index in range(1, nesting_level + 1):
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
+
             if type_left in 'int float' and type_right in 'int float':
                 difference = left[0] - right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
@@ -73,6 +98,16 @@ def execute_line(line, nesting_level, line_number):
         elif line['operation'] == ['*', 'opr']:
             type_left = left[1]
             type_right = right[1]
+
+            if type_left == 'var':
+                for index in range(1, nesting_level + 1):
+                    if left[0] in visible_variables[index].keys():
+                        left = visible_variables[index][left[0]]
+            if type_right == 'var':
+                for index in range(1, nesting_level + 1):
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
+
             if type_left in 'int float' and type_right in 'int float':
                 product = left[0] * right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
@@ -84,6 +119,16 @@ def execute_line(line, nesting_level, line_number):
         elif line['operation'] == ['/', 'opr']:
             type_left = left[1]
             type_right = right[1]
+
+            if type_left == 'var':
+                for index in range(1, nesting_level + 1):
+                    if left[0] in visible_variables[index].keys():
+                        left = visible_variables[index][left[0]]
+            if type_right == 'var':
+                for index in range(1, nesting_level + 1):
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
+
             if type_left in 'int float' and type_right in 'int float':
                 if right[0] != 0:
                     quotient = left[0] / right[0]
@@ -99,6 +144,16 @@ def execute_line(line, nesting_level, line_number):
         elif line['operation'] == ['%', 'opr']:
             type_left = left[1]
             type_right = right[1]
+
+            if type_left == 'var':
+                for index in range(1, nesting_level + 1):
+                    if left[0] in visible_variables[index].keys():
+                        left = visible_variables[index][left[0]]
+            if type_right == 'var':
+                for index in range(1, nesting_level + 1):
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
+
             if type_left in 'int float' and type_right in 'int float':
                 modulo = left[0] % right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
@@ -108,9 +163,15 @@ def execute_line(line, nesting_level, line_number):
                       type_left, 'AND', type_right)
                 return None, False
         elif line['operation'] == ['|', 'opr']:
-            return None, False
+            if left[0] in callables.keys():
+                return execute_function(left[0], callables, right), True
+            else:
+                print("COMPILATION ERROR AT LINE ", line_number, ": FUNCTION", left[0], "IS NOT FOUND")
+                return None, False
         elif line['operation'] == [',', 'sep']:
-            return None, False
+            return left + right, True
+    else:
+        pass
 
     return None, False
 
@@ -152,7 +213,7 @@ def execute_function(function_name, callables, args):
 
             for line in callables[function_name]['body']:
                 line_number = line['line']
-                response, success = execute_line(line, 1, line_number)
+                response, success = execute_line(line, callables, 1, line_number)
                 if not success:
                     return
     else:
@@ -177,10 +238,6 @@ def execute_function(function_name, callables, args):
                     args_values.append(token[0] == 'true')
 
             function(args_values)
-
-
-def handle_libraries():
-    pass
 
 
 def find_callables(tree):
@@ -226,7 +283,7 @@ def execute(file_name):
 
     if 'main' in callables.keys():
         execute_function('main', callables, [])
-        execute_function('out', callables, [['Hello, World!', 'str']])
+        print(visible_variables)
     else:
         print("COMPILATION ERROR : 'main' FUNCTION NOT FOUND")
 

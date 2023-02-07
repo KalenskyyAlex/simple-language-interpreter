@@ -252,6 +252,8 @@ def nest(line, line_number):
 
 
 def operate_separators(segment, line_number):
+    if isinstance(segment, int) or isinstance(segment, float):
+        return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
@@ -282,6 +284,8 @@ def operate_separators(segment, line_number):
 
 
 def operate_calls(segment, line_number):
+    if isinstance(segment, int) or isinstance(segment, float):
+        return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
@@ -292,30 +296,32 @@ def operate_calls(segment, line_number):
         else:
             for index in range(len(segment)):
                 token = segment[index]
-                if isinstance(token[0], str):
-                    if token[1] == 'opr':
-                        if token[0] == '|':
-                            left = operate_calls(segment[:index], line_number)
 
-                            if len(left) == 1 and isinstance(left[0], dict):
-                                left = left[0]
+                if not isinstance(token, int) and not isinstance(token, float):
+                    if isinstance(token[0], str):
+                        if token[1] == 'opr':
+                            if token[0] == '|':
+                                left = operate_calls(segment[:index], line_number)
 
-                            right = operate_separators(segment[index + 1:], line_number)
+                                if len(left) == 1 and isinstance(left[0], dict):
+                                    left = left[0]
 
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
+                                right = operate_separators(segment[index + 1:], line_number)
 
-                            right = operate_calls(right, line_number)
+                                if len(right) == 1 and isinstance(right[0], dict):
+                                    right = right[0]
 
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
+                                right = operate_calls(right, line_number)
 
-                            operated_segment = {
-                                'left': left[0] if len(left) == 1 else left,
-                                'operation': token,
-                                'right': right
-                            }
-                            break
+                                if len(right) == 1 and isinstance(right[0], dict):
+                                    right = right[0]
+
+                                operated_segment = {
+                                    'left': left[0] if len(left) == 1 else left,
+                                    'operation': token,
+                                    'right': right
+                                }
+                                break
                 else:
                     segment[index] = operate_calls(token, line_number)
 
@@ -336,31 +342,34 @@ def operate_1(segment, line_number):
     """
     nests tree by '=' operator
     """
+    if isinstance(segment, int) or isinstance(segment, float):
+        return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
         operated_segment = segment
         for index in range(len(segment)):
             token = segment[index]
-            if isinstance(token[0], str):
-                if token[1] == 'opr':
-                    if token[0] == '=':
-                        left = operate_1(segment[:index], line_number)
+            if not isinstance(token, int) and not isinstance(token, float):
+                if isinstance(token[0], str):
+                    if token[1] == 'opr':
+                        if token[0] == '=':
+                            left = operate_1(segment[:index], line_number)
 
-                        if len(left) == 1 and isinstance(left[0], dict):
-                            left = left[0]
+                            if len(left) == 1 and isinstance(left[0], dict):
+                                left = left[0]
 
-                        right = operate_1(segment[index + 1:], line_number)
+                            right = operate_1(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and isinstance(right[0], dict):
-                            right = right[0]
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
 
-                        operated_segment = {
-                            'left': left[0] if len(left) == 1 else left,
-                            'operation': token,
-                            'right': right[0] if len(right) == 1 else right
-                        }
-                        break
+                            operated_segment = {
+                                'left': left[0] if len(left) == 1 else left,
+                                'operation': token,
+                                'right': right[0] if len(right) == 1 else right
+                            }
+                            break
             else:
                 segment[index] = operate_1(token, line_number)
 
@@ -384,6 +393,8 @@ def operate_2(segment, line_number):
     """
         nests tree by '+' or(and) '-' operators
     """
+    if isinstance(segment, int) or isinstance(segment, float):
+        return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
     else:
@@ -391,26 +402,27 @@ def operate_2(segment, line_number):
 
         for index in range(len(segment)):
             token = segment[index]
-            if isinstance(token[0], str):
-                if len(token) >= 2:
-                    if token[1] == 'opr':
-                        if token[0] == '+' or token[0] == '-':
-                            left = operate_2(segment[:index], line_number)
+            if not isinstance(token, int) and not isinstance(token, float):
+                if isinstance(token[0], str):
+                    if len(token) >= 2:
+                        if token[1] == 'opr':
+                            if token[0] == '+' or token[0] == '-':
+                                left = operate_2(segment[:index], line_number)
 
-                            if len(left) == 1 and isinstance(left[0], dict):
-                                left = left[0]
+                                if len(left) == 1 and isinstance(left[0], dict):
+                                    left = left[0]
 
-                            right = operate_2(segment[index + 1:], line_number)
+                                right = operate_2(segment[index + 1:], line_number)
 
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
+                                if len(right) == 1 and isinstance(right[0], dict):
+                                    right = right[0]
 
-                            operated_segment = {
-                                'left': left[0] if len(left) == 1 else left,
-                                'operation': token,
-                                'right': right[0] if len(right) == 1 else right
-                            }
-                            break
+                                operated_segment = {
+                                    'left': left[0] if len(left) == 1 else left,
+                                    'operation': token,
+                                    'right': right[0] if len(right) == 1 else right
+                                }
+                                break
             else:
                 segment[index] = operate_2(token, line_number)
 
@@ -434,6 +446,8 @@ def operate_3(segment, line_number):
     """
         nests tree by '*' or(and) '/' or(and) '%' operators
     """
+    if isinstance(segment, int) or isinstance(segment, float):
+        return segment
     if not ['*', 'opr'] in segment and not ['/', 'opr'] in segment and not ['%', 'opr'] in segment:
         return segment
     else:

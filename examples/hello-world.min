@@ -1,6 +1,5 @@
-~ "Hello, World!" with MINIMUM
 use io
 
 start main
-	out | "Hello, world!"
+	out | "Hello, world!\n"
 end

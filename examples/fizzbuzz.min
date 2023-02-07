@@ -1,0 +1,30 @@
+use io
+
+start main
+	maxvalue is int
+	index is int
+
+	out | "Enter number\n"
+	
+	maxvalue = in
+	index = 0
+		
+	while index < maxvalue
+		if index % 3 == 0
+			if index % 5 == 0
+				out | "fizzbuzz\n"
+			else
+				out | "fizz\n"
+			end
+		else
+			if index % 5 == 0
+				out | "buzz\n"
+			else 
+				out | index
+				out | "\n"
+			end
+		end
+		
+		index = index + 1
+	end
+end

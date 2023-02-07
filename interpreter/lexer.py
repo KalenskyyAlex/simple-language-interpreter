@@ -158,9 +158,9 @@ def recognize_tokens(tokens_raw):
 			elif recognize_boolean(token):
 				recognized_line.append([token, 'bool'])
 			elif recognize_integer(token):
-				recognized_line.append([token, 'int'])
+				recognized_line.append([int(token), 'int'])
 			elif recognize_float(token):
-				recognized_line.append([token, 'float'])
+				recognized_line.append([float(token), 'float'])
 			elif recognize_string(token):
 				recognized_line.append([token[1:-1], 'str'])
 			else:
