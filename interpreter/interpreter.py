@@ -10,11 +10,19 @@ import importlib.util
 
 def execute_line(line, callables, nesting_level, line_number):
     global visible_variables
+    if isinstance(line, list):
+        return line, True
     # the simplest case
-    if isinstance(line['right'], list) and \
-            isinstance(line['left'], list):
+    else:
         right = line['right']
         left = line['left']
+
+        right, success_right = execute_line(right, callables, nesting_level, line_number)
+        left, success_left = execute_line(left, callables, nesting_level, line_number)
+
+        if not success_right or not success_left:
+            return None, False
+
         if line['operation'] == ['is', 'opr']:
             # type check
             if right[1] == 'typ':
@@ -170,10 +178,8 @@ def execute_line(line, callables, nesting_level, line_number):
                 return None, False
         elif line['operation'] == [',', 'sep']:
             return left + right, True
-    else:
-        pass
-
-    return None, False
+        else:
+            return None, False
 
 
 visible_variables = {}
