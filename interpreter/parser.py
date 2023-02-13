@@ -322,8 +322,8 @@ def operate_calls(segment, line_number):
                                     'right': right
                                 }
                                 break
-                else:
-                    segment[index] = operate_calls(token, line_number)
+                    else:
+                        segment[index] = operate_calls(token, line_number)
 
         return operated_segment
 
@@ -370,8 +370,8 @@ def operate_1(segment, line_number):
                                 'right': right[0] if len(right) == 1 else right
                             }
                             break
-            else:
-                segment[index] = operate_1(token, line_number)
+                else:
+                    segment[index] = operate_1(token, line_number)
 
         return operated_segment
 
@@ -403,6 +403,8 @@ def operate_2(segment, line_number):
         for index in range(len(segment)):
             token = segment[index]
             if not isinstance(token, int) and not isinstance(token, float):
+                if isinstance(token, dict):
+                    continue
                 if isinstance(token[0], str):
                     if len(token) >= 2:
                         if token[1] == 'opr':
@@ -417,14 +419,17 @@ def operate_2(segment, line_number):
                                 if len(right) == 1 and isinstance(right[0], dict):
                                     right = right[0]
 
+                                if len(left) == 0 and token[0] == '-':
+                                    left = [0, 'int']
+
                                 operated_segment = {
                                     'left': left[0] if len(left) == 1 else left,
                                     'operation': token,
                                     'right': right[0] if len(right) == 1 else right
                                 }
                                 break
-            else:
-                segment[index] = operate_2(token, line_number)
+                else:
+                    segment[index] = operate_2(token, line_number)
 
         return operated_segment
 
@@ -455,6 +460,9 @@ def operate_3(segment, line_number):
 
         for index in range(len(segment)):
             token = segment[index]
+
+            if isinstance(token, dict):
+                continue
 
             if isinstance(token[0], str):
                 if token[1] == 'opr':
