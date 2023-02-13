@@ -43,113 +43,32 @@ def execute_line(line, callables, nesting_level, line_number):
                     else:
                         print('COMPILATION ERROR AT LINE', line_number, ': REDECLARATION OF A VARIABLE')
                         return None, False
-        elif line['operation'] == ['=', 'opr']:
-            var_name = left[0]
-            type_ = visible_variables[nesting_level][var_name][1]
+        elif line['operation'] in [['=', 'opr'], ['|', 'opr']]:
+            if line['operation'] == ['=', 'opr']:
+                var_name = left[0]
+                type_ = visible_variables[nesting_level][var_name][1]
 
-            if type_ == 'var':
-                for index in range(1, nesting_level + 1):
-                    if right[0] in visible_variables[index].keys():
-                        right = visible_variables[index][right[0]]
+                if type_ == 'var':
+                    for index in range(1, nesting_level + 1):
+                        if right[0] in visible_variables[index].keys():
+                            right = visible_variables[index][right[0]]
 
-            # type check
-            if right[1] == type_:
-                visible_variables[nesting_level][var_name][0] = right[0]
-                return None, True
-            else:
-                print('COMPILATION ERROR AT LINE', line_number, ':', var_name, 'IS TYPE OF', type_,
-                      'BUT ASSIGNED VALUE IS TYPE OF', right[1])
-                return None, False
-        elif line['operation'] == ['+', 'opr']:
-            # type check
-            type_left = left[1]
-            type_right = right[1]
-
-            if type_left == 'var':
-                for index in range(1, nesting_level + 1):
-                    if left[0] in visible_variables[index].keys():
-                        left = visible_variables[index][left[0]]
-            if type_right == 'var':
-                for index in range(1, nesting_level + 1):
-                    if right[0] in visible_variables[index].keys():
-                        right = visible_variables[index][right[0]]
-
-            if type_left in 'int float' and type_right in 'int float':
-                sum_ = left[0] + right[0]
-                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                return [sum_, new_type], True
-            else:
-                print('COMPILATION ERROR AT LINE', line_number, ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
-                      type_left, 'AND', type_right)
-                return None, False
-        elif line['operation'] == ['-', 'opr']:
-            type_left = left[1]
-            type_right = right[1]
-
-            if type_left == 'var':
-                for index in range(1, nesting_level + 1):
-                    if left[0] in visible_variables[index].keys():
-                        left = visible_variables[index][left[0]]
-            if type_right == 'var':
-                for index in range(1, nesting_level + 1):
-                    if right[0] in visible_variables[index].keys():
-                        right = visible_variables[index][right[0]]
-
-            if type_left in 'int float' and type_right in 'int float':
-                difference = left[0] - right[0]
-                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                return [difference, new_type], True
-            else:
-                print('COMPILATION ERROR AT LINE', line_number, ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
-                      type_left, 'AND', type_right)
-                return None, False
-        elif line['operation'] == ['*', 'opr']:
-            type_left = left[1]
-            type_right = right[1]
-
-            if type_left == 'var':
-                for index in range(1, nesting_level + 1):
-                    if left[0] in visible_variables[index].keys():
-                        left = visible_variables[index][left[0]]
-            if type_right == 'var':
-                for index in range(1, nesting_level + 1):
-                    if right[0] in visible_variables[index].keys():
-                        right = visible_variables[index][right[0]]
-
-            if type_left in 'int float' and type_right in 'int float':
-                product = left[0] * right[0]
-                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                return [product, new_type], True
-            else:
-                print('COMPILATION ERROR AT LINE', line_number, ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
-                      type_left, 'AND', type_right)
-                return None, False
-        elif line['operation'] == ['/', 'opr']:
-            type_left = left[1]
-            type_right = right[1]
-
-            if type_left == 'var':
-                for index in range(1, nesting_level + 1):
-                    if left[0] in visible_variables[index].keys():
-                        left = visible_variables[index][left[0]]
-            if type_right == 'var':
-                for index in range(1, nesting_level + 1):
-                    if right[0] in visible_variables[index].keys():
-                        right = visible_variables[index][right[0]]
-
-            if type_left in 'int float' and type_right in 'int float':
-                if right[0] != 0:
-                    quotient = left[0] / right[0]
-                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                    return [quotient, new_type], True
+                # type check
+                if right[1] == type_:
+                    visible_variables[nesting_level][var_name][0] = right[0]
+                    return None, True
                 else:
-                    print('ZERO-DIVISION ERROR AT LINE', line_number)
+                    print('COMPILATION ERROR AT LINE', line_number, ':', var_name, 'IS TYPE OF', type_,
+                          'BUT ASSIGNED VALUE IS TYPE OF', right[1])
                     return None, False
-            else:
-                print('COMPILATION ERROR AT LINE', line_number, ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
-                      type_left, 'AND', type_right)
-                return None, False
-        elif line['operation'] == ['%', 'opr']:
+            elif line['operation'] == ['|', 'opr']:
+                if left[0] in callables.keys():
+                    return execute_function(left[0], callables, right), True
+                else:
+                    print("COMPILATION ERROR AT LINE ", line_number, ": FUNCTION", left[0], "IS NOT FOUND")
+                    return None, False
+        else:
+            # type check
             type_left = left[1]
             type_right = right[1]
 
@@ -157,29 +76,72 @@ def execute_line(line, callables, nesting_level, line_number):
                 for index in range(1, nesting_level + 1):
                     if left[0] in visible_variables[index].keys():
                         left = visible_variables[index][left[0]]
+                        type_left = left[1]
+
             if type_right == 'var':
                 for index in range(1, nesting_level + 1):
                     if right[0] in visible_variables[index].keys():
                         right = visible_variables[index][right[0]]
+                        type_right = right[1]
 
-            if type_left in 'int float' and type_right in 'int float':
-                modulo = left[0] % right[0]
-                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                return [modulo, new_type], True
+            if line['operation'] == ['+', 'opr']:
+                if type_left in 'int float' and type_right in 'int float':
+                    sum_ = left[0] + right[0]
+                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                    return [sum_, new_type], True
+                else:
+                    print('COMPILATION ERROR AT LINE', line_number,
+                          ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
+                          type_left, 'AND', type_right)
+                    return None, False
+            elif line['operation'] == ['-', 'opr']:
+                if type_left in 'int float' and type_right in 'int float':
+                    difference = left[0] - right[0]
+                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                    return [difference, new_type], True
+                else:
+                    print('COMPILATION ERROR AT LINE', line_number,
+                          ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
+                          type_left, 'AND', type_right)
+                    return None, False
+            elif line['operation'] == ['*', 'opr']:
+                if type_left in 'int float' and type_right in 'int float':
+                    product = left[0] * right[0]
+                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                    return [product, new_type], True
+                else:
+                    print('COMPILATION ERROR AT LINE', line_number,
+                          ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
+                          type_left, 'AND', type_right)
+                    return None, False
+            elif line['operation'] == ['/', 'opr']:
+                if type_left in 'int float' and type_right in 'int float':
+                    if right[0] != 0:
+                        quotient = left[0] / right[0]
+                        new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                        return [quotient, new_type], True
+                    else:
+                        print('ZERO-DIVISION ERROR AT LINE', line_number)
+                        return None, False
+                else:
+                    print('COMPILATION ERROR AT LINE', line_number,
+                          ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
+                          type_left, 'AND', type_right)
+                    return None, False
+            elif line['operation'] == ['%', 'opr']:
+                if type_left in 'int float' and type_right in 'int float':
+                    modulo = left[0] % right[0]
+                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                    return [modulo, new_type], True
+                else:
+                    print('COMPILATION ERROR AT LINE', line_number,
+                          ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
+                          type_left, 'AND', type_right)
+                    return None, False
+            elif line['operation'] == [',', 'sep']:
+                return left + right, True
             else:
-                print('COMPILATION ERROR AT LINE', line_number, ': OPERANDS SUPPOSED TO BE OF TYPE int OR float, GOT',
-                      type_left, 'AND', type_right)
                 return None, False
-        elif line['operation'] == ['|', 'opr']:
-            if left[0] in callables.keys():
-                return execute_function(left[0], callables, right), True
-            else:
-                print("COMPILATION ERROR AT LINE ", line_number, ": FUNCTION", left[0], "IS NOT FOUND")
-                return None, False
-        elif line['operation'] == [',', 'sep']:
-            return left + right, True
-        else:
-            return None, False
 
 
 visible_variables = {}
