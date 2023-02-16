@@ -48,7 +48,7 @@ def execute_line(line, callables, nesting_level, line_number):
                 var_name = left[0]
                 type_ = visible_variables[nesting_level][var_name][1]
 
-                if type_ == 'var':
+                if right[1] == 'var':
                     for index in range(1, nesting_level + 1):
                         if right[0] in visible_variables[index].keys():
                             right = visible_variables[index][right[0]]
@@ -62,6 +62,13 @@ def execute_line(line, callables, nesting_level, line_number):
                           'BUT ASSIGNED VALUE IS TYPE OF', right[1])
                     return None, False
             elif line['operation'] == ['|', 'opr']:
+                for arg_index in range(len(right)):
+                    arg = right[arg_index];
+                    if arg[1] == 'var':
+                        for index in range(1, nesting_level + 1):
+                            if arg[0] in visible_variables[index].keys():
+                                right[arg_index] = visible_variables[index][arg[0]]
+
                 if left[0] in callables.keys():
                     return execute_function(left[0], callables, right), True
                 else:
@@ -158,7 +165,7 @@ def args_pass(args, args_needed, function_name):
 
             types_available = args_needed[index]
             if type_ not in types_available:
-                print("COMPILATION ERROR: FUNCTION ",
+                print("COMPILATION ERROR: FUNCTION",
                       function_name, "EXPECTS", types_available,
                       "AS A PARAMETER, BUT", type_, "GIVEN")
                 return False
