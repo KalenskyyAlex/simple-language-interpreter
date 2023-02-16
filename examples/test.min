@@ -1,5 +1,11 @@
 use io
 
+start print_num | num is int
+    out | "The number is: "
+    out | num
+    out | "\n"
+end
+
 start main
     index1 is int
     index2 is int
