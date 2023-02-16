@@ -14,5 +14,7 @@ start main
     index2 = -index1
 
 	out | index1
+	out | "\n"
 	out | index2
+	out | "\n"
 end

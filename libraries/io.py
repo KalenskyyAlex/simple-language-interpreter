@@ -6,7 +6,7 @@ def get_methods():
 
 
 def out(arg):
-    print(arg[0])
+    print(arg[0], end="")
 
 
 def in_():

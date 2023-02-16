@@ -171,15 +171,21 @@ def args_pass(args, args_needed, function_name):
                 return False
         return True
     else:
-        print("COMPILATION ERROR: FUNCTION ",
+        print("COMPILATION ERROR: FUNCTION",
               function_name, "REQUIRES", len(args_needed),
-              "BUT", len(args), "GIVEN")
+              "ARGUMENTS BUT", len(args), "GIVEN")
         return False
 
 
 def execute_function(function_name, callables, args):
     global visible_variables
     if isinstance(callables[function_name], dict):
+        for index in range(len(callables[function_name]['args'])):
+            line = callables[function_name]['args'][index]
+            execute_line(line, callables, 1, callables[function_name]['line'])
+
+            visible_variables[1][callables[function_name]['args'][index]['left'][0]][0] = args[index][0]
+
         args_needed = callables[function_name]['args']
         args_needed = list(map(lambda arg: arg['right'][0], args_needed))
 
@@ -258,6 +264,7 @@ def execute(file_name):
 
     if 'main' in callables.keys():
         execute_function('main', callables, [])
+        execute_function('print_num', callables, [[10, 'int']])
         print(visible_variables)
     else:
         print("COMPILATION ERROR : 'main' FUNCTION NOT FOUND")
