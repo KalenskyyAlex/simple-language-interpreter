@@ -6,10 +6,9 @@ import sys
 import importlib.util
 
 # ON DEBUG
-# from pprint import pprint
+from pprint import pprint
 
-def execute_line(line, callables, nesting_level, line_number):
-    global visible_variables
+def execute_line(line, callables, nesting_level, line_number, visible_variables):
     if isinstance(line, list):
         return line, True
     # the simplest case
@@ -17,8 +16,8 @@ def execute_line(line, callables, nesting_level, line_number):
         right = line['right']
         left = line['left']
 
-        right, success_right = execute_line(right, callables, nesting_level, line_number)
-        left, success_left = execute_line(left, callables, nesting_level, line_number)
+        right, success_right = execute_line(right, callables, nesting_level, line_number, visible_variables)
+        left, success_left = execute_line(left, callables, nesting_level, line_number, visible_variables)
 
         if not success_right or not success_left:
             return None, False
@@ -63,7 +62,7 @@ def execute_line(line, callables, nesting_level, line_number):
                     return None, False
             elif line['operation'] == ['|', 'opr']:
                 for arg_index in range(len(right)):
-                    arg = right[arg_index];
+                    arg = right[arg_index]
                     if arg[1] == 'var':
                         for index in range(1, nesting_level + 1):
                             if arg[0] in visible_variables[index].keys():
@@ -150,10 +149,6 @@ def execute_line(line, callables, nesting_level, line_number):
             else:
                 return None, False
 
-
-visible_variables = {}
-
-
 def args_pass(args, args_needed, function_name):
     args_count_needed = len(args_needed)
     args_count = len(args)
@@ -178,11 +173,12 @@ def args_pass(args, args_needed, function_name):
 
 
 def execute_function(function_name, callables, args):
-    global visible_variables
+    visible_variables = {}
+
     if isinstance(callables[function_name], dict):
         for index in range(len(callables[function_name]['args'])):
             line = callables[function_name]['args'][index]
-            execute_line(line, callables, 1, callables[function_name]['line'])
+            execute_line(line, callables, 1, callables[function_name]['line'], visible_variables)
 
             visible_variables[1][callables[function_name]['args'][index]['left'][0]][0] = args[index][0]
 
@@ -190,13 +186,12 @@ def execute_function(function_name, callables, args):
         args_needed = list(map(lambda arg: arg['right'][0], args_needed))
 
         if args_pass(args, args_needed, function_name):
-            # TODO passing arguments
-
             for line in callables[function_name]['body']:
                 line_number = line['line']
-                response, success = execute_line(line, callables, 1, line_number)
+                response, success = execute_line(line, callables, 1, line_number, visible_variables)
                 if not success:
                     return
+        pprint(visible_variables)
     else:
         args_needed = callables[function_name][1]
         function = callables[function_name][0]
@@ -219,7 +214,6 @@ def execute_function(function_name, callables, args):
                     args_values.append(token[0] == 'true')
 
             function(args_values)
-
 
 def find_callables(tree):
     """
@@ -265,7 +259,6 @@ def execute(file_name):
     if 'main' in callables.keys():
         execute_function('main', callables, [])
         execute_function('print_num', callables, [[10, 'int']])
-        print(visible_variables)
     else:
         print("COMPILATION ERROR : 'main' FUNCTION NOT FOUND")
 
