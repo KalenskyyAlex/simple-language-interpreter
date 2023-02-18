@@ -6,12 +6,16 @@ start print_num | num is int
     out | "\n"
 end
 
+start sum | a is int, b is int
+    return a + b
+end
+
 start main
     index1 is int
     index2 is int
 
     index1 = 2
-    index2 = -index1 + 2
+    index2 = (2 - index1) * 2
 
 	out | index1
 	out | "\n"

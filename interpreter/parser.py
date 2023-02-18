@@ -107,7 +107,7 @@ def valid_is_syntax(block, line_number):
     return False
 
 
-return_tree_element = None
+return_tree_element = {}
 
 def valid_return_syntax(block, line_number):
     """
@@ -120,16 +120,15 @@ def valid_return_syntax(block, line_number):
 
     return_tree_element = {}
 
-    if len(block) == 2:
-        if block[0] == ['return', 'kwd'] and block[1][1] == 'var':
-            return_tree_element['line'] = line_number
-            return_tree_element['left'] = None
-            return_tree_element['operation'] = ['return', 'kwd']
-            return_tree_element['right'] = block[1]
+    if block[0] == ['return', 'kwd']:
+        return_tree_element['line'] = line_number
+        return_tree_element['left'] = None
+        return_tree_element['operation'] = ['return', 'kwd']
+        return_tree_element['right'] = block[1:]
 
-            return True
+        return True
 
-    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID KEY AFTER \'return\'. VARIABLE EXPECTED')
+    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID KEY AFTER \'return\'.')
     return False
 
 
@@ -165,6 +164,7 @@ body_tree_element = []
 
 def fill_body(line, line_number):
     global body_tree_element
+    global return_tree_element
 
     if ['is', 'opr'] in line:
         if valid_is_syntax(line, line_number):
@@ -173,6 +173,17 @@ def fill_body(line, line_number):
             return
     elif ['return', 'kwd'] in line:
         if valid_return_syntax(line, line_number):
+            return_tree_element['right'] = operate_calls(return_tree_element['right'],
+                                                         line_number)
+            return_tree_element['right'] = operate_1_helper(return_tree_element['right'],
+                                                            line_number)
+            return_tree_element['right'] = operate_2_helper(return_tree_element['right'],
+                                                            line_number)
+            return_tree_element['right'] = operate_3_helper(return_tree_element['right'],
+                                                            line_number)
+            if isinstance(return_tree_element, dict):
+                return_tree_element['line'] = line_number
+
             body_tree_element.append(return_tree_element)
         else:
             return
