@@ -73,6 +73,9 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                 else:
                     print("COMPILATION ERROR AT LINE ", line_number, ": FUNCTION", left[0], "IS NOT FOUND")
                     return None, False
+            elif line['operation'] == ['return', 'kwd']:
+                pass
+                # return execute_line(right, callables, )
         else:
             # type check
             type_left = left[1]
