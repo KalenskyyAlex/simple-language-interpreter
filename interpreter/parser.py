@@ -450,7 +450,6 @@ def operate_3_helper(line, line_number):
         used to handle already nested segments recursively
     """
     if isinstance(line, dict):
-        print(line)
         line['left'] = operate_3_helper(line['left'], line_number)
         line['right'] = operate_3_helper(line['right'], line_number)
         return line
@@ -474,7 +473,6 @@ def operate_3(segment, line_number):
             token = segment[index]
 
             if isinstance(token, dict):
-                print("AA")
                 operate_3_helper(token, line_number)
                 continue
 

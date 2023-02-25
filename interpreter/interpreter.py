@@ -4,6 +4,7 @@ from parser import make_tree, print_tree
 from lexer import print_tokens
 import sys
 import importlib.util
+import copy
 
 # ON DEBUG
 from pprint import pprint
@@ -191,10 +192,9 @@ def execute_function(function_name, callables, args):
         if args_pass(args, args_needed, function_name):
             for line in callables[function_name]['body']:
                 line_number = line['line']
-                response, success = execute_line(line, callables, 1, line_number, visible_variables)
+                response, success = execute_line(copy.deepcopy(line), callables, 1, line_number, visible_variables)
                 if not success:
                     return
-        pprint(visible_variables)
     else:
         args_needed = callables[function_name][1]
         function = callables[function_name][0]
@@ -261,7 +261,6 @@ def execute(file_name):
 
     if 'main' in callables.keys():
         execute_function('main', callables, [])
-        execute_function('print_num', callables, [[10, 'int']])
     else:
         print("COMPILATION ERROR : 'main' FUNCTION NOT FOUND")
 
