@@ -287,7 +287,7 @@ def operate_separators(segment, line_number):
                         operated_segment = {
                             'left': left[0] if len(left) == 1 else left,
                             'operation': token,
-                            'right': right
+                            'right': right[0] if len(right) == 1 else right
                         }
                         break
 

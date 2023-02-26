@@ -149,7 +149,18 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                           type_left, 'AND', type_right)
                     return None, False
             elif line['operation'] == [',', 'sep']:
-                return left + right, True
+                args = []
+                if isinstance(left[0], str):
+                    args += left
+                else:
+                    args.append(left)
+
+                if isinstance(right[0], str):
+                    args += right
+                else:
+                    args.append(right)
+
+                return args, True
             else:
                 return None, False
 
