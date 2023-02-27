@@ -7,7 +7,7 @@ import importlib.util
 import copy
 
 # ON DEBUG
-from pprint import pprint
+# from pprint import pprint
 
 def execute_line(line, callables, nesting_level, line_number, visible_variables):
     if isinstance(line, list):
@@ -75,8 +75,13 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                     print("COMPILATION ERROR AT LINE ", line_number, ": FUNCTION", left[0], "IS NOT FOUND")
                     return None, False
             elif line['operation'] == ['return', 'kwd']:
-                pass
-                # return execute_line(right, callables, )
+                if line['right'] is None:
+                    return None, -1
+
+                return_ = execute_line(line['right'], callables, nesting_level, line_number, visible_variables)
+
+                return return_, -1
+
         else:
             # type check
             type_left = left[1]
@@ -206,6 +211,11 @@ def execute_function(function_name, callables, args):
                 response, success = execute_line(copy.deepcopy(line), callables, 1, line_number, visible_variables)
                 if not success:
                     return
+
+                if success == -1:
+                    return response
+
+            return None
     else:
         args_needed = callables[function_name][1]
         function = callables[function_name][0]
@@ -227,7 +237,7 @@ def execute_function(function_name, callables, args):
                 elif type_ == 'bool':
                     args_values.append(token[0] == 'true')
 
-            function(args_values)
+            return function(args_values)
 
 def find_callables(tree):
     """

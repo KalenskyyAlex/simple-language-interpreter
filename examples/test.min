@@ -6,6 +6,16 @@ start print_num | num is int
     out | "\n"
 end
 
+start print_sum | a is int, b is int
+    sum is int
+
+    sum = a + b
+
+    out | "The sum of a and b is: "
+    out | sum
+    out | "\n"
+end
+
 start sum | a is int, b is int
     return a + b
 end
@@ -19,4 +29,11 @@ start main
 
     print_num | index1
     print_num | index2
+
+    print_sum | index1, index2
+    print_sum | index1 + 3, index2
+
+    index1 = sum | index2, 3
+
+    print_num | index1
 end

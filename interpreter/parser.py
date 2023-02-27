@@ -294,6 +294,7 @@ def operate_separators(segment, line_number):
         return operated_segment
 
 
+# TODO REPLACE operate1 and this methods sequence
 def operate_calls(segment, line_number):
     if isinstance(segment, int) or isinstance(segment, float):
         return segment
@@ -327,6 +328,7 @@ def operate_calls(segment, line_number):
                                 if len(right) == 1 and isinstance(right[0], dict):
                                     right = right[0]
 
+                                print(segment)
                                 operated_segment = {
                                     'left': left[0] if len(left) == 1 else left,
                                     'operation': token,
