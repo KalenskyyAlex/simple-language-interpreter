@@ -57,7 +57,7 @@ def get_tokens(file_name):
 
 		length = len(line)
 
-		token = ""
+		token = ''
 
 		in_string = False
 		skip_next = False
@@ -257,15 +257,15 @@ def recognize_separator(token):
 	return token == ','
 
 def print_tokens(file_name):
-	print("Raw tokens:")
+	print('Raw tokens:')
 
 	tokens, line_numbers = get_tokens(file_name)
 	combined = zip(line_numbers, tokens)
 	pprint(dict(combined))
 
-	print("-" * 70)
+	print('-' * 70)
 
 
-if __name__ == "__main__":
-	filename = input("Enter path to .min file you want to convert to tokens of: ")
+if __name__ == '__main__':
+	filename = input('Enter path to .min file you want to convert to tokens of: ')
 	print_tokens(filename)

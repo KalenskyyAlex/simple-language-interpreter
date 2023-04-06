@@ -10,7 +10,7 @@ tree = []
 def validate_use_syntax(line, line_number):
     if len(line) == 2:
         if line[0][0] == 'use':
-            if line[1][1] == "lib":
+            if line[1][1] == 'lib':
                 return
 
     raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL'
@@ -29,7 +29,7 @@ def validate_start_syntax(line, line_number):
 
     function_tree_element = {}
 
-    if line[0][0] == "start" and line[1][1] == "fnc":
+    if line[0][0] == 'start' and line[1][1] == 'fnc':
         name = line[1][0]
 
         function_tree_element['line'] = line_number
@@ -83,9 +83,9 @@ def validate_is_syntax(block, line_number):
     variable_tree_element = {}
 
     if len(block) == 3:
-        if block[1][0] == "is":
-            if block[0][1] == "var":
-                if block[2][1] == "typ":
+        if block[1][0] == 'is':
+            if block[0][1] == 'var':
+                if block[2][1] == 'typ':
                     variable_tree_element['line'] = line_number
                     variable_tree_element['left'] = block[0]
                     variable_tree_element['operation'] = ['is', 'opr']
@@ -162,9 +162,9 @@ def fill_body(line, line_number):
         validate_return_syntax(line, line_number)
 
         return_tree_element['right'] = operate_calls(return_tree_element['right'], line_number)
-        return_tree_element['right'] = operate_1_helper(return_tree_element['right'], line_number)
-        return_tree_element['right'] = operate_2_helper(return_tree_element['right'], line_number)
-        return_tree_element['right'] = operate_3_helper(return_tree_element['right'], line_number)
+        return_tree_element['right'] = operate_helper(return_tree_element['right'], line_number, operate_1)
+        return_tree_element['right'] = operate_helper(return_tree_element['right'], line_number, operate_2)
+        return_tree_element['right'] = operate_helper(return_tree_element['right'], line_number, operate_3)
 
         if isinstance(return_tree_element, dict):
             return_tree_element['line'] = line_number
@@ -181,11 +181,11 @@ def fill_body(line, line_number):
 
             line = operate_calls(line, line_number)
 
-            line = operate_1_helper(line, line_number)
+            line = operate_helper(line, line_number, operate_1)
 
-            line = operate_2_helper(line, line_number)
+            line = operate_helper(line, line_number, operate_2)
 
-            line = operate_3_helper(line, line_number)
+            line = operate_helper(line, line_number, operate_3)
 
             if isinstance(line, dict):
                 line['line'] = line_number
@@ -272,7 +272,8 @@ def operate_separators(segment, line_number):
 
         return operated_segment
 
-
+# TODO unify operate_helper ... methods
+# TODO unify operate ... methods
 # TODO REPLACE operate1 and this methods sequence
 def operate_calls(segment, line_number):
     if isinstance(segment, int) or isinstance(segment, float):
@@ -319,14 +320,14 @@ def operate_calls(segment, line_number):
         return operated_segment
 
 
-def operate_1_helper(line, line_number):
+def operate_helper(line, line_number, method):
     if isinstance(line, dict):
-        line['left'] = operate_1_helper(line['left'], line_number)
-        line['right'] = operate_1_helper(line['right'], line_number)
-        return line
+        line['left'] = operate_helper(line['left'], line_number, method)
+        line['right'] = operate_helper(line['right'], line_number, method)
     else:
-        line = operate_1(line, line_number)
-        return line
+        line = method(line, line_number)
+
+    return line
 
 
 def operate_1(segment, line_number):
@@ -365,19 +366,6 @@ def operate_1(segment, line_number):
                     segment[index] = operate_1(token, line_number)
 
         return operated_segment
-
-
-def operate_2_helper(line, line_number):
-    """
-        used to handle already nested segments
-    """
-    if isinstance(line, dict):
-        line['left'] = operate_2_helper(line['left'], line_number)
-        line['right'] = operate_2_helper(line['right'], line_number)
-        return line
-    else:
-        line = operate_2(line, line_number)
-        return line
 
 
 def operate_2(segment, line_number):
@@ -425,19 +413,6 @@ def operate_2(segment, line_number):
         return operated_segment
 
 
-def operate_3_helper(line, line_number):
-    """
-        used to handle already nested segments recursively
-    """
-    if isinstance(line, dict):
-        line['left'] = operate_3_helper(line['left'], line_number)
-        line['right'] = operate_3_helper(line['right'], line_number)
-        return line
-    else:
-        line = operate_3(line, line_number)
-        return line
-
-
 def operate_3(segment, line_number):
     """
         nests tree by '*' or(and) '/' or(and) '%' operators
@@ -453,7 +428,7 @@ def operate_3(segment, line_number):
             token = segment[index]
 
             if isinstance(token, dict):
-                operate_3_helper(token, line_number)
+                operate_helper(token, line_number, operate_3)
                 continue
 
             if isinstance(token[0], str):
@@ -628,6 +603,6 @@ def print_tree(file_name):
     print("-" * 70)
 
 
-if __name__ == "__main__":
-    filename = input("Enter path to .min file you want to parse: ")
+if __name__ == '__main__':
+    filename = input('Enter path to .min file you want to parse: ')
     print_tree(filename)

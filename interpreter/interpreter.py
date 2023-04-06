@@ -6,6 +6,8 @@ import sys
 import importlib.util
 import copy
 
+# do not output errors traceback from Python
+sys.tracebacklimit = -1
 
 # ON DEBUG
 # from pprint import pprint
@@ -55,7 +57,7 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                     visible_variables[nesting_level][var_name][0] = right[0]
                     return None, True
                 else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS TYPE OF {type_} BUT' \
+                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS TYPE OF {type_} BUT'
                           f' ASSIGNED VALUE IS TYPE OF {right[1]}')
             elif line['operation'] == ['|', 'opr']:
                 for arg_index in range(len(right)):
@@ -76,9 +78,6 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                 return_ = execute_line(line['right'], callables, nesting_level, line_number, visible_variables)
 
                 return return_, False
-
-        # TODO now return ..., False signs return keyword not error
-
         else:
             # type check
             type_left = left[1]
@@ -239,7 +238,7 @@ def find_callables(tree):
             pass
         elif 'operation' in block.keys() and block['operation'] == 'use':
             root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-            path = root_directory + "/libraries/" + block['right'] + ".py"
+            path = root_directory + '/libraries/' + block['right'] + '.py'
             spec = importlib.util.spec_from_file_location(block['right'], path)
 
             module = importlib.util.module_from_spec(spec)
@@ -269,7 +268,7 @@ def execute(file_name):
 
 
 def print_code(file_name):
-    print("Executed code:")
+    print('Executed code:')
     file = open(file_name, 'r')
 
     lines = file.readlines()
