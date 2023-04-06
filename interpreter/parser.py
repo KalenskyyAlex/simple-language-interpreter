@@ -328,6 +328,15 @@ def operate_helper(line, line_number, method):
 
     return line
 
+def operate_helper_new(line, line_number, method, operators):
+    if isinstance(line, dict):
+        line['left'] = operate_helper(line['left'], line_number, method)
+        line['right'] = operate_helper(line['right'], line_number, method)
+    else:
+        line = method(line, line_number)
+
+    return line
+
 
 def operate_1(segment, line_number):
     """
@@ -453,6 +462,26 @@ def operate_3(segment, line_number):
                 segment[index] = operate_3(token, line_number)
 
         return operated_segment
+
+
+def operate(segment, line_number, operators):
+    operated_segment = segment
+
+    for index in range(len(segment)):
+        token = segment[index]
+
+        if token[1] == 'opr':
+            if token[0] in operators:
+                left = operate_helper_new(segment[:index], line_number, operate, operators)
+                right = operate_helper_new(segment[index + 1:], line_number, operate, operators)
+
+                operated_segment = {
+                    'left': left,
+                    'operation': token,
+                    'right': right
+                }
+
+                return operated_segment
 
 
 nested = 0
