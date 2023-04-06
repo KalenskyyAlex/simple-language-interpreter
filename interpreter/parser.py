@@ -272,7 +272,6 @@ def operate_separators(segment, line_number):
 
         return operated_segment
 
-# TODO unify operate_helper ... methods
 # TODO unify operate ... methods
 # TODO REPLACE operate1 and this methods sequence
 def operate_calls(segment, line_number):
