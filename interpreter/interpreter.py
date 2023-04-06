@@ -95,49 +95,34 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                         right = visible_variables[index][right[0]]
                         type_right = right[1]
 
+            if not line['operation'] == [',', 'sep']:
+                if type_left not in 'int float' or type_right not in 'int float':
+                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
+                                    f' int OR float, GOT {type_left} AND {type_right}')
+
             if line['operation'] == ['+', 'opr']:
-                if type_left in 'int float' and type_right in 'int float':
-                    sum_ = left[0] + right[0]
-                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                    return [sum_, new_type], True
-                else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
-                                    f' int OR float, GOT {type_left} AND {type_right}')
+                sum_ = left[0] + right[0]
+                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                return [sum_, new_type], True
             elif line['operation'] == ['-', 'opr']:
-                if type_left in 'int float' and type_right in 'int float':
-                    difference = left[0] - right[0]
-                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                    return [difference, new_type], True
-                else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
-                                    f' int OR float, GOT {type_left} AND {type_right}')
+                difference = left[0] - right[0]
+                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                return [difference, new_type], True
             elif line['operation'] == ['*', 'opr']:
-                if type_left in 'int float' and type_right in 'int float':
-                    product = left[0] * right[0]
-                    new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                    return [product, new_type], True
-                else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
-                                    f' int OR float, GOT {type_left} AND {type_right}')
+                product = left[0] * right[0]
+                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                return [product, new_type], True
             elif line['operation'] == ['/', 'opr']:
-                if type_left in 'int float' and type_right in 'int float':
-                    if right[0] != 0:
-                        quotient = left[0] / right[0]
-                        new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                        return [quotient, new_type], True
-                    else:
-                        raise Exception(f'ZERO-DIVISION ERROR AT LINE {line_number}')
-                else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
-                                    f' int OR float, GOT {type_left} AND {type_right}')
-            elif line['operation'] == ['%', 'opr']:
-                if type_left in 'int float' and type_right in 'int float':
-                    modulo = left[0] % right[0]
+                if right[0] != 0:
+                    quotient = left[0] / right[0]
                     new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                    return [modulo, new_type], True
+                    return [quotient, new_type], True
                 else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
-                                    f' int OR float, GOT {type_left} AND {type_right}')
+                    raise Exception(f'ZERO-DIVISION ERROR AT LINE {line_number}')
+            elif line['operation'] == ['%', 'opr']:
+                modulo = left[0] % right[0]
+                new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
+                return [modulo, new_type], True
             elif line['operation'] == [',', 'sep']:
                 args = []
                 if isinstance(left[0], str):
