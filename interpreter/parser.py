@@ -7,22 +7,18 @@ line_numbers = []
 
 tree = []
 
-def valid_use_syntax(line):
-    """
-     :param line: takes line of tokens as array
-     :return: True if syntax with 'use' is correct, otherwise False
-    """
+def validate_use_syntax(line, line_number):
     if len(line) == 2:
         if line[0][0] == 'use':
             if line[1][1] == "lib":
-                return True
+                return
 
-    return False
+    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL'
 
 
 function_tree_element = None
 
-def valid_start_syntax(line, line_number):
+def validate_start_syntax(line, line_number):
     """
     takes line of tokens as array + line number
 
@@ -48,39 +44,33 @@ def valid_start_syntax(line, line_number):
 
                 split = []
 
-                valid = True
-
                 for token in line:
                     # arguments are separated by coma
                     if token[1] == 'sep':
-                        if valid_is_syntax(split, line_number):
-                            function_tree_element['args'].append(variable_tree_element)
-                            split = []
-                        else:
-                            valid = False
-                            break
+                        validate_is_syntax(split, line_number)
+
+                        function_tree_element['args'].append(variable_tree_element)
+                        split = []
                     else:
                         split.append(token)
 
                 # we check and add last argument block
-                if valid_is_syntax(split, line_number):
-                    function_tree_element['args'].append(variable_tree_element)
-                else:
-                    valid = False
+                validate_is_syntax(split, line_number)
 
-                return valid
+                function_tree_element['args'].append(variable_tree_element)
 
+                return
         else:
-            return True
+            return
 
-    return False
+    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID FUNCTION ASSIGN'
 
 
 # default values of types;
 variable_tree_element = None
 
 
-def valid_is_syntax(block, line_number):
+def validate_is_syntax(block, line_number):
 
     """
     takes line of tokens as array
@@ -101,15 +91,14 @@ def valid_is_syntax(block, line_number):
                     variable_tree_element['operation'] = ['is', 'opr']
                     variable_tree_element['right'] = block[2]
 
-                    return True
+                    return
 
-    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID VARIABLE ASSIGN')
-    return False
+    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID VARIABLE ASSIGN'
 
 
 return_tree_element = {}
 
-def valid_return_syntax(block, line_number):
+def validate_return_syntax(block, line_number):
     """
     takes line of tokens as array
 
@@ -126,15 +115,14 @@ def valid_return_syntax(block, line_number):
         return_tree_element['operation'] = ['return', 'kwd']
         return_tree_element['right'] = block[1:]
 
-        return True
+        return
 
-    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID KEY AFTER \'return\'.')
-    return False
+    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID KEY AFTER \'return\'.'
 
 
 break_tree_element = None
 
-def valid_break_syntax(block, line_number):
+def validate_break_syntax(block, line_number):
     """
     takes line of tokens as array
 
@@ -152,10 +140,9 @@ def valid_break_syntax(block, line_number):
             break_tree_element['operation'] = block[0]
             break_tree_element['right'] = None
 
-            return True
+            return
 
-    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID KEY AFTER \'return\'. VARIABLE EXPECTED')
-    return False
+    raise f'INVALID SYNTAX ERROR AT LINE{line_number}: INVALID KEY AFTER \'return\'. VARIABLE EXPECTED'
 
 
 # takes line of tokens as array with line_number and adds it to body;
@@ -167,37 +154,30 @@ def fill_body(line, line_number):
     global return_tree_element
 
     if ['is', 'opr'] in line:
-        if valid_is_syntax(line, line_number):
-            body_tree_element.append(variable_tree_element)
-        else:
-            return
-    elif ['return', 'kwd'] in line:
-        if valid_return_syntax(line, line_number):
-            return_tree_element['right'] = operate_calls(return_tree_element['right'],
-                                                         line_number)
-            return_tree_element['right'] = operate_1_helper(return_tree_element['right'],
-                                                            line_number)
-            return_tree_element['right'] = operate_2_helper(return_tree_element['right'],
-                                                            line_number)
-            return_tree_element['right'] = operate_3_helper(return_tree_element['right'],
-                                                            line_number)
-            if isinstance(return_tree_element, dict):
-                return_tree_element['line'] = line_number
+        validate_is_syntax(line, line_number)
 
-            body_tree_element.append(return_tree_element)
-        else:
-            return
+        body_tree_element.append(variable_tree_element)
+
+    elif ['return', 'kwd'] in line:
+        validate_return_syntax(line, line_number)
+
+        return_tree_element['right'] = operate_calls(return_tree_element['right'], line_number)
+        return_tree_element['right'] = operate_1_helper(return_tree_element['right'], line_number)
+        return_tree_element['right'] = operate_2_helper(return_tree_element['right'], line_number)
+        return_tree_element['right'] = operate_3_helper(return_tree_element['right'], line_number)
+
+        if isinstance(return_tree_element, dict):
+            return_tree_element['line'] = line_number
+
+        body_tree_element.append(return_tree_element)
+
     elif ['break', 'kwd'] in line:
-        if valid_break_syntax(line, line_number):
-            body_tree_element.append(break_tree_element)
-        else:
-            return
+        validate_break_syntax(line, line_number)
+
+        body_tree_element.append(break_tree_element)
     else:
         if not line == ['end', 'kwd']:
             line = nest(line, line_number)
-            if line is None:
-                body_tree_element = []
-                return
 
             line = operate_calls(line, line_number)
 
@@ -256,8 +236,7 @@ def nest(line, line_number):
                     nested_segment = []
 
         if not nested_ == 0:
-            print("INVALID SYNTAX ERROR AT LINE", line_number, ": INVALID NESTING")
-            return None
+            raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID NESTING'
 
         return nested_line
 
@@ -328,7 +307,6 @@ def operate_calls(segment, line_number):
                                 if len(right) == 1 and isinstance(right[0], dict):
                                     right = right[0]
 
-                                print(segment)
                                 operated_segment = {
                                     'left': left[0] if len(left) == 1 else left,
                                     'operation': token,
@@ -593,8 +571,7 @@ def make_tree(file_name):
 
         if in_function_body:
             if ['start', 'kwd'] in line:
-                print('INVALID SYNTAX ERROR AT LINE', line_number, ': CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
-                break
+                raise f'INVALID SYNTAX ERROR AT LINE {line_number}: CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY'
 
             if ['if', 'kwd'] in line:
                 nested += 1
@@ -608,33 +585,29 @@ def make_tree(file_name):
                 return
         else:
             if ['use', 'kwd'] in line:
-                if valid_use_syntax(line):
-                    tree.append({
-                        'line': line_number,
-                        'left': None,
-                        'operation': 'use',
-                        'right': line[1][0]
-                    })
-                else:
-                    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID LIBRARY CALL')
-                    break
+                validate_use_syntax(line, line_number)
+
+                tree.append({
+                    'line': line_number,
+                    'left': None,
+                    'operation': 'use',
+                    'right': line[1][0]
+                })
+
             if ['start', 'kwd'] in line:
-                if valid_start_syntax(line, line_number):
-                    tree.append(function_tree_element)
-                    nested += 1
-                    body_tree_element = []
-                    in_function_body = True
-                else:
-                    print('INVALID SYNTAX ERROR AT LINE', line_number, ': INVALID FUNCTION ASSIGN')
-                    break
+                validate_start_syntax(line, line_number)
+
+                tree.append(function_tree_element)
+                nested += 1
+                body_tree_element = []
+                in_function_body = True
 
             if ['if', 'kwd'] in line or\
                     ['else', 'kwd'] in line or\
                     ['elif', 'kwd'] in line or\
                     ['loop', 'kwd'] in line or\
                     ['end', 'kdw'] in line:
-                print('INVALID SYNTAX ERROR AT LINE', line_number, ': CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
-                break
+                raise f'INVALID SYNTAX ERROR AT LINE {line_number}: CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY'
 
         if nested == 0 and in_function_body:
             in_function_body = False
