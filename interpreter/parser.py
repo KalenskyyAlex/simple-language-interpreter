@@ -12,12 +12,11 @@ text in .min file or use as module 'from parser import make_tree'
 
 # region Imported modules
 
-from lexer import get_tokens
-
+from pprint import pprint
 from typing import Any
 from typing import Callable
 
-from pprint import pprint
+from lexer import get_tokens
 
 # endregion
 
@@ -185,7 +184,7 @@ def validate_break_syntax(block: TokenList | NestedTokenList, line_number: int) 
             return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY ' +
-                      f'AFTER \'return\'. VARIABLE EXPECTED')
+                      'AFTER \'return\'. VARIABLE EXPECTED')
 
 
 def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
@@ -298,36 +297,36 @@ def operate_separators(segment: Any, line_number: int) -> Any:
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    if isinstance(segment, int) or isinstance(segment, float):
+    if isinstance(segment, (int, float)):
         return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
-    else:
-        operated_segment = segment
-        tokens_count = len(segment)
-        for index in range(tokens_count):
-            token = segment[index]
-            if isinstance(token[0], str):
-                if token[1] == 'sep':
-                    if token[0] == ',':
-                        left = operate_separators(segment[:index], line_number)
 
-                        if len(left) == 1 and isinstance(left[0], dict):
-                            left = left[0]
+    operated_segment = segment
+    tokens_count = len(segment)
+    for index in range(tokens_count):
+        token = segment[index]
+        if isinstance(token[0], str):
+            if token[1] == 'sep':
+                if token[0] == ',':
+                    left = operate_separators(segment[:index], line_number)
 
-                        right = operate_separators(segment[index + 1:], line_number)
+                    if len(left) == 1 and isinstance(left[0], dict):
+                        left = left[0]
 
-                        if len(right) == 1 and isinstance(right[0], dict):
-                            right = right[0]
+                    right = operate_separators(segment[index + 1:], line_number)
 
-                        operated_segment = {
-                            'left': left[0] if len(left) == 1 else left,
-                            'operation': token,
-                            'right': right[0] if len(right) == 1 else right
-                        }
-                        break
+                    if len(right) == 1 and isinstance(right[0], dict):
+                        right = right[0]
 
-        return operated_segment
+                    operated_segment = {
+                        'left': left[0] if len(left) == 1 else left,
+                        'operation': token,
+                        'right': right[0] if len(right) == 1 else right
+                    }
+                    break
+
+    return operated_segment
 
 
 # TODO unify operate ... methods
@@ -510,39 +509,39 @@ def operate_3(segment: Any, line_number: int) -> Any:
         return segment
     if not ['*', 'opr'] in segment and not ['/', 'opr'] in segment and not ['%', 'opr'] in segment:
         return segment
-    else:
-        operated_segment = segment
 
-        for index in range(len(segment)):
-            token = segment[index]
+    operated_segment = segment
+    tokens_count = len(segment)
+    for index in range(tokens_count):
+        token = segment[index]
 
-            if isinstance(token, dict):
-                operate_helper(token, line_number, operate_3)
-                continue
+        if isinstance(token, dict):
+            operate_helper(token, line_number, operate_3)
+            continue
 
-            if isinstance(token[0], str):
-                if token[1] == 'opr':
-                    if token[0] == '*' or token[0] == '/' or token[0] == '%':
-                        left = operate_3(segment[:index], line_number)
+        if isinstance(token[0], str):
+            if token[1] == 'opr':
+                if token[0] == '*' or token[0] == '/' or token[0] == '%':
+                    left = operate_3(segment[:index], line_number)
 
-                        if len(left) == 1 and isinstance(left[0], dict):
-                            left = left[0]
+                    if len(left) == 1 and isinstance(left[0], dict):
+                        left = left[0]
 
-                        right = operate_3(segment[index + 1:], line_number)
+                    right = operate_3(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and isinstance(right[0], dict):
-                            right = right[0]
+                    if len(right) == 1 and isinstance(right[0], dict):
+                        right = right[0]
 
-                        operated_segment = {
-                            'left': left[0] if len(left) == 1 else left,
-                            'operation': token,
-                            'right': right[0] if len(right) == 1 else right
-                        }
-                        break
-            else:
-                segment[index] = operate_3(token, line_number)
+                    operated_segment = {
+                        'left': left[0] if len(left) == 1 else left,
+                        'operation': token,
+                        'right': right[0] if len(right) == 1 else right
+                    }
+                    break
+        else:
+            segment[index] = operate_3(token, line_number)
 
-        return operated_segment
+    return operated_segment
 
 
 # TODO
@@ -586,7 +585,8 @@ def nest_vertical(block: Any, line_number: int) -> Any:
     inner_block = {}
     writing_else = False
 
-    for index in range(len(block)):
+    tokens_count = len(block)
+    for index in range(tokens_count):
         line = block[index]
 
         if not writing_inner_block:
@@ -672,7 +672,8 @@ def make_tree(file_name: str) -> Any:
             new_type_line.append(old_type_token)
         tokens.append(new_type_line)
 
-    for index in range(len(tokens)):
+    tokens_count = len(tokens)
+    for index in range(tokens_count):
 
         line = tokens[index]
         line_number = line_numbers[index]
@@ -680,7 +681,7 @@ def make_tree(file_name: str) -> Any:
         if in_function_body:
             if ['start', 'kwd'] in line:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}:' +
-                                  f' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
+                                  ' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
 
             if ['if', 'kwd'] in line:
                 nested += 1
@@ -717,7 +718,7 @@ def make_tree(file_name: str) -> Any:
                     ['loop', 'kwd'] in line or\
                     ['end', 'kdw'] in line:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
-                                  f'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
+                                  'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
 
         if nested == 0 and in_function_body:
             in_function_body = False
