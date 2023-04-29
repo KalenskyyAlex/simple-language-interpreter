@@ -28,9 +28,16 @@ SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', '
 
 # endregion
 
+# region Declared types
+
+Token = list[str]
+TokenList = list[Token]
+
+# endregion
+
 # region Private functions
 
-def give_types_for_tokens(tokens_raw: list[list[str]]):
+def give_types_for_tokens(tokens_raw: TokenList) -> list[TokenList]:
     """
     gives each given token a type
     :param tokens_raw: nested array of tokens without type;
@@ -38,10 +45,10 @@ def give_types_for_tokens(tokens_raw: list[list[str]]):
     """
     prev_token: str = ''
 
-    tokens: list[list[list[str | float | int]]] = []
+    tokens: list[TokenList] = []
 
     for line in tokens_raw:
-        line_with_types: list[list[str | float | int]] = []
+        line_with_types: list = []
 
         for token in line:
             if is_keyword(token):
@@ -193,7 +200,7 @@ def is_separator(token: str) -> bool:
 
 # region Public functions
 
-def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
+def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
     """
     separate lines into tokens, with types
     :param file_name: path to .min file to be processed
@@ -204,7 +211,7 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
     raw_lines: list[str] = file.readlines()
     lines, line_numbers = clear_lines(raw_lines)
 
-    tokens_raw: list[list[str]] = []  # separated, but no types
+    tokens_raw: TokenList = []  # separated, but no types
 
     for line in lines:
         line_of_tokens: list[str] = []
@@ -275,7 +282,7 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
         if line_of_tokens:
             tokens_raw.append(line_of_tokens)
 
-    tokens: list[list[str]] = give_types_for_tokens(tokens_raw)  # differentiate tokens
+    tokens: list[TokenList] = give_types_for_tokens(tokens_raw)  # differentiate tokens
 
     return tokens, line_numbers
 

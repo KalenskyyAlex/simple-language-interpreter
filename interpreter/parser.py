@@ -15,7 +15,7 @@ text in .min file or use as module 'from parser import make_tree'
 from lexer import get_tokens
 
 from typing import Any
-from typing import Iterable
+from typing import Callable
 
 from pprint import pprint
 
@@ -35,7 +35,7 @@ BlockList = list[TreeNode | TokenList | NestedTokenList]
 
 # region Declared globals
 
-tokens: TokenList = []
+tokens: list[TokenList] = []
 line_numbers: list[int] = []
 function_tree_element: TreeNode = {}
 variable_tree_element: TreeNode = {}
@@ -381,7 +381,7 @@ def operate_calls(segment: Any, line_number: int) -> Any:
         return operated_segment
 
 
-def operate_helper(line: Any, line_number: int, method: callable) -> Any:
+def operate_helper(line: Any, line_number: int, method: Callable) -> Any:
     """
     is needed to go through already modified line (partially nested)
     :param line: array of tokens, from one line of code
@@ -659,7 +659,16 @@ def make_tree(file_name: str) -> Any:
     global tokens
     global line_numbers
 
-    tokens, line_numbers = get_tokens(file_name)
+    old_type_tokens: list[list[list[str]]] = []
+    old_type_tokens, line_numbers = get_tokens(file_name)
+
+    tokens = []
+
+    for old_type_line in old_type_tokens:
+        new_type_line: TokenList = []
+        for old_type_token in old_type_line:
+            new_type_line.append(old_type_token)
+        tokens.append(new_type_line)
 
     for index in range(len(tokens)):
 
@@ -668,7 +677,8 @@ def make_tree(file_name: str) -> Any:
 
         if in_function_body:
             if ['start', 'kwd'] in line:
-                raise f'INVALID SYNTAX ERROR AT LINE {line_number}: CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY'
+                raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}:' +
+                                f' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
 
             if ['if', 'kwd'] in line:
                 nested += 1
@@ -704,7 +714,8 @@ def make_tree(file_name: str) -> Any:
                     ['elif', 'kwd'] in line or\
                     ['loop', 'kwd'] in line or\
                     ['end', 'kdw'] in line:
-                raise f'INVALID SYNTAX ERROR AT LINE {line_number}: CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY'
+                raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: ' +
+                                f'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
 
         if nested == 0 and in_function_body:
             in_function_body = False
