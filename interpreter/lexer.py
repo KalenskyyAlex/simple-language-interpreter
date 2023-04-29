@@ -1,19 +1,24 @@
+"""
+This module processes raw text given in .min file,
+and divide it on tokens, with recognized types
+Run as '$python lexer.py' to only create tokens from raw text
+or use as module
+"""
+
 from pprint import pprint
 from typing import TextIO
 
 def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
 	"""
-		deletes whitespace, eol, comments
-		:param lines_raw: unprocessed lines of text from .min file
-		:return: array of 'cleared' lines with parallel array of line numbers for each line
+	deletes whitespace, eol, comments
+	:param lines_raw: unprocessed lines of text from .min file
+	:return: array of 'cleared' lines with parallel array of line numbers for each line
 	"""
 	lines: list[str] = []
 	line_numbers: list[int] = []
 
 	# removing comments, tabs, eol symbols
-	for index in range(len(lines_raw)):
-		line: str = lines_raw[index]
-
+	for line in lines_raw:
 		line = line.split('~')[0]
 
 		if line == '':
@@ -38,9 +43,9 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
 
 def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
 	"""
-		separate lines into tokens, with types
-		:param file_name: path to .min file to be processed
-		:return: nested array of tokens and line numbers to each line
+	separate lines into tokens, with types
+	:param file_name: path to .min file to be processed
+	:return: nested array of tokens and line numbers to each line
 	"""
 	file: TextIO = open(file_name, 'r')
 
@@ -58,16 +63,17 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
 		in_string: bool = False
 		skip_next: bool = False
 
-		for index in range(length):	
+		for index in range(length):
 			# next 3 if's cares about special symbols (\', \\, \", \n) and how to add them, properly, cause
 			# in string it doesn't recognize '\ + symbol' as special symbol, but as '\\ + \ + symbol'
-			
+
 			# we added special symbol in the previous iteration, so we must skip it
 			if skip_next:
 				skip_next = False
 				continue
 
-			# when we hit " it's time to count all text as string till we hit other ", however it MUSTN'T be an " in the text
+			# when we hit " it's time to count all text as string till we hit other ",
+			# however it MUSTN'T be an " in the text
 			if line[index] == '"' and not line[index - 1] == '\\':
 				in_string = not in_string
 				# don't 'continue', because we need " to recognize token as string
@@ -117,7 +123,7 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
 			line_of_tokens.append(token)
 
 		# extra cautiousness
-		if not line_of_tokens == []:
+		if line_of_tokens:
 			tokens_raw.append(line_of_tokens)
 
 	tokens: list[list[str]] = give_types_for_tokens(tokens_raw)  # differentiate tokens
@@ -125,14 +131,15 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
 	return tokens, line_numbers
 
 
-special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']  # when we 'hit' them, we add tokens
+# when we 'hit' them, we add tokens
+special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']
 
 
 def give_types_for_tokens(tokens_raw: list[list[str]]):
 	"""
-		gives each given token a type
-		:param tokens_raw: nested array of tokens without type;
-		:return: array of tokens with added types
+	gives each given token a type
+	:param tokens_raw: nested array of tokens without type;
+	:return: array of tokens with added types
 	"""
 	prev_token: str = ''
 
@@ -184,40 +191,40 @@ types = ['int', 'float', 'str', 'bool']
 
 def is_keyword(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a keyword, otherwise False
+	:param token: token as string
+	:return: True if token is a keyword, otherwise False
 	"""
 	return token in keywords
 
 
 def is_operator(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is an operator, otherwise False
+	:param token: token as string
+	:return: True if token is an operator, otherwise False
 	"""
 	return token in operators
 
 
 def is_type(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a type, otherwise False
+	:param token: token as string
+	:return: True if token is a type, otherwise False
 	"""
 	return token in types
 
 
 def is_boolean(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a boolean, otherwise False
+	:param token: token as string
+	:return: True if token is a boolean, otherwise False
 	"""
 	return token in booleans
 
 
 def is_integer(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a integer, otherwise False
+	:param token: token as string
+	:return: True if token is a integer, otherwise False
 	"""
 	if token[0] == '-':
 		token = token[1:]
@@ -231,8 +238,8 @@ def is_integer(token: str) -> bool:
 
 def is_float(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a float, otherwise False
+	:param token: token as string
+	:return: True if token is a float, otherwise False
 	"""
 	parts: list[str] = token.split('.')
 	
@@ -245,24 +252,24 @@ def is_float(token: str) -> bool:
 
 def is_string(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a string, otherwise False
+	:param token: token as string
+	:return: True if token is a string, otherwise False
 	"""
 	return token[0] == '"' and token[-1] == '"' 
 
 
 def is_separator(token: str) -> bool:
 	"""
-		:param token: token as string
-		:return: True if token is a separator, otherwise False
+	:param token: token as string
+	:return: True if token is a separator, otherwise False
 	"""
 	return token == ','
 
 
 def print_tokens(file_name: str) -> None:
 	"""
-		Used for outputting processed tokens from .min file
-		:param file_name: path to the file to be checked
+	Used for outputting processed tokens from .min file
+	:param file_name: path to the file to be checked
 	"""
 	print('Raw tokens:')
 
