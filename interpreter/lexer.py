@@ -18,7 +18,10 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
 	line_numbers: list[int] = []
 
 	# removing comments, tabs, eol symbols
-	for line in lines_raw:
+	lines_count = len(lines_raw)
+	for index in range(lines_count):
+		line = lines_raw[index]
+
 		line = line.split('~')[0]
 
 		if line == '':
