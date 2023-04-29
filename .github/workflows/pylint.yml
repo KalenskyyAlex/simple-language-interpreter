@@ -20,7 +20,7 @@ jobs:
         pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint ./interpreter
+        pylint $(git ls-files '*.py')
   mypy:
     runs-on: ubuntu-latest
     steps:
