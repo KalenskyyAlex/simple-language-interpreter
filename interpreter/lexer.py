@@ -115,7 +115,6 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
                         line_of_tokens[-1] += '='
                         skip_next = True
 
-
             else:
                 token += line[index]
 
