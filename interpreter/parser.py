@@ -692,7 +692,8 @@ def make_tree(file_name: str) -> Any:
 
             fill_body(line, line_number)
             if len(body_tree_element) == 0:
-                return
+                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                  'UNABLE TO READ LINE')
         else:
             if ['use', 'kwd'] in line:
                 validate_use_syntax(line, line_number)
