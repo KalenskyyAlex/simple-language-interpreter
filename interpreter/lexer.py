@@ -1,12 +1,81 @@
 """
 This module processes raw text given in .min file,
 and divide it on tokens, with recognized types
-Run as '$python lexer.py' to only create tokens from raw text
-or use as module
+
+Run '$python lexer.py' to only create tokens from raw
+text in .min file or use as module 'from lexer import get_tokens'
 """
+
+# region Imported modules
 
 from pprint import pprint
 from typing import TextIO
+
+# endregion
+
+# region Declared constants
+
+KEYWORDS = ['start', 'end', 'use', 'return', 'break',
+            'while', 'if', 'else', 'elif']
+OPERATORS = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and',
+             'or', 'not', '>', '<', '<=', '>=', '==', '|', '=']
+BOOLEANS = ['true', 'false']
+NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+TYPES = ['int', 'float', 'str', 'bool']
+
+# when we 'hit' them, we add tokens
+SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']
+
+# endregion
+
+# region Private functions
+
+def give_types_for_tokens(tokens_raw: list[list[str]]):
+    """
+    gives each given token a type
+    :param tokens_raw: nested array of tokens without type;
+    :return: array of tokens with added types
+    """
+    prev_token: str = ''
+
+    tokens: list[list[list[str | float | int]]] = []
+
+    for line in tokens_raw:
+        line_with_types: list[list[str | float | int]] = []
+
+        for token in line:
+            if is_keyword(token):
+                line_with_types.append([token, 'kwd'])
+            elif is_operator(token):
+                if token == '|':
+                    line_with_types[-1][1] = 'fnc'
+                line_with_types.append([token, 'opr'])
+            elif is_separator(token):
+                line_with_types.append([token, 'sep'])
+            elif is_type(token):
+                line_with_types.append([token, 'typ'])
+            elif is_boolean(token):
+                line_with_types.append([token, 'bool'])
+            elif is_integer(token):
+                line_with_types.append([int(token), 'int'])
+            elif is_float(token):
+                line_with_types.append([float(token), 'float'])
+            elif is_string(token):
+                line_with_types.append([token[1:-1], 'str'])
+            else:
+                if prev_token == 'start':
+                    line_with_types.append([token, 'fnc'])
+                elif prev_token == 'use':
+                    line_with_types.append([token, 'lib'])
+                else:
+                    line_with_types.append([token, 'var'])
+
+            prev_token = token
+
+        tokens.append(line_with_types)
+
+    return tokens
+
 
 def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     """
@@ -43,6 +112,86 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
 
     return lines, line_numbers
 
+
+def is_keyword(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a keyword, otherwise False
+    """
+    return token in KEYWORDS
+
+
+def is_operator(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is an operator, otherwise False
+    """
+    return token in OPERATORS
+
+
+def is_type(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a type, otherwise False
+    """
+    return token in TYPES
+
+
+def is_boolean(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a boolean, otherwise False
+    """
+    return token in BOOLEANS
+
+
+def is_integer(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a integer, otherwise False
+    """
+    if token[0] == '-':
+        token = token[1:]
+
+    for numeral in token:
+        if numeral not in NUMBERS:
+            return False
+
+    return True
+
+
+def is_float(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a float, otherwise False
+    """
+    parts: list[str] = token.split('.')
+
+    # if string has NO point '.', it isn't a floating point number
+    if len(parts) == 1:
+        return False
+
+    return is_integer(parts[0]) and is_integer(parts[1])
+
+
+def is_string(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a string, otherwise False
+    """
+    return token[0] == '"' and token[-1] == '"'
+
+
+def is_separator(token: str) -> bool:
+    """
+    :param token: token as string
+    :return: True if token is a separator, otherwise False
+    """
+    return token == ','
+
+# endregion
+
+# region Public functions
 
 def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
     """
@@ -99,7 +248,7 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
             # till here
 
             # when we're not in string things are easier
-            if line[index] in special_symbols and not in_string:
+            if line[index] in SPECIAL_SYMBOLS and not in_string:
                 # several special symbols in raw creates '' tokens
                 if token != '':
                     line_of_tokens.append(token)
@@ -131,143 +280,6 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
     return tokens, line_numbers
 
 
-# when we 'hit' them, we add tokens
-special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']
-
-
-def give_types_for_tokens(tokens_raw: list[list[str]]):
-    """
-    gives each given token a type
-    :param tokens_raw: nested array of tokens without type;
-    :return: array of tokens with added types
-    """
-    prev_token: str = ''
-
-    tokens: list[list[list[str | float | int]]] = []
-
-    for line in tokens_raw:
-        line_with_types: list[list[str | float | int]] = []
-
-        for token in line:
-            if is_keyword(token):
-                line_with_types.append([token, 'kwd'])
-            elif is_operator(token):
-                if token == '|':
-                    line_with_types[-1][1] = 'fnc'
-                line_with_types.append([token, 'opr'])
-            elif is_separator(token):
-                line_with_types.append([token, 'sep'])
-            elif is_type(token):
-                line_with_types.append([token, 'typ'])
-            elif is_boolean(token):
-                line_with_types.append([token, 'bool'])
-            elif is_integer(token):
-                line_with_types.append([int(token), 'int'])
-            elif is_float(token):
-                line_with_types.append([float(token), 'float'])
-            elif is_string(token):
-                line_with_types.append([token[1:-1], 'str'])
-            else:
-                if prev_token == 'start':
-                    line_with_types.append([token, 'fnc'])
-                elif prev_token == 'use':
-                    line_with_types.append([token, 'lib'])
-                else:
-                    line_with_types.append([token, 'var'])
-
-            prev_token = token
-
-        tokens.append(line_with_types)
-
-    return tokens
-
-
-keywords = ['start', 'end', 'use', 'return', 'break',
-            'while', 'if', 'else', 'elif']
-operators = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and',
-             'or', 'not', '>', '<', '<=', '>=', '==', '|', '=']
-booleans = ['true', 'false']
-numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-types = ['int', 'float', 'str', 'bool']
-
-
-def is_keyword(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a keyword, otherwise False
-    """
-    return token in keywords
-
-
-def is_operator(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is an operator, otherwise False
-    """
-    return token in operators
-
-
-def is_type(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a type, otherwise False
-    """
-    return token in types
-
-
-def is_boolean(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a boolean, otherwise False
-    """
-    return token in booleans
-
-
-def is_integer(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a integer, otherwise False
-    """
-    if token[0] == '-':
-        token = token[1:]
-
-    for numeral in token:
-        if numeral not in numbers:
-            return False
-
-    return True
-
-
-def is_float(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a float, otherwise False
-    """
-    parts: list[str] = token.split('.')
-
-    # if string has NO point '.', it isn't a floating point number
-    if len(parts) == 1:
-        return False
-
-    return is_integer(parts[0]) and is_integer(parts[1])
-
-
-def is_string(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a string, otherwise False
-    """
-    return token[0] == '"' and token[-1] == '"'
-
-
-def is_separator(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a separator, otherwise False
-    """
-    return token == ','
-
-
 def print_tokens(file_name: str) -> None:
     """
     Used for outputting processed tokens from .min file
@@ -280,6 +292,8 @@ def print_tokens(file_name: str) -> None:
     pprint(dict(combined))
 
     print('-' * 70)
+
+# endregion
 
 
 if __name__ == '__main__':

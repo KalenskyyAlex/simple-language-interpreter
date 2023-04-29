@@ -1,8 +1,8 @@
-from typing import Any
-
 """
 This library implements standard i/o operations in MINIMUM
 """
+
+from typing import Any
 
 def get_methods():
     """

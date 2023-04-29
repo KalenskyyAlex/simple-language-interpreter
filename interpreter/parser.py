@@ -1,29 +1,71 @@
+"""
+This module does the most important work in interpreter.
+It correctly parses given token list, to logical tree, to
+prepare it for execution in interpreter.
+
+Parser handles syntax errors such as unexpected statements,
+invalid statements
+
+Run '$python parser.py' to only get logical tree of .min from raw
+text in .min file or use as module 'from parser import make_tree'
+"""
+
+# region Imported modules
+
 from lexer import get_tokens
+
+from typing import Any
 
 from pprint import pprint
 
-tokens = []
-line_numbers = []
+# endregion
 
-tree = []
+# region Declared types
 
-def validate_use_syntax(line, line_number):
+token_type = list[str | float | int]
+token_list = list[token_type]
+
+# endregion
+
+# region Declared globals
+
+tokens: token_list = []
+line_numbers: list[int] = []
+function_tree_element: dict[str, Any] = {}
+variable_tree_element: dict[str, Any] = {}
+return_tree_element = {}
+break_tree_element = None
+body_tree_element = []
+nested = 0
+in_function_body = False
+
+tree: list[dict] = []
+
+# endregion
+
+# region Private functions
+
+def validate_use_syntax(line: token_list, line_number: int) -> None:
+    """
+    checks for valid 'use' keyword syntax and raise SYNTAX ERROR if there is
+    :param line: array of tokens from one line of code
+    :param line_number: number of line given for error handling
+    """
     if len(line) == 2:
         if line[0][0] == 'use':
             if line[1][1] == 'lib':
                 return
 
-    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL'
+    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL')
 
 
-function_tree_element = None
-
-def validate_start_syntax(line, line_number):
+def validate_start_syntax(line: token_list, line_number: int) -> None:
     """
-    takes line of tokens as array + line number
+    forms 'function'-like block of tree
+    raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
 
-    forms 'function' element of tree
-    :return: returns True if syntax with 'start' is correct, otherwise False + SYNTAX ERROR
+    :param line: array of tokens from one line of code
+    :param line_number: number of line given for error handling
     """
     global function_tree_element
 
@@ -42,7 +84,7 @@ def validate_start_syntax(line, line_number):
             if line[2][0] == '|' and len(line) > 3:
                 line = line[3:]
 
-                split = []
+                split: token_list = []
 
                 for token in line:
                     # arguments are separated by coma
@@ -63,20 +105,16 @@ def validate_start_syntax(line, line_number):
         else:
             return
 
-    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID FUNCTION ASSIGN'
+    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
 
-# default values of types;
-variable_tree_element = None
-
-
-def validate_is_syntax(block, line_number):
-
+def validate_is_syntax(block: token_list, line_number: int) -> None:
     """
-    takes line of tokens as array
-
     forms 'variable' element of tree
-    :return: True if syntax with 'is' is correct, otherwise False + SYNTAX ERROR
+    raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
+
+    :param block: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
     """
     global variable_tree_element
 
@@ -93,10 +131,8 @@ def validate_is_syntax(block, line_number):
 
                     return
 
-    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID VARIABLE ASSIGN'
+    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
-
-return_tree_element = {}
 
 def validate_return_syntax(block, line_number):
     """
@@ -120,8 +156,6 @@ def validate_return_syntax(block, line_number):
     raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID KEY AFTER \'return\'.'
 
 
-break_tree_element = None
-
 def validate_break_syntax(block, line_number):
     """
     takes line of tokens as array
@@ -144,10 +178,6 @@ def validate_break_syntax(block, line_number):
 
     raise f'INVALID SYNTAX ERROR AT LINE{line_number}: INVALID KEY AFTER \'return\'. VARIABLE EXPECTED'
 
-
-# takes line of tokens as array with line_number and adds it to body;
-# forms body tree element
-body_tree_element = []
 
 def fill_body(line, line_number):
     global body_tree_element
@@ -236,7 +266,7 @@ def nest(line, line_number):
                     nested_segment = []
 
         if not nested_ == 0:
-            raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID NESTING'
+            raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID NESTING')
 
         return nested_line
 
@@ -484,9 +514,6 @@ def operate(segment, line_number, operators):
                 return operated_segment
 
 
-nested = 0
-
-
 def nest_vertical(block, line_number):
     new_block = []
     writing_inner_block = False
@@ -553,9 +580,9 @@ def nest_vertical(block, line_number):
         line_number += 1
     return new_block
 
+# endregion
 
-in_function_body = False
-
+# region Public functions
 
 def make_tree(file_name):
     global in_function_body
@@ -629,6 +656,8 @@ def print_tree(file_name):
            width=140)
 
     print("-" * 70)
+
+# endregion
 
 
 if __name__ == '__main__':
