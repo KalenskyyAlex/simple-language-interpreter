@@ -15,6 +15,7 @@ text in .min file or use as module 'from parser import make_tree'
 from lexer import get_tokens
 
 from typing import Any
+from typing import Iterable
 
 from pprint import pprint
 
@@ -22,8 +23,13 @@ from pprint import pprint
 
 # region Declared types
 
-TokenType = list[str | float | int]
-TokenList = list[TokenType]
+StrToken = list[str]
+NumToken = list[str | float | int]
+Token = StrToken | NumToken
+TokenList = list[Token]
+NestedTokenList = list[Token | list]
+TreeNode = dict[str, Any]
+BlockList = list[TreeNode | TokenList | NestedTokenList]
 
 # endregion
 
@@ -31,11 +37,11 @@ TokenList = list[TokenType]
 
 tokens: TokenList = []
 line_numbers: list[int] = []
-function_tree_element: dict[str, Any] = {}
-variable_tree_element: dict[str, Any] = {}
-return_tree_element = {}
-break_tree_element = None
-body_tree_element = []
+function_tree_element: TreeNode = {}
+variable_tree_element: TreeNode = {}
+return_tree_element: TreeNode = {}
+break_tree_element: TreeNode = {}
+body_tree_element: BlockList = []
 nested = 0
 in_function_body = False
 
@@ -45,9 +51,11 @@ tree: list[dict] = []
 
 # region Private functions
 
-def validate_use_syntax(line: TokenList, line_number: int) -> None:
+def validate_use_syntax(line: TokenList | NestedTokenList, line_number: int) -> None:
     """
-    checks for valid 'use' keyword syntax and raise SYNTAX ERROR if there is
+    forms 'use'-like block of tree
+    raise SYNTAX ERROR if syntax with 'use' keyword is incorrect
+
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
     """
@@ -59,7 +67,7 @@ def validate_use_syntax(line: TokenList, line_number: int) -> None:
     raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL')
 
 
-def validate_start_syntax(line: TokenList, line_number: int) -> None:
+def validate_start_syntax(line: TokenList | NestedTokenList, line_number: int) -> None:
     """
     forms 'function'-like block of tree
     raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
@@ -108,9 +116,9 @@ def validate_start_syntax(line: TokenList, line_number: int) -> None:
     raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
 
-def validate_is_syntax(block: TokenList, line_number: int) -> None:
+def validate_is_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
     """
-    forms 'variable' element of tree
+    forms 'variable'-like block of tree
     raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
 
     :param block: array of tokens, part of one line of code
@@ -134,12 +142,13 @@ def validate_is_syntax(block: TokenList, line_number: int) -> None:
     raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
 
-def validate_return_syntax(block, line_number):
+def validate_return_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
     """
-    takes line of tokens as array
+    forms 'return'-like block of tree
+    raise SYNTAX ERROR if syntax with 'return' keyword is incorrect
 
-    forms 'return' element of tree
-    :return: True if syntax with 'return' is correct, otherwise False + SYNTAX ERROR
+    :param block: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
     """
     global return_tree_element
 
@@ -153,15 +162,16 @@ def validate_return_syntax(block, line_number):
 
         return
 
-    raise f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID KEY AFTER \'return\'.'
+    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
 
-def validate_break_syntax(block, line_number):
+def validate_break_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
     """
-    takes line of tokens as array
+    forms 'break'-like block of tree
+    raise SYNTAX ERROR if syntax with 'break' keyword is incorrect
 
-    forms 'break' element of tree
-    :return: True if syntax with 'break' is correct, otherwise False + SYNTAX ERROR
+    :param block: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
     """
     global break_tree_element
 
@@ -176,10 +186,20 @@ def validate_break_syntax(block, line_number):
 
             return
 
-    raise f'INVALID SYNTAX ERROR AT LINE{line_number}: INVALID KEY AFTER \'return\'. VARIABLE EXPECTED'
+    raise Exception(f'INVALID SYNTAX ERROR AT LINE{line_number}: INVALID KEY AFTER \'return\'. VARIABLE EXPECTED')
 
 
-def fill_body(line, line_number):
+def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
+    """
+    generalization of validate_* methods
+    fills one line of code to 'body'-like tree block
+    on error raise one of exceptions from validate_* methods
+    if there is no special commands in line, then
+    parse line with operate_* methods
+
+    :param line: array of tokens from one line of code
+    :param line_number: number of line given for error handling
+    """
     global body_tree_element
     global return_tree_element
 
@@ -187,7 +207,6 @@ def fill_body(line, line_number):
         validate_is_syntax(line, line_number)
 
         body_tree_element.append(variable_tree_element)
-
     elif ['return', 'kwd'] in line:
         validate_return_syntax(line, line_number)
 
@@ -200,7 +219,6 @@ def fill_body(line, line_number):
             return_tree_element['line'] = line_number
 
         body_tree_element.append(return_tree_element)
-
     elif ['break', 'kwd'] in line:
         validate_break_syntax(line, line_number)
 
@@ -223,8 +241,9 @@ def fill_body(line, line_number):
             body_tree_element.append(line)
 
 
-def has_nesting(line):
+def has_nesting(line: TokenList | NestedTokenList) -> bool:
     """
+    :param line: array of tokens from one line of code
     :return: True if line has nesting, otherwise False
     """
     if ['(', 'opr'] in line or [')', 'opr'] in line:
@@ -233,17 +252,19 @@ def has_nesting(line):
     return False
 
 
-def nest(line, line_number):
+def nest(line: TokenList | NestedTokenList, line_number: int) -> NestedTokenList:
     """
     nest given line recursively
+    :param line: array of tokens from one line of code to nest
+    :param line_number: number of line given for error handling
     """
     # base case - no nesting
     if not has_nesting(line):
         return line
     else:
-        nested_line = []
-        nested_ = 0
-        nested_segment = []
+        nested_line: NestedTokenList = []
+        nested_: int = 0
+        nested_segment: NestedTokenList = []
         for token in line:
             if token == ['(', 'opr']:
                 nested_ += 1
@@ -271,7 +292,12 @@ def nest(line, line_number):
         return nested_line
 
 
-def operate_separators(segment, line_number):
+def operate_separators(segment: Any, line_number: int) -> Any:
+    """
+    nest code segment by separators
+    :param segment: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    """
     if isinstance(segment, int) or isinstance(segment, float):
         return segment
     if len(segment) == 1 and isinstance(segment[0], str):
@@ -302,9 +328,15 @@ def operate_separators(segment, line_number):
 
         return operated_segment
 
+
 # TODO unify operate ... methods
 # TODO REPLACE operate1 and this methods sequence
-def operate_calls(segment, line_number):
+def operate_calls(segment: Any, line_number: int) -> Any:
+    """
+    nest code segment by '|' (function) operator
+    :param segment: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    """
     if isinstance(segment, int) or isinstance(segment, float):
         return segment
     if len(segment) == 1 and isinstance(segment[0], str):
@@ -349,7 +381,13 @@ def operate_calls(segment, line_number):
         return operated_segment
 
 
-def operate_helper(line, line_number, method):
+def operate_helper(line: Any, line_number: int, method: callable) -> Any:
+    """
+    is needed to go through already modified line (partially nested)
+    :param line: array of tokens, from one line of code
+    :param line_number: number of line given for error handling
+    :param method: function to nest parts of not nested line
+    """
     if isinstance(line, dict):
         line['left'] = operate_helper(line['left'], line_number, method)
         line['right'] = operate_helper(line['right'], line_number, method)
@@ -357,6 +395,7 @@ def operate_helper(line, line_number, method):
         line = method(line, line_number)
 
     return line
+
 
 def operate_helper_new(line, line_number, method, operators):
     if isinstance(line, dict):
@@ -368,9 +407,12 @@ def operate_helper_new(line, line_number, method, operators):
     return line
 
 
-def operate_1(segment, line_number):
+def operate_1(segment: Any, line_number: int) -> Any:
     """
-    nests tree by '=' operator
+    nest code segment by '=' (assign) operator
+    :param segment: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    :return: nested segment of code
     """
     if isinstance(segment, int) or isinstance(segment, float):
         return segment
@@ -406,9 +448,12 @@ def operate_1(segment, line_number):
         return operated_segment
 
 
-def operate_2(segment, line_number):
+def operate_2(segment: Any, line_number: int) -> Any:
     """
-        nests tree by '+' or(and) '-' operators
+    nest code segment by '+' (add) and '-' (subtract) operators
+    :param segment: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    :return: nested segment of code
     """
     if isinstance(segment, int) or isinstance(segment, float):
         return segment
@@ -451,9 +496,12 @@ def operate_2(segment, line_number):
         return operated_segment
 
 
-def operate_3(segment, line_number):
+def operate_3(segment: Any, line_number: int) -> Any:
     """
-        nests tree by '*' or(and) '/' or(and) '%' operators
+    nest code segment by '*' (multiply), '/' (divide) and '%' (modulo) operators
+    :param segment: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    :return: nested segment of code
     """
     if isinstance(segment, int) or isinstance(segment, float):
         return segment
@@ -494,7 +542,15 @@ def operate_3(segment, line_number):
         return operated_segment
 
 
-def operate(segment, line_number, operators):
+# TODO
+def operate(segment: Any, line_number: int, operators: list[str]) -> Any:
+    """
+    nest code segment by given operators
+    :param segment: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    :param operators: operators for used to nest code segment
+    :return: nested segment of code
+    """
     operated_segment = segment
 
     for index in range(len(segment)):
@@ -514,7 +570,13 @@ def operate(segment, line_number, operators):
                 return operated_segment
 
 
-def nest_vertical(block, line_number):
+def nest_vertical(block: Any, line_number: int) -> Any:
+    """
+    nest code segment by if/else/while constructions
+    :param block: array of tokens, several lines of code
+    :param line_number: number of first line from block, given for error handling
+    :return: nested block of code
+    """
     new_block = []
     writing_inner_block = False
     block_nesting = 0
@@ -584,7 +646,12 @@ def nest_vertical(block, line_number):
 
 # region Public functions
 
-def make_tree(file_name):
+def make_tree(file_name: str) -> Any:
+    """
+    creates logical tree from code in .min file
+    :param file_name: path to .min file to be processed
+    :return: logical tree created
+    """
     global in_function_body
     global nested
     global body_tree_element
@@ -649,7 +716,11 @@ def make_tree(file_name):
     return tree
 
 
-def print_tree(file_name):
+def print_tree(file_name: str) -> None:
+    """
+    outputs logical tree created from code in .min file
+    :param file_name: path to .min file to be processed
+    """
     print("Produced tree:")
 
     pprint(make_tree(file_name),

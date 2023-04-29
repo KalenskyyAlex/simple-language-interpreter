@@ -259,7 +259,7 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
                     line_of_tokens.append(line[index])
 
                     # for 2-symbol operators, like '++', '--', '>=', '<=' or '=='
-                    if index + 1 < length and line[index + 1] \
+                    if index + 1 < length and line[index + 1] == '=' \
                             and line[index] in ['>', '<', '=']:
                         line_of_tokens[-1] += '='
                         skip_next = True

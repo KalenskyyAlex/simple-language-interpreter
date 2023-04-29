@@ -7,7 +7,7 @@ import importlib.util
 import copy
 
 # do not output errors traceback from Python
-sys.tracebacklimit = -1
+# sys.tracebacklimit = -1
 
 # ON DEBUG
 # from pprint import pprint
@@ -96,6 +96,7 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                         type_right = right[1]
 
             if not line['operation'] == [',', 'sep']:
+                print(type_left, type_right)
                 if type_left not in 'int float' or type_right not in 'int float':
                     raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO BE OF TYPE'
                                     f' int OR float, GOT {type_left} AND {type_right}')
