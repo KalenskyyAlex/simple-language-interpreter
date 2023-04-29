@@ -1,19 +1,18 @@
 from pprint import pprint
+from typing import TextIO
 
-def clear_lines(lines_raw):
+def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
 	"""
-		takes array of lines: ["line1", "line2" ...]
-
-		delete tabs, eol, comments
-
-		:return: array of 'cleared' lines : ["cleared line 1", "cleared line 2" ...] and line number for each line
+		deletes whitespace, eol, comments
+		:param lines_raw: unprocessed lines of text from .min file
+		:return: array of 'cleared' lines with parallel array of line numbers for each line
 	"""
-	lines = []
-	line_numbers = []
+	lines: list[str] = []
+	line_numbers: list[int] = []
 
 	# removing comments, tabs, eol symbols
 	for index in range(len(lines_raw)):
-		line = lines_raw[index]
+		line: str = lines_raw[index]
 
 		line = line.split('~')[0]
 
@@ -31,36 +30,33 @@ def clear_lines(lines_raw):
 		if line == '':
 			continue
 
-		line_numbers.append(index + 1)
+		line_numbers.append(index + 1)  # line count starts from 1
 		lines.append(line)
 
 	return lines, line_numbers
 
 
-def get_tokens(file_name):
+def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
 	"""
-		takes 'file_name' (WITH extension) of .min file
-
-		separate lines on tokens, with types
-
-		:return: array of dicts: [ [ ["token itself" , "type"] ... ] ... ] and line numbers to each line
+		separate lines into tokens, with types
+		:param file_name: path to .min file to be processed
+		:return: nested array of tokens and line numbers to each line
 	"""
-	file = open(file_name, 'r')
+	file: TextIO = open(file_name, 'r')
 
-	raw_lines = file.readlines()
+	raw_lines: list[str] = file.readlines()
 	lines, line_numbers = clear_lines(raw_lines)
 
-	tokens_raw = []  # separated, but no types
+	tokens_raw: list[list[str]] = []  # separated, but no types
 
 	for line in lines:
-		line_of_tokens = []
+		line_of_tokens: list[str] = []
 
-		length = len(line)
+		length: int = len(line)
+		token: str = ''
 
-		token = ''
-
-		in_string = False
-		skip_next = False
+		in_string: bool = False
+		skip_next: bool = False
 
 		for index in range(length):	
 			# next 3 if's cares about special symbols (\', \\, \", \n) and how to add them, properly, cause
@@ -116,7 +112,7 @@ def get_tokens(file_name):
 			else:
 				token += line[index]
 
-		# using previous method we don't recognize last token, so we add it manually
+		# using previous method we don't add last token, so we add it manually
 		if token != '':
 			line_of_tokens.append(token)
 
@@ -124,7 +120,7 @@ def get_tokens(file_name):
 		if not line_of_tokens == []:
 			tokens_raw.append(line_of_tokens)
 
-	tokens = recognize_tokens(tokens_raw)  # differentiate tokens
+	tokens: list[list[str]] = give_types_for_tokens(tokens_raw)  # differentiate tokens
 
 	return tokens, line_numbers
 
@@ -132,48 +128,49 @@ def get_tokens(file_name):
 special_symbols = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']  # when we 'hit' them, we add tokens
 
 
-def recognize_tokens(tokens_raw):
+def give_types_for_tokens(tokens_raw: list[list[str]]):
 	"""
-		takes array of lines represented as tokens;
-		:return: array of dicts: [ [ ["token" , "type"] ... ] ... ]
+		gives each given token a type
+		:param tokens_raw: nested array of tokens without type;
+		:return: array of tokens with added types
 	"""
-	prev_token = ''
+	prev_token: str = ''
 
-	tokens = []
+	tokens: list[list[list[str | float | int]]] = []
 
 	for line in tokens_raw:
-		recognized_line = []
+		line_with_types: list[list[str | float | int]] = []
 
 		for token in line:
-			if recognize_keyword(token):
-				recognized_line.append([token, 'kwd'])
-			elif recognize_operator(token):
+			if is_keyword(token):
+				line_with_types.append([token, 'kwd'])
+			elif is_operator(token):
 				if token == '|':
-					recognized_line[-1][1] = 'fnc'
-				recognized_line.append([token, 'opr'])
-			elif recognize_separator(token):
-				recognized_line.append([token, 'sep'])
-			elif recognize_type(token):
-				recognized_line.append([token, 'typ'])
-			elif recognize_boolean(token):
-				recognized_line.append([token, 'bool'])
-			elif recognize_integer(token):
-				recognized_line.append([int(token), 'int'])
-			elif recognize_float(token):
-				recognized_line.append([float(token), 'float'])
-			elif recognize_string(token):
-				recognized_line.append([token[1:-1], 'str'])
+					line_with_types[-1][1] = 'fnc'
+				line_with_types.append([token, 'opr'])
+			elif is_separator(token):
+				line_with_types.append([token, 'sep'])
+			elif is_type(token):
+				line_with_types.append([token, 'typ'])
+			elif is_boolean(token):
+				line_with_types.append([token, 'bool'])
+			elif is_integer(token):
+				line_with_types.append([int(token), 'int'])
+			elif is_float(token):
+				line_with_types.append([float(token), 'float'])
+			elif is_string(token):
+				line_with_types.append([token[1:-1], 'str'])
 			else:
 				if prev_token == 'start':
-					recognized_line.append([token, 'fnc'])
+					line_with_types.append([token, 'fnc'])
 				elif prev_token == 'use':
-					recognized_line.append([token, 'lib'])
+					line_with_types.append([token, 'lib'])
 				else:
-					recognized_line.append([token, 'var'])
+					line_with_types.append([token, 'var'])
 
 			prev_token = token
 
-		tokens.append(recognized_line)
+		tokens.append(line_with_types)
 
 	return tokens
 
@@ -185,41 +182,41 @@ numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 types = ['int', 'float', 'str', 'bool']
 
 
-def recognize_keyword(token):
+def is_keyword(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is a keyword, otherwise False
 	"""
 	return token in keywords
 
-def recognize_operator(token):
+
+def is_operator(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is an operator, otherwise False
 	"""
 	return token in operators
 
-# takes token as string;
-# returns True if token is an operator, otherwise False
-def recognize_type(token):
+
+def is_type(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is a type, otherwise False
 	"""
 	return token in types
 
 
-def recognize_boolean(token):
+def is_boolean(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is a boolean, otherwise False
 	"""
 	return token in booleans
 
 
-def recognize_integer(token):
+def is_integer(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is a integer, otherwise False
 	"""
 	if token[0] == '-':
@@ -231,32 +228,42 @@ def recognize_integer(token):
 
 	return True 
 
-def recognize_float(token):
+
+def is_float(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is a float, otherwise False
 	"""
-	parts = token.split('.')
+	parts: list[str] = token.split('.')
 	
 	# if string has NO point '.', it isn't a floating point number
 	if len(parts) == 1: 
 		return False
 
-	return recognize_integer(parts[0]) and recognize_integer(parts[1])
+	return is_integer(parts[0]) and is_integer(parts[1])
 
-# takes token as string;
-# returns True if token is a string, otherwise False
-def recognize_string(token):
+
+def is_string(token: str) -> bool:
 	"""
-		takes token as string
+		:param token: token as string
 		:return: True if token is a string, otherwise False
 	"""
 	return token[0] == '"' and token[-1] == '"' 
 
-def recognize_separator(token):
+
+def is_separator(token: str) -> bool:
+	"""
+		:param token: token as string
+		:return: True if token is a separator, otherwise False
+	"""
 	return token == ','
 
-def print_tokens(file_name):
+
+def print_tokens(file_name: str) -> None:
+	"""
+		Used for outputting processed tokens from .min file
+		:param file_name: path to the file to be checked
+	"""
 	print('Raw tokens:')
 
 	tokens, line_numbers = get_tokens(file_name)
