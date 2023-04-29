@@ -67,8 +67,10 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
         skip_next: bool = False
 
         for index in range(length):
-            # next 3 if's cares about special symbols (\', \\, \", \n) and how to add them, properly, cause
-            # in string it doesn't recognize '\ + symbol' as special symbol, but as '\\ + \ + symbol'
+            # next 3 if's cares about special symbols (\', \\, \", \n)
+            # and how to add them, properly, cause in string it doesn't
+            # recognize '\ + symbol' as special symbol, but as '\\ + \ +
+            # symbol'
 
             # we added special symbol in the previous iteration, so we must skip it
             if skip_next:
@@ -104,20 +106,16 @@ def get_tokens(file_name: str) -> tuple[list[list[str]], list[int]]:
 
                 token = ''
                 if line[index] != ' ':
-                    line_of_tokens.append(line[index])  # we count operators as tokens as well, except spaces
+                    # we count operators as tokens as well, except spaces
+                    line_of_tokens.append(line[index])
 
                     # for 2-symbol operators, like '++', '--', '>=', '<=' or '=='
-                    if index + 1 < length:
-                        if line[index + 1] == '+' and line[index] == '+':
-                            line_of_tokens[-1] += '+'
-                            skip_next = True
-                        elif line[index + 1] == '-' and line[index] == '-':
-                            line_of_tokens[-1] += '-'
-                            skip_next = True
-                        elif line[index + 1] == '=':
-                            if line[index] in ['>', '<', '=']:
-                                line_of_tokens[-1] += '='
-                                skip_next = True
+                    if index + 1 < length and line[index + 1] \
+                            and line[index] in ['>', '<', '=']:
+                        line_of_tokens[-1] += '='
+                        skip_next = True
+
+
             else:
                 token += line[index]
 
@@ -185,8 +183,10 @@ def give_types_for_tokens(tokens_raw: list[list[str]]):
     return tokens
 
 
-keywords = ['start', 'end', 'use', 'return', 'break', 'while', 'if', 'else', 'elif']
-operators = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and', 'or', 'not', '>', '<', '<=', '>=', '==', '|', '=']
+keywords = ['start', 'end', 'use', 'return', 'break',
+            'while', 'if', 'else', 'elif']
+operators = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and',
+             'or', 'not', '>', '<', '<=', '>=', '==', '|', '=']
 booleans = ['true', 'false']
 numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 types = ['int', 'float', 'str', 'bool']
