@@ -22,14 +22,14 @@ from pprint import pprint
 
 # region Declared types
 
-token_type = list[str | float | int]
-token_list = list[token_type]
+TokenType = list[str | float | int]
+TokenList = list[TokenType]
 
 # endregion
 
 # region Declared globals
 
-tokens: token_list = []
+tokens: TokenList = []
 line_numbers: list[int] = []
 function_tree_element: dict[str, Any] = {}
 variable_tree_element: dict[str, Any] = {}
@@ -45,7 +45,7 @@ tree: list[dict] = []
 
 # region Private functions
 
-def validate_use_syntax(line: token_list, line_number: int) -> None:
+def validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
     checks for valid 'use' keyword syntax and raise SYNTAX ERROR if there is
     :param line: array of tokens from one line of code
@@ -59,7 +59,7 @@ def validate_use_syntax(line: token_list, line_number: int) -> None:
     raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL')
 
 
-def validate_start_syntax(line: token_list, line_number: int) -> None:
+def validate_start_syntax(line: TokenList, line_number: int) -> None:
     """
     forms 'function'-like block of tree
     raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
@@ -84,7 +84,7 @@ def validate_start_syntax(line: token_list, line_number: int) -> None:
             if line[2][0] == '|' and len(line) > 3:
                 line = line[3:]
 
-                split: token_list = []
+                split: TokenList = []
 
                 for token in line:
                     # arguments are separated by coma
@@ -108,7 +108,7 @@ def validate_start_syntax(line: token_list, line_number: int) -> None:
     raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
 
-def validate_is_syntax(block: token_list, line_number: int) -> None:
+def validate_is_syntax(block: TokenList, line_number: int) -> None:
     """
     forms 'variable' element of tree
     raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
