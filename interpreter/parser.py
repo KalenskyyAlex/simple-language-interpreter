@@ -42,8 +42,6 @@ variable_tree_element: TreeNode = {}
 return_tree_element: TreeNode = {}
 break_tree_element: TreeNode = {}
 body_tree_element: BlockList = []
-nested = 0
-in_function_body = False
 
 tree: list[dict] = []
 
@@ -64,7 +62,7 @@ def validate_use_syntax(line: TokenList | NestedTokenList, line_number: int) -> 
             if line[1][1] == 'lib':
                 return
 
-    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID LIBRARY CALL')
+    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID LIBRARY CALL')
 
 
 def validate_start_syntax(line: TokenList | NestedTokenList, line_number: int) -> None:
@@ -113,7 +111,7 @@ def validate_start_syntax(line: TokenList | NestedTokenList, line_number: int) -
         else:
             return
 
-    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID FUNCTION ASSIGN')
+    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
 
 def validate_is_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
@@ -139,7 +137,7 @@ def validate_is_syntax(block: TokenList | NestedTokenList, line_number: int) -> 
 
                     return
 
-    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID VARIABLE ASSIGN')
+    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
 
 def validate_return_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
@@ -162,7 +160,7 @@ def validate_return_syntax(block: TokenList | NestedTokenList, line_number: int)
 
         return
 
-    raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
+    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
 
 def validate_break_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
@@ -186,7 +184,8 @@ def validate_break_syntax(block: TokenList | NestedTokenList, line_number: int) 
 
             return
 
-    raise Exception(f'INVALID SYNTAX ERROR AT LINE{line_number}: INVALID KEY AFTER \'return\'. VARIABLE EXPECTED')
+    raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY ' +
+                      f'AFTER \'return\'. VARIABLE EXPECTED')
 
 
 def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
@@ -200,9 +199,6 @@ def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
     """
-    global body_tree_element
-    global return_tree_element
-
     if ['is', 'opr'] in line:
         validate_is_syntax(line, line_number)
 
@@ -210,10 +206,14 @@ def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
     elif ['return', 'kwd'] in line:
         validate_return_syntax(line, line_number)
 
-        return_tree_element['right'] = operate_calls(return_tree_element['right'], line_number)
-        return_tree_element['right'] = operate_helper(return_tree_element['right'], line_number, operate_1)
-        return_tree_element['right'] = operate_helper(return_tree_element['right'], line_number, operate_2)
-        return_tree_element['right'] = operate_helper(return_tree_element['right'], line_number, operate_3)
+        return_tree_element['right'] = operate_calls(return_tree_element['right'],
+                                                     line_number)
+        return_tree_element['right'] = operate_helper(return_tree_element['right'],
+                                                      line_number, operate_1)
+        return_tree_element['right'] = operate_helper(return_tree_element['right'],
+                                                      line_number, operate_2)
+        return_tree_element['right'] = operate_helper(return_tree_element['right'],
+                                                      line_number, operate_3)
 
         if isinstance(return_tree_element, dict):
             return_tree_element['line'] = line_number
@@ -261,35 +261,35 @@ def nest(line: TokenList | NestedTokenList, line_number: int) -> NestedTokenList
     # base case - no nesting
     if not has_nesting(line):
         return line
-    else:
-        nested_line: NestedTokenList = []
-        nested_: int = 0
-        nested_segment: NestedTokenList = []
-        for token in line:
-            if token == ['(', 'opr']:
-                nested_ += 1
 
-                if nested_ == 1:
-                    continue
+    nested_line: NestedTokenList = []
+    nested_: int = 0
+    nested_segment: NestedTokenList = []
+    for token in line:
+        if token == ['(', 'opr']:
+            nested_ += 1
 
-            if token == [')', 'opr']:
-                nested_ -= 1
+            if nested_ == 1:
+                continue
 
-            if not nested_ == 0:
-                nested_segment.append(token)
-
-            if nested_ == 0:
-                if len(nested_segment) == 0:
-                    nested_line.append(token)
-                else:
-                    nested_segment = nest(nested_segment, line_number)
-                    nested_line.append(nested_segment)
-                    nested_segment = []
+        if token == [')', 'opr']:
+            nested_ -= 1
 
         if not nested_ == 0:
-            raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: INVALID NESTING')
+            nested_segment.append(token)
 
-        return nested_line
+        if nested_ == 0:
+            if len(nested_segment) == 0:
+                nested_line.append(token)
+            else:
+                nested_segment = nest(nested_segment, line_number)
+                nested_line.append(nested_segment)
+                nested_segment = []
+
+    if not nested_ == 0:
+        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID NESTING')
+
+    return nested_line
 
 
 def operate_separators(segment: Any, line_number: int) -> Any:
@@ -304,7 +304,8 @@ def operate_separators(segment: Any, line_number: int) -> Any:
         return segment
     else:
         operated_segment = segment
-        for index in range(len(segment)):
+        tokens_count = len(segment)
+        for index in range(tokens_count):
             token = segment[index]
             if isinstance(token[0], str):
                 if token[1] == 'sep':
@@ -337,48 +338,49 @@ def operate_calls(segment: Any, line_number: int) -> Any:
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    if isinstance(segment, int) or isinstance(segment, float):
+    if isinstance(segment, (float, int)):
         return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
+
+    operated_segment = segment
+    if isinstance(segment, dict):
+        operated_segment['right'] = operate_calls(segment['right'], line_number)
+        operated_segment['left'] = operate_calls(segment['left'], line_number)
     else:
-        operated_segment = segment
-        if isinstance(segment, dict):
-            operated_segment['right'] = operate_calls(segment['right'], line_number)
-            operated_segment['left'] = operate_calls(segment['left'], line_number)
-        else:
-            for index in range(len(segment)):
-                token = segment[index]
+        tokens_count = len(segment)
+        for index in range(tokens_count):
+            token = segment[index]
 
-                if not isinstance(token, int) and not isinstance(token, float):
-                    if isinstance(token[0], str):
-                        if token[1] == 'opr':
-                            if token[0] == '|':
-                                left = operate_calls(segment[:index], line_number)
+            if not isinstance(token, int) and not isinstance(token, float):
+                if isinstance(token[0], str):
+                    if token[1] == 'opr':
+                        if token[0] == '|':
+                            left = operate_calls(segment[:index], line_number)
 
-                                if len(left) == 1 and isinstance(left[0], dict):
-                                    left = left[0]
+                            if len(left) == 1 and isinstance(left[0], dict):
+                                left = left[0]
 
-                                right = operate_separators(segment[index + 1:], line_number)
+                            right = operate_separators(segment[index + 1:], line_number)
 
-                                if len(right) == 1 and isinstance(right[0], dict):
-                                    right = right[0]
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
 
-                                right = operate_calls(right, line_number)
+                            right = operate_calls(right, line_number)
 
-                                if len(right) == 1 and isinstance(right[0], dict):
-                                    right = right[0]
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
 
-                                operated_segment = {
-                                    'left': left[0] if len(left) == 1 else left,
-                                    'operation': token,
-                                    'right': right
-                                }
-                                break
-                    else:
-                        segment[index] = operate_calls(token, line_number)
+                            operated_segment = {
+                                'left': left[0] if len(left) == 1 else left,
+                                'operation': token,
+                                'right': right
+                            }
+                            break
+                else:
+                    segment[index] = operate_calls(token, line_number)
 
-        return operated_segment
+    return operated_segment
 
 
 def operate_helper(line: Any, line_number: int, method: Callable) -> Any:
@@ -397,14 +399,14 @@ def operate_helper(line: Any, line_number: int, method: Callable) -> Any:
     return line
 
 
-def operate_helper_new(line, line_number, method, operators):
-    if isinstance(line, dict):
-        line['left'] = operate_helper(line['left'], line_number, method)
-        line['right'] = operate_helper(line['right'], line_number, method)
-    else:
-        line = method(line, line_number)
-
-    return line
+# def operate_helper_new(line, line_number, method, operators):
+#     if isinstance(line, dict):
+#         line['left'] = operate_helper(line['left'], line_number, method)
+#         line['right'] = operate_helper(line['right'], line_number, method)
+#     else:
+#         line = method(line, line_number)
+#
+#     return line
 
 
 def operate_1(segment: Any, line_number: int) -> Any:
@@ -414,38 +416,39 @@ def operate_1(segment: Any, line_number: int) -> Any:
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, int) or isinstance(segment, float):
+    if isinstance(segment, (int, float)):
         return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
-    else:
-        operated_segment = segment
-        for index in range(len(segment)):
-            token = segment[index]
-            if not isinstance(token, int) and not isinstance(token, float):
-                if isinstance(token[0], str):
-                    if token[1] == 'opr':
-                        if token[0] == '=':
-                            left = operate_1(segment[:index], line_number)
 
-                            if len(left) == 1 and isinstance(left[0], dict):
-                                left = left[0]
+    operated_segment = segment
+    tokens_count = len(segment)
+    for index in range(tokens_count):
+        token = segment[index]
+        if not isinstance(token, (int, float)):
+            if isinstance(token[0], str):
+                if token[1] == 'opr':
+                    if token[0] == '=':
+                        left = operate_1(segment[:index], line_number)
 
-                            right = operate_1(segment[index + 1:], line_number)
+                        if len(left) == 1 and isinstance(left[0], dict):
+                            left = left[0]
 
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
+                        right = operate_1(segment[index + 1:], line_number)
 
-                            operated_segment = {
-                                'left': left[0] if len(left) == 1 else left,
-                                'operation': token,
-                                'right': right[0] if len(right) == 1 else right
-                            }
-                            break
-                else:
-                    segment[index] = operate_1(token, line_number)
+                        if len(right) == 1 and isinstance(right[0], dict):
+                            right = right[0]
 
-        return operated_segment
+                        operated_segment = {
+                            'left': left[0] if len(left) == 1 else left,
+                            'operation': token,
+                            'right': right[0] if len(right) == 1 else right
+                        }
+                        break
+            else:
+                segment[index] = operate_1(token, line_number)
+
+    return operated_segment
 
 
 def operate_2(segment: Any, line_number: int) -> Any:
@@ -455,45 +458,45 @@ def operate_2(segment: Any, line_number: int) -> Any:
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, int) or isinstance(segment, float):
+    if isinstance(segment, (int, float)):
         return segment
     if len(segment) == 1 and isinstance(segment[0], str):
         return segment
-    else:
-        operated_segment = segment
 
-        for index in range(len(segment)):
-            token = segment[index]
-            if not isinstance(token, int) and not isinstance(token, float):
-                if isinstance(token, dict):
-                    continue
-                if isinstance(token[0], str):
-                    if len(token) >= 2:
-                        if token[1] == 'opr':
-                            if token[0] == '+' or token[0] == '-':
-                                left = operate_2(segment[:index], line_number)
+    operated_segment = segment
+    tokens_count = len(segment)
+    for index in range(tokens_count):
+        token = segment[index]
+        if not isinstance(token, (int, float)):
+            if isinstance(token, dict):
+                continue
+            if isinstance(token[0], str):
+                if len(token) >= 2:
+                    if token[1] == 'opr':
+                        if token[0] == '+' or token[0] == '-':
+                            left = operate_2(segment[:index], line_number)
 
-                                if len(left) == 1 and isinstance(left[0], dict):
-                                    left = left[0]
+                            if len(left) == 1 and isinstance(left[0], dict):
+                                left = left[0]
 
-                                right = operate_2(segment[index + 1:], line_number)
+                            right = operate_2(segment[index + 1:], line_number)
 
-                                if len(right) == 1 and isinstance(right[0], dict):
-                                    right = right[0]
+                            if len(right) == 1 and isinstance(right[0], dict):
+                                right = right[0]
 
-                                if len(left) == 0 and token[0] == '-':
-                                    left = [0, 'int']
+                            if len(left) == 0 and token[0] == '-':
+                                left = [0, 'int']
 
-                                operated_segment = {
-                                    'left': left[0] if len(left) == 1 else left,
-                                    'operation': token,
-                                    'right': right[0] if len(right) == 1 else right
-                                }
-                                break
-                else:
-                    segment[index] = operate_2(token, line_number)
+                            operated_segment = {
+                                'left': left[0] if len(left) == 1 else left,
+                                'operation': token,
+                                'right': right[0] if len(right) == 1 else right
+                            }
+                            break
+            else:
+                segment[index] = operate_2(token, line_number)
 
-        return operated_segment
+    return operated_segment
 
 
 def operate_3(segment: Any, line_number: int) -> Any:
@@ -503,7 +506,7 @@ def operate_3(segment: Any, line_number: int) -> Any:
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, int) or isinstance(segment, float):
+    if isinstance(segment, (int, float)):
         return segment
     if not ['*', 'opr'] in segment and not ['/', 'opr'] in segment and not ['%', 'opr'] in segment:
         return segment
@@ -543,31 +546,31 @@ def operate_3(segment: Any, line_number: int) -> Any:
 
 
 # TODO
-def operate(segment: Any, line_number: int, operators: list[str]) -> Any:
-    """
-    nest code segment by given operators
-    :param segment: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    :param operators: operators for used to nest code segment
-    :return: nested segment of code
-    """
-    operated_segment = segment
-
-    for index in range(len(segment)):
-        token = segment[index]
-
-        if token[1] == 'opr':
-            if token[0] in operators:
-                left = operate_helper_new(segment[:index], line_number, operate, operators)
-                right = operate_helper_new(segment[index + 1:], line_number, operate, operators)
-
-                operated_segment = {
-                    'left': left,
-                    'operation': token,
-                    'right': right
-                }
-
-                return operated_segment
+# def operate(segment: Any, line_number: int, operators: list[str]) -> Any:
+#     """
+#     nest code segment by given operators
+#     :param segment: array of tokens, part of one line of code
+#     :param line_number: number of line given for error handling
+#     :param operators: operators for used to nest code segment
+#     :return: nested segment of code
+#     """
+#     operated_segment = segment
+#
+#     for index in range(len(segment)):
+#         token = segment[index]
+#
+#         if token[1] == 'opr':
+#             if token[0] in operators:
+#                 left = operate_helper_new(segment[:index], line_number, operate, operators)
+#                 right = operate_helper_new(segment[index + 1:], line_number, operate, operators)
+#
+#                 operated_segment = {
+#                     'left': left,
+#                     'operation': token,
+#                     'right': right
+#                 }
+#
+#                 return operated_segment
 
 
 def nest_vertical(block: Any, line_number: int) -> Any:
@@ -652,17 +655,16 @@ def make_tree(file_name: str) -> Any:
     :param file_name: path to .min file to be processed
     :return: logical tree created
     """
-    global in_function_body
-    global nested
     global body_tree_element
 
     global tokens
     global line_numbers
 
-    old_type_tokens: list[list[list[str]]] = []
     old_type_tokens, line_numbers = get_tokens(file_name)
 
     tokens = []
+    nested = 0
+    in_function_body = False
 
     for old_type_line in old_type_tokens:
         new_type_line: TokenList = []
@@ -677,8 +679,8 @@ def make_tree(file_name: str) -> Any:
 
         if in_function_body:
             if ['start', 'kwd'] in line:
-                raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}:' +
-                                f' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
+                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}:' +
+                                  f' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
 
             if ['if', 'kwd'] in line:
                 nested += 1
@@ -714,8 +716,8 @@ def make_tree(file_name: str) -> Any:
                     ['elif', 'kwd'] in line or\
                     ['loop', 'kwd'] in line or\
                     ['end', 'kdw'] in line:
-                raise Exception(f'INVALID SYNTAX ERROR AT LINE {line_number}: ' +
-                                f'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
+                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                  f'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
 
         if nested == 0 and in_function_body:
             in_function_body = False
