@@ -232,41 +232,6 @@ def execute_func_related_block(expression: list[Token | dict | list],
     return None, True
 
 
-def execute_line(line: dict[str, Any], callables: CallablesList,
-                 nesting_level: int, line_number: int,
-                 visible_variables: VariablesList) -> ExecutionResult:
-    """
-    executes single line of code
-
-    :param line: nested and processed line of code
-    :param callables: functions pool in program
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :return: (execution_result, function_still_running)
-    """
-    # the simplest case
-    if isinstance(line, list):
-        return line, True
-
-    right = line['right']
-    left = line['left']
-
-    right, _ = execute_line(right, callables, nesting_level,
-                            line_number, visible_variables)
-    left, _ = execute_line(left, callables, nesting_level,
-                           line_number, visible_variables)
-
-    if line['operation'] in [['is', 'opr'], ['=', 'opr']]:
-        return execute_var_related_block([left, line['operation'], right], line_number,
-                                         nesting_level, visible_variables)
-    elif line['operation'] in [['|', 'opr'], ['return', 'kwd']]:
-        return execute_func_related_block([left, line['operation'], right], line_number,
-                                          nesting_level, visible_variables, callables)
-
-    return execute_arithmetical_block([left, line['operation'], right], line_number,
-                                      nesting_level, visible_variables)
-
 def validate_args(args: list, args_needed: list, function_name: str) -> None:
     """
     checks if arguments fit to function
@@ -291,26 +256,6 @@ def validate_args(args: list, args_needed: list, function_name: str) -> None:
     else:
         raise RuntimeError(f'COMPILATION ERROR: FUNCTION {function_name} REQUIRES ' +
                            f'{len(args_needed)} ARGUMENTS BUT {len(args)} GIVEN')
-
-
-def execute_function(function_name: str, callables: CallablesList, args: list) -> list | None:
-    """
-    executes either min or py function
-
-    :param function_name: function to be executed
-    :param callables: global pool of functions in program
-    :param args: arguments which are passed to the function
-    :return: return of function, if exists
-    """
-    visible_variables: VariablesList = {}
-
-    packed_function: CallablePacked | dict = callables[function_name]
-
-    if isinstance(packed_function, dict):
-        return execute_min_function(function_name, packed_function, args,
-                                    callables, visible_variables)
-
-    return execute_py_function(function_name, packed_function, args)
 
 
 def execute_py_function(function_name: str, packed_function: CallablePacked,
@@ -436,6 +381,62 @@ def find_callables(tree: list) -> CallablesList:
 # endregion
 
 # region Public functions
+
+def execute_line(line: dict[str, Any], callables: CallablesList,
+                 nesting_level: int, line_number: int,
+                 visible_variables: VariablesList) -> ExecutionResult:
+    """
+    executes single line of code
+
+    :param line: nested and processed line of code
+    :param callables: functions pool in program
+    :param nesting_level: current nesting level
+    :param line_number: number of current line for error handling
+    :param visible_variables: pool of variables visible in current nesting level
+    :return: (execution_result, function_still_running)
+    """
+    # the simplest case
+    if isinstance(line, list):
+        return line, True
+
+    right = line['right']
+    left = line['left']
+
+    right, _ = execute_line(right, callables, nesting_level,
+                            line_number, visible_variables)
+    left, _ = execute_line(left, callables, nesting_level,
+                           line_number, visible_variables)
+
+    if line['operation'] in [['is', 'opr'], ['=', 'opr']]:
+        return execute_var_related_block([left, line['operation'], right], line_number,
+                                         nesting_level, visible_variables)
+    if line['operation'] in [['|', 'opr'], ['return', 'kwd']]:
+        return execute_func_related_block([left, line['operation'], right], line_number,
+                                          nesting_level, visible_variables, callables)
+
+    return execute_arithmetical_block([left, line['operation'], right], line_number,
+                                      nesting_level, visible_variables)
+
+
+def execute_function(function_name: str, callables: CallablesList, args: list) -> list | None:
+    """
+    executes either min or py function
+
+    :param function_name: function to be executed
+    :param callables: global pool of functions in program
+    :param args: arguments which are passed to the function
+    :return: return of function, if exists
+    """
+    visible_variables: VariablesList = {}
+
+    packed_function: CallablePacked | dict = callables[function_name]
+
+    if isinstance(packed_function, dict):
+        return execute_min_function(function_name, packed_function, args,
+                                    callables, visible_variables)
+
+    return execute_py_function(function_name, packed_function, args)
+
 
 def execute(file_name: str):
     """
