@@ -18,114 +18,25 @@ import copy
 
 from typing import Any, Callable
 
-from parser import make_tree, print_tree, Token
+from min_parser import make_tree, print_tree, Token, NumToken
 from lexer import print_tokens
 
 # endregion
 
-# region
+# region Declared types
 
 CallablePacked = list[Callable | list]
 CallablesList = dict[str, CallablePacked | dict]
 VariablesList = dict[int, dict]
+ExecutionResult = tuple[None | list | dict, bool]
 
 # endregion
 
 # region Private functions
 
-def execute_line(line: dict[str, Any], callables: CallablesList,
-                 nesting_level: int, line_number: int,
-                 visible_variables: VariablesList) -> tuple[None | list | dict, bool]:
-    """
-    executes single line of code
-
-    :param line: nested and processed line of code
-    :param callables: functions pool in program
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :return: (execution_result, function_still_running)
-    """
-    # the simplest case
-    if isinstance(line, list):
-        return line, True
-
-    right = line['right']
-    left = line['left']
-
-    right, _ = execute_line(right, callables, nesting_level,
-                            line_number, visible_variables)
-    left, _ = execute_line(left, callables, nesting_level,
-                           line_number, visible_variables)
-
-    if line['operation'] == ['is', 'opr']:
-        # type check
-        if right[1] == 'typ':
-            if left[1] == 'var':
-                if nesting_level not in visible_variables.keys():
-                    visible_variables[nesting_level] = {}
-
-                # conflicting variables
-                if left[0] not in visible_variables[nesting_level].keys():
-                    visible_variables[nesting_level][left[0]] = [0, right[0]]
-
-                    if right[0] == 'str':
-                        visible_variables[nesting_level][left[0]][0] = ''
-                    elif right[0] == 'bool':
-                        visible_variables[nesting_level][left[0]][0] = False
-
-                    return None, True
-
-                raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
-                                   'REDECLARATION OF A VARIABLE')
-    if line['operation'] == ['=', 'opr']:
-        var_name = left[0]
-        type_ = visible_variables[nesting_level][var_name][1]
-
-        if right[1] == 'var':
-            for index in range(1, nesting_level + 1):
-                if right[0] in visible_variables[index].keys():
-                    right = visible_variables[index][right[0]]
-
-        # type check
-        if right[1] == type_:
-            visible_variables[nesting_level][var_name][0] = right[0]
-            return None, True
-
-        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
-                           f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
-    if line['operation'] == ['|', 'opr']:
-        args_count = len(right)
-        for arg_index in range(args_count):
-            arg = right[arg_index]
-            if arg[1] != 'var':
-                continue
-
-            for index in range(1, nesting_level + 1):
-                if arg[0] in visible_variables[index].keys():
-                    right[arg_index] = visible_variables[index][arg[0]]
-
-        if left[0] in callables.keys():
-            return execute_function(left[0], callables, right), True
-
-        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
-                           'IS NOT FOUND')
-    if line['operation'] == ['return', 'kwd']:
-        if line['right'] is None:
-            return None, False
-
-        return_, _ = execute_line(line['right'], callables, nesting_level,
-                                  line_number, visible_variables)
-
-        return return_, False
-
-    return execute_arithmetical_block([left, line['operation'], right], line_number,
-                                      nesting_level, visible_variables)
-
-
-def execute_arithmetical_block(expression: list[str | Token],
+def execute_arithmetical_block(expression: list[Token],
                                line_number: int, nesting_level: int,
-                               visible_variables: VariablesList) -> tuple[None | list | dict, bool]:
+                               visible_variables: VariablesList) -> ExecutionResult:
     """
     executes processed [operand] [operation] [operand]-like block of code
     if none of known operators present raises a runtime error
@@ -137,13 +48,13 @@ def execute_arithmetical_block(expression: list[str | Token],
     :param visible_variables: pool of variables visible in current nesting level
     :return: (execution_result, function_still_running)
     """
-    # type check
     left = expression[0]
     right = expression[2]
 
     type_left = left[1]
     operation = expression[1]
     type_right = right[1]
+    # type check
 
     if type_left == 'var':
         for index in range(1, nesting_level + 1):
@@ -209,6 +120,130 @@ def execute_arithmetical_block(expression: list[str | Token],
         case _:
             raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
 
+def execute_func_or_var_connected_block(expression: list[Token | dict | list],
+                                        line_number: int, nesting_level: int,
+                                        visible_variables: VariablesList,
+                                        callables: CallablesList) -> ExecutionResult:
+    """
+    executes operations of assigning, function calling, function returning and so on
+
+    :param expression: array in form of [operand] [operation] [operand]
+    :param nesting_level: current nesting level
+    :param line_number: number of current line for error handling
+    :param visible_variables: pool of variables visible in current nesting level
+    :param callables: functions pool in program
+    :return: (execution_result, function_still_running)
+    """
+    left = expression[0]
+    right = expression[2]
+
+    operation = expression[1]
+    
+    if operation == ['is', 'opr']:
+        # type check
+        if right[1] == 'typ':
+            if left[1] == 'var':
+                if nesting_level not in visible_variables.keys():
+                    visible_variables[nesting_level] = {}
+
+                # conflicting variables
+                if left[0] not in visible_variables[nesting_level].keys():
+                    visible_variables[nesting_level][left[0]] = [0, right[0]]
+
+                    if right[0] == 'str':
+                        visible_variables[nesting_level][left[0]][0] = ''
+                    elif right[0] == 'bool':
+                        visible_variables[nesting_level][left[0]][0] = False
+
+                    return None, True
+
+                raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
+                                   'REDECLARATION OF A VARIABLE')
+    if operation == ['=', 'opr']:
+        var_name = left[0]
+        type_ = visible_variables[nesting_level][var_name][1]
+
+        if right[1] == 'var':
+            for index in range(1, nesting_level + 1):
+                if right[0] in visible_variables[index].keys():
+                    right = visible_variables[index][right[0]]
+
+        # type check
+        if right[1] == type_:
+            visible_variables[nesting_level][var_name][0] = right[0]
+            return None, True
+
+        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
+                           f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
+    if operation == ['|', 'opr']:
+        args_count = len(right)
+        for arg_index in range(args_count):
+            current_arg = right[arg_index]
+            if isinstance(current_arg, list):
+                arg: Token = current_arg
+
+                if arg[1] != 'var':
+                    continue
+
+                for index in range(1, nesting_level + 1):
+                    if arg[0] in visible_variables[index].keys():
+                        right[arg_index] = visible_variables[index][arg[0]]
+
+        if left[0] in callables.keys():
+            if isinstance(left[0], str) and isinstance(right, list):
+                return execute_function(left[0], callables, right), True
+
+            raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +
+                               f'AT LINE {line_number}')
+
+        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
+                           'IS NOT FOUND')
+    if operation == ['return', 'kwd']:
+        if right is None:
+            return None, False
+
+        if isinstance(right, dict):
+            return_, _ = execute_line(right, callables, nesting_level, line_number, visible_variables)
+
+            return return_, False
+
+        raise RuntimeError(f'NOT PROCESSABLE RETURN AT LINE {line_number}')
+
+    return None, True
+
+
+def execute_line(line: dict[str, Any], callables: CallablesList,
+                 nesting_level: int, line_number: int,
+                 visible_variables: VariablesList) -> ExecutionResult:
+    """
+    executes single line of code
+
+    :param line: nested and processed line of code
+    :param callables: functions pool in program
+    :param nesting_level: current nesting level
+    :param line_number: number of current line for error handling
+    :param visible_variables: pool of variables visible in current nesting level
+    :return: (execution_result, function_still_running)
+    """
+    # the simplest case
+    if isinstance(line, list):
+        return line, True
+
+    right = line['right']
+    left = line['left']
+
+    right, _ = execute_line(right, callables, nesting_level,
+                            line_number, visible_variables)
+    left, _ = execute_line(left, callables, nesting_level,
+                           line_number, visible_variables)
+
+    if line['operation'] in [['is', 'opr'], ['=', 'opr'], ['|', 'opr'], ['return', 'kwd']]:
+        return execute_func_or_var_connected_block([left, line['operation'], right], line_number,
+                                                   nesting_level, visible_variables, callables)
+
+    return execute_arithmetical_block([left, line['operation'], right], line_number,
+                                      nesting_level, visible_variables)
+
 def validate_args(args: list, args_needed: list, function_name: str) -> None:
     """
     checks if arguments fit to function
@@ -249,9 +284,10 @@ def execute_function(function_name: str, callables: CallablesList, args: list) -
     packed_function: CallablePacked | dict = callables[function_name]
 
     if isinstance(packed_function, dict):
-        return execute_min_function(function_name, packed_function, args, callables, visible_variables)
-    else:
-        return execute_py_function(function_name, packed_function, args)
+        return execute_min_function(function_name, packed_function, args,
+                                    callables, visible_variables)
+
+    return execute_py_function(function_name, packed_function, args)
 
 
 def execute_py_function(function_name: str, packed_function: CallablePacked,
@@ -339,7 +375,7 @@ def find_callables(tree: list) -> CallablesList:
         fills functions_list, which are either Python callables from
         imported libraries or MINIMUM functions
 
-        :param tree: code tree made on base of given file with parser.py
+        :param tree: code tree made on base of given file with min_parser.py
         :return: returns dictionary of functions:
         {'function_name': *either Python callable or MINIMUM code block*, ...}
     """

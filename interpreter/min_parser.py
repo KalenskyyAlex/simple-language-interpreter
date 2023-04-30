@@ -6,7 +6,7 @@ prepare it for execution in interpreter.
 Parser handles syntax errors such as unexpected statements,
 invalid statements
 
-Run '$python parser.py' to only get logical tree of .min from raw
+Run '$python min_parser.py' to only get logical tree of .min from raw
 text in .min file or use as module 'from parser import make_tree'
 """
 
