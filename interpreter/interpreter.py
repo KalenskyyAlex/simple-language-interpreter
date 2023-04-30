@@ -68,7 +68,8 @@ def execute_arithmetical_block(expression: list[Token],
                 right = visible_variables[index][right[0]]
                 type_right = right[1]
 
-    if not isinstance(type_left, str) or not isinstance(type_right, str):
+    if not isinstance(type_left, str) or not isinstance(type_right, str) or \
+       not isinstance(left[0], (int, float)) or not isinstance(right[0], (int, float)):
         raise RuntimeError(f'UNABLE TO RECOGNIZE TYPE OF VARIABLES AT LINE {line_number}')
 
     if not operation == [',', 'sep']:
@@ -76,10 +77,6 @@ def execute_arithmetical_block(expression: list[Token],
             raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO '
                                f'BE OF TYPE int OR float, GOT {type_left} AND {type_right}')
 
-    if not isinstance(left[0], (int, float)) or not isinstance(right[0], (int, float)):
-        raise RuntimeError(f'UNABLE TO MAP VARIABLES TO GIVEN TYPES AT LINE {line_number}')
-
-    result: float | int = 0
     match operation:
         case ['+', 'opr']:
             result = left[0] + right[0]
@@ -105,20 +102,23 @@ def execute_arithmetical_block(expression: list[Token],
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [result, new_type], True
         case [',', 'sep']:
-            args = []
-            if isinstance(left[0], str):
-                args += left
-            else:
-                args.append(left)
+            args: list = []
+            match isinstance(left[0], str):
+                case True:
+                    args += left
+                case False:
+                    args.append(left)
 
-            if isinstance(right[0], str):
-                args += right
-            else:
-                args.append(right)
+            match isinstance(right[0], str):
+                case True:
+                    args += right
+                case False:
+                    args.append(right)
 
             return args, True
         case _:
             raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
+
 
 def execute_func_or_var_connected_block(expression: list[Token | dict | list],
                                         line_number: int, nesting_level: int,
@@ -137,78 +137,77 @@ def execute_func_or_var_connected_block(expression: list[Token | dict | list],
     left = expression[0]
     right = expression[2]
 
-    operation = expression[1]
+    match expression[1]:
+        case ['is', 'opr']:
+            # type check
+            if right[1] == 'typ':
+                if left[1] == 'var':
+                    if nesting_level not in visible_variables.keys():
+                        visible_variables[nesting_level] = {}
 
-    if operation == ['is', 'opr']:
-        # type check
-        if right[1] == 'typ':
-            if left[1] == 'var':
-                if nesting_level not in visible_variables.keys():
-                    visible_variables[nesting_level] = {}
+                    # conflicting variables
+                    if left[0] not in visible_variables[nesting_level].keys():
+                        visible_variables[nesting_level][left[0]] = [0, right[0]]
 
-                # conflicting variables
-                if left[0] not in visible_variables[nesting_level].keys():
-                    visible_variables[nesting_level][left[0]] = [0, right[0]]
+                        if right[0] == 'str':
+                            visible_variables[nesting_level][left[0]][0] = ''
+                        elif right[0] == 'bool':
+                            visible_variables[nesting_level][left[0]][0] = False
 
-                    if right[0] == 'str':
-                        visible_variables[nesting_level][left[0]][0] = ''
-                    elif right[0] == 'bool':
-                        visible_variables[nesting_level][left[0]][0] = False
+                        return None, True
 
-                    return None, True
+                    raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
+                                       'REDECLARATION OF A VARIABLE')
+        case ['=', 'opr']:
+            var_name = left[0]
+            type_ = visible_variables[nesting_level][var_name][1]
 
-                raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
-                                   'REDECLARATION OF A VARIABLE')
-    if operation == ['=', 'opr']:
-        var_name = left[0]
-        type_ = visible_variables[nesting_level][var_name][1]
-
-        if right[1] == 'var':
-            for index in range(1, nesting_level + 1):
-                if right[0] in visible_variables[index].keys():
-                    right = visible_variables[index][right[0]]
-
-        # type check
-        if right[1] == type_:
-            visible_variables[nesting_level][var_name][0] = right[0]
-            return None, True
-
-        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
-                           f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
-    if operation == ['|', 'opr']:
-        args_count = len(right)
-        for arg_index in range(args_count):
-            current_arg = right[arg_index]
-            if isinstance(current_arg, list):
-                arg: Token = current_arg
-
-                if arg[1] != 'var':
-                    continue
-
+            if right[1] == 'var':
                 for index in range(1, nesting_level + 1):
-                    if arg[0] in visible_variables[index].keys():
-                        right[arg_index] = visible_variables[index][arg[0]]
+                    if right[0] in visible_variables[index].keys():
+                        right = visible_variables[index][right[0]]
 
-        if left[0] in callables.keys():
-            if isinstance(left[0], str) and isinstance(right, list):
-                return execute_function(left[0], callables, right), True
+            # type check
+            if right[1] == type_:
+                visible_variables[nesting_level][var_name][0] = right[0]
+                return None, True
 
-            raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +
-                               f'AT LINE {line_number}')
+            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
+                               f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
+        case ['|', 'opr']:
+            args_count = len(right)
+            for arg_index in range(args_count):
+                current_arg = right[arg_index]
+                if isinstance(current_arg, list):
+                    arg: Token = current_arg
 
-        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
-                           'IS NOT FOUND')
-    if operation == ['return', 'kwd']:
-        if right is None:
-            return None, False
+                    if arg[1] != 'var':
+                        continue
 
-        if isinstance(right, dict):
-            return_, _ = execute_line(right, callables, nesting_level,
-                                      line_number, visible_variables)
+                    for index in range(1, nesting_level + 1):
+                        if arg[0] in visible_variables[index].keys():
+                            right[arg_index] = visible_variables[index][arg[0]]
 
-            return return_, False
+            if left[0] in callables.keys():
+                if isinstance(left[0], str) and isinstance(right, list):
+                    return execute_function(left[0], callables, right), True
 
-        raise RuntimeError(f'NOT PROCESSABLE RETURN AT LINE {line_number}')
+                raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +
+                                   f'AT LINE {line_number}')
+
+            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
+                               'IS NOT FOUND')
+        case ['return', 'kwd']:
+            if right is None:
+                return None, False
+
+            if isinstance(right, dict):
+                return_, _ = execute_line(right, callables, nesting_level,
+                                          line_number, visible_variables)
+
+                return return_, False
+
+            raise RuntimeError(f'NOT PROCESSABLE RETURN AT LINE {line_number}')
 
     return None, True
 
