@@ -78,70 +78,71 @@ def execute_line(line: dict[str, Any], callables: CallablesList,
 
                 raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
                                    'REDECLARATION OF A VARIABLE')
-    elif line['operation'] in [['=', 'opr'], ['|', 'opr']]:
-        if line['operation'] == ['=', 'opr']:
-            var_name = left[0]
-            type_ = visible_variables[nesting_level][var_name][1]
+    if line['operation'] == ['=', 'opr']:
+        var_name = left[0]
+        type_ = visible_variables[nesting_level][var_name][1]
 
-            if right[1] == 'var':
-                for index in range(1, nesting_level + 1):
-                    if right[0] in visible_variables[index].keys():
-                        right = visible_variables[index][right[0]]
+        if right[1] == 'var':
+            for index in range(1, nesting_level + 1):
+                if right[0] in visible_variables[index].keys():
+                    right = visible_variables[index][right[0]]
 
-            # type check
-            if right[1] == type_:
-                visible_variables[nesting_level][var_name][0] = right[0]
-                return None, True
+        # type check
+        if right[1] == type_:
+            visible_variables[nesting_level][var_name][0] = right[0]
+            return None, True
 
-            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
-                               f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
-        if line['operation'] == ['|', 'opr']:
-            args_count = len(right)
-            for arg_index in range(args_count):
-                arg = right[arg_index]
-                if arg[1] == 'var':
-                    for index in range(1, nesting_level + 1):
-                        if arg[0] in visible_variables[index].keys():
-                            right[arg_index] = visible_variables[index][arg[0]]
+        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
+                           f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
+    if line['operation'] == ['|', 'opr']:
+        args_count = len(right)
+        for arg_index in range(args_count):
+            arg = right[arg_index]
+            if arg[1] != 'var':
+                continue
 
-            if left[0] in callables.keys():
-                return execute_function(left[0], callables, right), True
+            for index in range(1, nesting_level + 1):
+                if arg[0] in visible_variables[index].keys():
+                    right[arg_index] = visible_variables[index][arg[0]]
 
-            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
-                               'IS NOT FOUND')
-        if line['operation'] == ['return', 'kwd']:
-            if line['right'] is None:
-                return None, False
+        if left[0] in callables.keys():
+            return execute_function(left[0], callables, right), True
 
-            return_, _ = execute_line(line['right'], callables, nesting_level,
-                                      line_number, visible_variables)
+        raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
+                           'IS NOT FOUND')
+    if line['operation'] == ['return', 'kwd']:
+        if line['right'] is None:
+            return None, False
 
-            return return_, False
-    else:
-        return execute_arithmetical_blocks(line['operation'], left, right, line_number,
-                                           nesting_level, visible_variables)
+        return_, _ = execute_line(line['right'], callables, nesting_level,
+                                  line_number, visible_variables)
 
-    return None, False
+        return return_, False
+
+    return execute_arithmetical_block([left, line['operation'], right], line_number,
+                                      nesting_level, visible_variables)
 
 
-def execute_arithmetical_blocks(operation: list[str], left: Token, right: Token,
-                                line_number: int, nesting_level: int,
-                                visible_variables: VariablesList) -> tuple[None | list | dict, bool]:
+def execute_arithmetical_block(expression: list[str | Token],
+                               line_number: int, nesting_level: int,
+                               visible_variables: VariablesList) -> tuple[None | list | dict, bool]:
     """
-    executes processed [operand] [operator] [operand]-like block of code
+    executes processed [operand] [operation] [operand]-like block of code
     if none of known operators present raises a runtime error
     if any of types doesn't match raises a runtime error
 
-    :param operation: operation given
-    :param right: right part of expression
-    :param left: left part of expression
+    :param expression: array in form of [operand] [operation] [operand]
     :param nesting_level: current nesting level
     :param line_number: number of current line for error handling
     :param visible_variables: pool of variables visible in current nesting level
     :return: (execution_result, function_still_running)
     """
     # type check
+    left = expression[0]
+    right = expression[2]
+
     type_left = left[1]
+    operation = expression[1]
     type_right = right[1]
 
     if type_left == 'var':
@@ -165,7 +166,7 @@ def execute_arithmetical_blocks(operation: list[str], left: Token, right: Token,
                                f'BE OF TYPE int OR float, GOT {type_left} AND {type_right}')
 
     if not isinstance(left[0], (int, float)) or not isinstance(right[0], (int, float)):
-        raise RuntimeError(f'UNABLE TO MAP VARIABLES WITH GIVEN TYPES AT LINE {line_number}')
+        raise RuntimeError(f'UNABLE TO MAP VARIABLES TO GIVEN TYPES AT LINE {line_number}')
 
     match operation:
         case ['+', 'opr']:
