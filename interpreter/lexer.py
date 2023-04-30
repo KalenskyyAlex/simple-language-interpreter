@@ -70,12 +70,13 @@ def give_types_for_tokens(tokens_raw: TokenList) -> list[TokenList]:
             elif is_string(token):
                 line_with_types.append([token[1:-1], 'str'])
             else:
-                if prev_token == 'start':
-                    line_with_types.append([token, 'fnc'])
-                elif prev_token == 'use':
-                    line_with_types.append([token, 'lib'])
-                else:
-                    line_with_types.append([token, 'var'])
+                match prev_token:
+                    case 'start':
+                        line_with_types.append([token, 'fnc'])
+                    case 'use':
+                        line_with_types.append([token, 'lib'])
+                    case _:
+                        line_with_types.append([token, 'var'])
 
             prev_token = token
 

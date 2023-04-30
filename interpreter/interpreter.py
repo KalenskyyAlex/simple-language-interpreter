@@ -95,8 +95,9 @@ def execute_line(line: dict[str, Any], callables: CallablesList,
 
             raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
                                f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
-        elif line['operation'] == ['|', 'opr']:
-            for arg_index in range(len(right)):
+        if line['operation'] == ['|', 'opr']:
+            args_count = len(right)
+            for arg_index in range(args_count):
                 arg = right[arg_index]
                 if arg[1] == 'var':
                     for index in range(1, nesting_level + 1):
@@ -108,7 +109,7 @@ def execute_line(line: dict[str, Any], callables: CallablesList,
 
             raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
                                'IS NOT FOUND')
-        elif line['operation'] == ['return', 'kwd']:
+        if line['operation'] == ['return', 'kwd']:
             if line['right'] is None:
                 return None, False
 
@@ -219,6 +220,8 @@ def execute_function(function_name: str, callables: CallablesList, args: list) -
 
     packed_function: CallablePacked | dict = callables[function_name]
 
+    return_ = None
+
     if isinstance(packed_function, dict):
         for index in range(len(packed_function['args'])):
             line = packed_function['args'][index]
@@ -239,40 +242,40 @@ def execute_function(function_name: str, callables: CallablesList, args: list) -
 
             if not running:
                 if isinstance(response, list):
-                    return response
+                    return_ = response
+                    break
                 else:
                     raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
                                        f'AT LINE {line_number}')
-
-        return None
     else:
         args_needed_py_func: list = []
         if isinstance(packed_function[1], list):
             args_needed_py_func = packed_function[1]
 
-        function: Callable = print
         if callable(packed_function[0]):
-            function = packed_function[0]
+            function: Callable = packed_function[0]
 
-        validate_args(args, args_needed_py_func, function_name)
+            validate_args(args, args_needed_py_func, function_name)
 
-        args_count = len(args_needed_py_func)
-        args_values: list[float | int | str] = []
+            args_count = len(args_needed_py_func)
+            args_values: list[float | int | str] = []
 
-        for index in range(args_count):
-            token = args[index]
-            type_ = token[1]
+            for index in range(args_count):
+                token = args[index]
+                type_ = token[1]
 
-            if type_ == 'int':
-                args_values.append(int(token[0]))
-            elif type_ == 'float':
-                args_values.append(float(token[0]))
-            elif type_ == 'str':
-                args_values.append(token[0])
-            elif type_ == 'bool':
-                args_values.append(token[0] == 'true')
+                if type_ == 'int':
+                    args_values.append(int(token[0]))
+                elif type_ == 'float':
+                    args_values.append(float(token[0]))
+                elif type_ == 'str':
+                    args_values.append(token[0])
+                elif type_ == 'bool':
+                    args_values.append(token[0] == 'true')
 
-        return function(args_values)
+            return_ = function(args_values)
+
+    return return_
 
 
 def find_callables(tree: list) -> CallablesList:

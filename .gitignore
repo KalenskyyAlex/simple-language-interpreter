@@ -9,6 +9,7 @@ __pycache__/
 *.so
 
 /libraries/__pycache__/
+/interpreter/__pycache__/
 
 # Distribution / packaging
 .Python
