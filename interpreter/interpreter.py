@@ -16,34 +16,26 @@ import sys
 import importlib.util
 import copy
 
-from typing import Any
+from typing import Any, Callable
 
 from parser import make_tree, print_tree
 from lexer import print_tokens
 
 # endregion
 
-# region Declared types
+# region
 
-StrToken = list[str]
-NumToken = list[str | float | int]
-Token = StrToken | NumToken
-TokenList = list[Token]
-NestedTokenList = list[Token | list]
-TreeNode = dict[str, Any]
-BlockList = list[TreeNode | TokenList | NestedTokenList]
+CallablePacked = list[Callable | list]
+CallablesList = dict[str, CallablePacked | dict]
+VariablesList = dict[int, dict]
 
 # endregion
 
-# do not output errors traceback from Python
-sys.tracebacklimit = -1
-
-# ON DEBUG
-# from pprint import pprint
-
 # region Private functions
 
-def execute_line(line, callables, nesting_level, line_number, visible_variables):
+def execute_line(line: dict[str, Any], callables: CallablesList,
+                 nesting_level: int, line_number: int,
+                 visible_variables: VariablesList) -> tuple[None | list | dict, bool]:
     """
     executes single line of code
 
@@ -120,8 +112,8 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
             if line['right'] is None:
                 return None, False
 
-            return_ = execute_line(line['right'], callables, nesting_level,
-                                   line_number, visible_variables)
+            return_, _ = execute_line(line['right'], callables, nesting_level,
+                                      line_number, visible_variables)
 
             return return_, False
     else:
@@ -185,8 +177,10 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
 
         raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
 
+    return None, False
 
-def validate_args(args, args_needed, function_name):
+
+def validate_args(args: list, args_needed: list, function_name: str) -> None:
     """
     checks if arguments fit to function
     raises error if not
@@ -212,7 +206,7 @@ def validate_args(args, args_needed, function_name):
                            f'{len(args_needed)} ARGUMENTS BUT {len(args)} GIVEN')
 
 
-def execute_function(function_name, callables, args):
+def execute_function(function_name: str, callables: CallablesList, args: list) -> list | None:
     """
     execute function line by line
 
@@ -221,56 +215,67 @@ def execute_function(function_name, callables, args):
     :param args: arguments which are passed to the function
     :return: return of function, if exists
     """
-    visible_variables = {}
+    visible_variables: VariablesList = {}
 
-    if isinstance(callables[function_name], dict):
-        for index in range(len(callables[function_name]['args'])):
-            line = callables[function_name]['args'][index]
-            execute_line(line, callables, 1, callables[function_name]['line'], visible_variables)
+    packed_function: CallablePacked | dict = callables[function_name]
+
+    if isinstance(packed_function, dict):
+        for index in range(len(packed_function['args'])):
+            line = packed_function['args'][index]
+            execute_line(line, callables, 1, packed_function['line'], visible_variables)
 
             argument = args[index][0]
-            visible_variables[1][callables[function_name]['args'][index]['left'][0]][0] = argument
+            visible_variables[1][packed_function['args'][index]['left'][0]][0] = argument
 
-        args_needed = callables[function_name]['args']
-        args_needed = list(map(lambda arg: arg['right'][0], args_needed))
+        args_needed_min_func = packed_function['args']
+        args_needed_min_func = list(map(lambda arg: arg['right'][0], args_needed_min_func))
 
-        validate_args(args, args_needed, function_name)
+        validate_args(args, args_needed_min_func, function_name)
 
-        for line in callables[function_name]['body']:
-            line_number = line['line']
+        for line in packed_function['body']:
+            line_number: int = line['line']
             response, running = execute_line(copy.deepcopy(line), callables, 1,
                                              line_number, visible_variables)
 
             if not running:
-                return response
+                if isinstance(response, list):
+                    return response
+                else:
+                    raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
+                                       f'AT LINE {line_number}')
 
         return None
+    else:
+        args_needed_py_func: list = []
+        if isinstance(packed_function[1], list):
+            args_needed_py_func = packed_function[1]
 
-    args_needed = callables[function_name][1]
-    function = callables[function_name][0]
+        function: Callable = print
+        if callable(packed_function[0]):
+            function = packed_function[0]
 
-    validate_args(args, args_needed, function_name)
+        validate_args(args, args_needed_py_func, function_name)
 
-    args_count = len(args_needed)
-    args_values = []
+        args_count = len(args_needed_py_func)
+        args_values: list[float | int | str] = []
 
-    for index in range(args_count):
-        token = args[index]
-        type_ = token[1]
+        for index in range(args_count):
+            token = args[index]
+            type_ = token[1]
 
-        if type_ == 'int':
-            args_values.append(int(token[0]))
-        elif type_ == 'float':
-            args_values.append(float(token[0]))
-        elif type_ == 'str':
-            args_values.append(token[0])
-        elif type_ == 'bool':
-            args_values.append(token[0] == 'true')
+            if type_ == 'int':
+                args_values.append(int(token[0]))
+            elif type_ == 'float':
+                args_values.append(float(token[0]))
+            elif type_ == 'str':
+                args_values.append(token[0])
+            elif type_ == 'bool':
+                args_values.append(token[0] == 'true')
 
-    return function(args_values)
+        return function(args_values)
 
 
-def find_callables(tree):
+def find_callables(tree: list) -> CallablesList:
     """
         fills functions_list, which are either Python callables from
         imported libraries or MINIMUM functions
@@ -279,7 +284,7 @@ def find_callables(tree):
         :return: returns dictionary of functions:
         {'function_name': *either Python callable or MINIMUM code block*, ...}
     """
-    callables = {}
+    callables: CallablesList = {}
     for block in tree:
         if 'body' in block.keys():
             callables[block['name']] = {
@@ -291,6 +296,10 @@ def find_callables(tree):
             root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
             path = root_directory + '/libraries/' + block['right'] + '.py'
             spec = importlib.util.spec_from_file_location(block['right'], path)
+
+            if spec is None or spec.loader is None:
+                raise RuntimeError(f'UNABLE TO READ/FIND LIBRARY {block["right"]} ' +
+                                   f'AT LINE {block["line"]}')
 
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
@@ -309,16 +318,17 @@ def find_callables(tree):
 # endregion
 
 # region Public functions
-def execute(file_name):
+
+def execute(file_name: str):
     """
     executes given code, starting from 'main' function
     raises an error is there is no 'main' function
 
     :param file_name: name of .min file to be executed
     """
-    tree = make_tree(file_name)
+    tree: list = make_tree(file_name)
 
-    callables = find_callables(tree)
+    callables: CallablesList = find_callables(tree)
 
     functions = callables.keys()
     if 'main' in functions:
@@ -327,7 +337,7 @@ def execute(file_name):
         raise RuntimeError("COMPILATION ERROR: 'main' FUNCTION NOT FOUND")
 
 
-def print_code(file_name):
+def print_code(file_name: str):
     """
     outputs code given in .min file
 
@@ -336,9 +346,9 @@ def print_code(file_name):
     print('Executed code:')
     file = open(file_name, 'r')
 
-    lines = file.readlines()
+    lines: list[str] = file.readlines()
 
-    max_len = len(lines[0])
+    max_len: int = len(lines[0])
     for line in lines:
         max_len = max(max_len, len(line))
         print(line, end=('' if line[-1] == '\n' else '\n'))
@@ -351,6 +361,9 @@ def print_code(file_name):
 
 
 if __name__ == '__main__':
+    # do not output errors traceback from Python
+    sys.tracebacklimit = -1
+
     try:
         FIRST_ARG = sys.argv[1]
 
