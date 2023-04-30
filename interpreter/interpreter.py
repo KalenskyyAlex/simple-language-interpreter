@@ -120,18 +120,16 @@ def execute_arithmetical_block(expression: list[Token],
             raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
 
 
-def execute_func_or_var_connected_block(expression: list[Token | dict | list],
-                                        line_number: int, nesting_level: int,
-                                        visible_variables: VariablesList,
-                                        callables: CallablesList) -> ExecutionResult:
+def execute_var_related_block(expression: list[Token | dict | list],
+                              line_number: int, nesting_level: int,
+                              visible_variables: VariablesList) -> ExecutionResult:
     """
-    executes operations of assigning, function calling, function returning and so on
+    executes operations of variable creation and assigning
 
     :param expression: array in form of [operand] [operation] [operand]
     :param nesting_level: current nesting level
     :param line_number: number of current line for error handling
     :param visible_variables: pool of variables visible in current nesting level
-    :param callables: functions pool in program
     :return: (execution_result, function_still_running)
     """
     left = expression[0]
@@ -174,6 +172,28 @@ def execute_func_or_var_connected_block(expression: list[Token | dict | list],
 
             raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
                                f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
+
+    return None, True
+
+
+def execute_func_related_block(expression: list[Token | dict | list],
+                               line_number: int, nesting_level: int,
+                               visible_variables: VariablesList,
+                               callables: CallablesList) -> ExecutionResult:
+    """
+    executes operations function calling, function returning
+
+    :param expression: array in form of [operand] [operation] [operand]
+    :param nesting_level: current nesting level
+    :param line_number: number of current line for error handling
+    :param visible_variables: pool of variables visible in current nesting level
+    :param callables: functions pool in program
+    :return: (execution_result, function_still_running)
+    """
+    left = expression[0]
+    right = expression[2]
+
+    match expression[1]:
         case ['|', 'opr']:
             args_count = len(right)
             for arg_index in range(args_count):
@@ -237,9 +257,12 @@ def execute_line(line: dict[str, Any], callables: CallablesList,
     left, _ = execute_line(left, callables, nesting_level,
                            line_number, visible_variables)
 
-    if line['operation'] in [['is', 'opr'], ['=', 'opr'], ['|', 'opr'], ['return', 'kwd']]:
-        return execute_func_or_var_connected_block([left, line['operation'], right], line_number,
-                                                   nesting_level, visible_variables, callables)
+    if line['operation'] in [['is', 'opr'], ['=', 'opr']]:
+        return execute_var_related_block([left, line['operation'], right], line_number,
+                                         nesting_level, visible_variables)
+    elif line['operation'] in [['|', 'opr'], ['return', 'kwd']]:
+        return execute_func_related_block([left, line['operation'], right], line_number,
+                                          nesting_level, visible_variables, callables)
 
     return execute_arithmetical_block([left, line['operation'], right], line_number,
                                       nesting_level, visible_variables)
