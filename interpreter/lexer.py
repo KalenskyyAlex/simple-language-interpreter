@@ -242,14 +242,15 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
 
             # when we are in string we don't care about any operators, spaces, but care about '\'
             if in_string and line[index] == '\\':
-                if line[index + 1] == 'n':
-                    token += '\n'
-                elif line[index + 1] == '\'':
-                    token += '\''
-                elif line[index + 1] == '\"':
-                    token += '\"'
-                elif line[index + 1] == '\\':
-                    token += '\\'
+                match line[index + 1]:
+                    case 'n':
+                        token += '\n'
+                    case '\'':
+                        token += '\''
+                    case '\"':
+                        token += '\"'
+                    case '\\':
+                        token += '\\'
 
                 skip_next = True
                 continue  # we've already added token
