@@ -10,7 +10,6 @@ __pycache__/
 
 /libraries/__pycache__/
 /interpreter/__pycache__/
-
 # Distribution / packaging
 .Python
 env/
