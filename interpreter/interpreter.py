@@ -18,7 +18,7 @@ import copy
 
 from typing import Any, Callable
 
-from parser import make_tree, print_tree
+from parser import make_tree, print_tree, Token
 from lexer import print_tokens
 
 # endregion
@@ -118,51 +118,80 @@ def execute_line(line: dict[str, Any], callables: CallablesList,
 
             return return_, False
     else:
-        # type check
-        type_left = left[1]
-        type_right = right[1]
+        return execute_arithmetical_blocks(line['operation'], left, right, line_number,
+                                           nesting_level, visible_variables)
 
-        if type_left == 'var':
-            for index in range(1, nesting_level + 1):
-                if left[0] in visible_variables[index].keys():
-                    left = visible_variables[index][left[0]]
-                    type_left = left[1]
+    return None, False
 
-        if type_right == 'var':
-            for index in range(1, nesting_level + 1):
-                if right[0] in visible_variables[index].keys():
-                    right = visible_variables[index][right[0]]
-                    type_right = right[1]
 
-        if not line['operation'] == [',', 'sep']:
-            if type_left not in 'int float' or type_right not in 'int float':
-                raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO '
-                                   f'BE OF TYPE int OR float, GOT {type_left} AND {type_right}')
+def execute_arithmetical_blocks(operation: list[str], left: Token, right: Token,
+                                line_number: int, nesting_level: int,
+                                visible_variables: VariablesList) -> tuple[None | list | dict, bool]:
+    """
+    executes processed [operand] [operator] [operand]-like block of code
+    if none of known operators present raises a runtime error
+    if any of types doesn't match raises a runtime error
 
-        if line['operation'] == ['+', 'opr']:
+    :param operation: operation given
+    :param right: right part of expression
+    :param left: left part of expression
+    :param nesting_level: current nesting level
+    :param line_number: number of current line for error handling
+    :param visible_variables: pool of variables visible in current nesting level
+    :return: (execution_result, function_still_running)
+    """
+    # type check
+    type_left = left[1]
+    type_right = right[1]
+
+    if type_left == 'var':
+        for index in range(1, nesting_level + 1):
+            if left[0] in visible_variables[index].keys():
+                left = visible_variables[index][left[0]]
+                type_left = left[1]
+
+    if type_right == 'var':
+        for index in range(1, nesting_level + 1):
+            if right[0] in visible_variables[index].keys():
+                right = visible_variables[index][right[0]]
+                type_right = right[1]
+
+    if not isinstance(type_left, str) or not isinstance(type_right, str):
+        raise RuntimeError(f'UNABLE TO RECOGNIZE TYPE OF VARIABLES AT LINE {line_number}')
+
+    if not operation == [',', 'sep']:
+        if type_left not in 'int float' or type_right not in 'int float':
+            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO '
+                               f'BE OF TYPE int OR float, GOT {type_left} AND {type_right}')
+
+    if not isinstance(left[0], (int, float)) or not isinstance(right[0], (int, float)):
+        raise RuntimeError(f'UNABLE TO MAP VARIABLES WITH GIVEN TYPES AT LINE {line_number}')
+
+    match operation:
+        case ['+', 'opr']:
             sum_ = left[0] + right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [sum_, new_type], True
-        if line['operation'] == ['-', 'opr']:
+        case ['-', 'opr']:
             difference = left[0] - right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [difference, new_type], True
-        if line['operation'] == ['*', 'opr']:
+        case ['*', 'opr']:
             product = left[0] * right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [product, new_type], True
-        if line['operation'] == ['/', 'opr']:
+        case ['/', 'opr']:
             if right[0] != 0:
                 quotient = left[0] / right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
                 return [quotient, new_type], True
 
             raise RuntimeError(f'ZERO-DIVISION ERROR AT LINE {line_number}')
-        if line['operation'] == ['%', 'opr']:
+        case ['%', 'opr']:
             modulo = left[0] % right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [modulo, new_type], True
-        if line['operation'] == [',', 'sep']:
+        case [',', 'sep']:
             args = []
             if isinstance(left[0], str):
                 args += left
@@ -175,11 +204,8 @@ def execute_line(line: dict[str, Any], callables: CallablesList,
                 args.append(right)
 
             return args, True
-
-        raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
-
-    return None, False
-
+        case _:
+            raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
 
 def validate_args(args: list, args_needed: list, function_name: str) -> None:
     """
@@ -244,9 +270,9 @@ def execute_function(function_name: str, callables: CallablesList, args: list) -
                 if isinstance(response, list):
                     return_ = response
                     break
-                else:
-                    raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
-                                       f'AT LINE {line_number}')
+
+                raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
+                                   f'AT LINE {line_number}')
     else:
         args_needed_py_func: list = []
         if isinstance(packed_function[1], list):
