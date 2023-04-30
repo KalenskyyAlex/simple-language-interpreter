@@ -168,30 +168,31 @@ def execute_arithmetical_block(expression: list[str | Token],
     if not isinstance(left[0], (int, float)) or not isinstance(right[0], (int, float)):
         raise RuntimeError(f'UNABLE TO MAP VARIABLES TO GIVEN TYPES AT LINE {line_number}')
 
+    result: float | int = 0
     match operation:
         case ['+', 'opr']:
-            sum_ = left[0] + right[0]
+            result = left[0] + right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-            return [sum_, new_type], True
+            return [result, new_type], True
         case ['-', 'opr']:
-            difference = left[0] - right[0]
+            result = left[0] - right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-            return [difference, new_type], True
+            return [result, new_type], True
         case ['*', 'opr']:
-            product = left[0] * right[0]
+            result = left[0] * right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-            return [product, new_type], True
+            return [result, new_type], True
         case ['/', 'opr']:
             if right[0] != 0:
-                quotient = left[0] / right[0]
+                result = left[0] / right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-                return [quotient, new_type], True
+                return [result, new_type], True
 
             raise RuntimeError(f'ZERO-DIVISION ERROR AT LINE {line_number}')
         case ['%', 'opr']:
-            modulo = left[0] % right[0]
+            result = left[0] % right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
-            return [modulo, new_type], True
+            return [result, new_type], True
         case [',', 'sep']:
             args = []
             if isinstance(left[0], str):
@@ -236,7 +237,7 @@ def validate_args(args: list, args_needed: list, function_name: str) -> None:
 
 def execute_function(function_name: str, callables: CallablesList, args: list) -> list | None:
     """
-    execute function line by line
+    executes either min or py function
 
     :param function_name: function to be executed
     :param callables: global pool of functions in program
@@ -247,62 +248,90 @@ def execute_function(function_name: str, callables: CallablesList, args: list) -
 
     packed_function: CallablePacked | dict = callables[function_name]
 
-    return_ = None
-
     if isinstance(packed_function, dict):
-        for index in range(len(packed_function['args'])):
-            line = packed_function['args'][index]
-            execute_line(line, callables, 1, packed_function['line'], visible_variables)
-
-            argument = args[index][0]
-            visible_variables[1][packed_function['args'][index]['left'][0]][0] = argument
-
-        args_needed_min_func = packed_function['args']
-        args_needed_min_func = list(map(lambda arg: arg['right'][0], args_needed_min_func))
-
-        validate_args(args, args_needed_min_func, function_name)
-
-        for line in packed_function['body']:
-            line_number: int = line['line']
-            response, running = execute_line(copy.deepcopy(line), callables, 1,
-                                             line_number, visible_variables)
-
-            if not running:
-                if isinstance(response, list):
-                    return_ = response
-                    break
-
-                raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
-                                   f'AT LINE {line_number}')
+        return execute_min_function(function_name, packed_function, args, callables, visible_variables)
     else:
-        args_needed_py_func: list = []
-        if isinstance(packed_function[1], list):
-            args_needed_py_func = packed_function[1]
+        return execute_py_function(function_name, packed_function, args)
 
-        if callable(packed_function[0]):
-            function: Callable = packed_function[0]
 
-            validate_args(args, args_needed_py_func, function_name)
+def execute_py_function(function_name: str, packed_function: CallablePacked,
+                        args: list) -> list | None:
+    """
+    execute python built-in function
 
-            args_count = len(args_needed_py_func)
-            args_values: list[float | int | str] = []
+    :param function_name: function to be executed
+    :param packed_function: function to execute
+    :param args: arguments which are passed to the function
+    :return: return of function, if exists
+    """
+    args_needed_py_func: list = []
+    if isinstance(packed_function[1], list):
+        args_needed_py_func = packed_function[1]
 
-            for index in range(args_count):
-                token = args[index]
-                type_ = token[1]
+    if callable(packed_function[0]):
+        function: Callable = packed_function[0]
 
-                if type_ == 'int':
+        validate_args(args, args_needed_py_func, function_name)
+
+        args_count = len(args_needed_py_func)
+        args_values: list[float | int | str] = []
+
+        for index in range(args_count):
+            token = args[index]
+            type_ = token[1]
+
+            match type_:
+                case 'int':
                     args_values.append(int(token[0]))
-                elif type_ == 'float':
+                case 'float':
                     args_values.append(float(token[0]))
-                elif type_ == 'str':
+                case 'str':
                     args_values.append(token[0])
-                elif type_ == 'bool':
+                case 'bool':
                     args_values.append(token[0] == 'true')
 
-            return_ = function(args_values)
+        return function(args_values)
 
-    return return_
+    return None
+
+
+def execute_min_function(function_name: str, function: dict, args: list, callables: CallablesList,
+                         visible_variables: VariablesList) -> list | None:
+    """
+    execute function line by line
+
+    :param function_name: function to be executed
+    :param function: function to execute
+    :param args: arguments which are passed to the function
+    :param callables: global pool of functions in program
+    :param visible_variables: current pool of variables available
+    :return: return of function, if exists
+    """
+    for index in range(len(function['args'])):
+        line = function['args'][index]
+        execute_line(line, callables, 1, function['line'], visible_variables)
+
+        argument = args[index][0]
+        visible_variables[1][function['args'][index]['left'][0]][0] = argument
+
+    args_needed_min_func = function['args']
+    args_needed_min_func = list(map(lambda arg: arg['right'][0], args_needed_min_func))
+
+    validate_args(args, args_needed_min_func, function_name)
+
+    for line in function['body']:
+        line_number: int = line['line']
+        response, running = execute_line(copy.deepcopy(line), callables, 1,
+                                         line_number, visible_variables)
+
+        if not running:
+            if isinstance(response, list):
+                return response
+
+            raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
+                               f'AT LINE {line_number}')
+
+    return None
 
 
 def find_callables(tree: list) -> CallablesList:
