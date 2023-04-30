@@ -61,10 +61,10 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
     right = line['right']
     left = line['left']
 
-    right, ended_right = execute_line(right, callables, nesting_level,
-                                      line_number, visible_variables)
-    left, ended_left = execute_line(left, callables, nesting_level,
-                                    line_number, visible_variables)
+    right, _ = execute_line(right, callables, nesting_level,
+                            line_number, visible_variables)
+    left, _ = execute_line(left, callables, nesting_level,
+                           line_number, visible_variables)
 
     if line['operation'] == ['is', 'opr']:
         # type check
@@ -83,9 +83,9 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                         visible_variables[nesting_level][left[0]][0] = False
 
                     return None, True
-                else:
-                    raise Exception(f'COMPILATION ERROR AT LINE {line_number}: ' +
-                                    'REDECLARATION OF A VARIABLE')
+
+                raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
+                                   'REDECLARATION OF A VARIABLE')
     elif line['operation'] in [['=', 'opr'], ['|', 'opr']]:
         if line['operation'] == ['=', 'opr']:
             var_name = left[0]
@@ -100,9 +100,9 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
             if right[1] == type_:
                 visible_variables[nesting_level][var_name][0] = right[0]
                 return None, True
-            else:
-                raise Exception(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
-                                f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
+
+            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
+                               f'TYPE OF {type_} BUT ASSIGNED VALUE IS TYPE OF {right[1]}')
         elif line['operation'] == ['|', 'opr']:
             for arg_index in range(len(right)):
                 arg = right[arg_index]
@@ -113,9 +113,9 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
 
             if left[0] in callables.keys():
                 return execute_function(left[0], callables, right), True
-            else:
-                raise Exception(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
-                                'IS NOT FOUND')
+
+            raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left[0]} ' +
+                               'IS NOT FOUND')
         elif line['operation'] == ['return', 'kwd']:
             if line['right'] is None:
                 return None, False
@@ -143,33 +143,33 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
 
         if not line['operation'] == [',', 'sep']:
             if type_left not in 'int float' or type_right not in 'int float':
-                raise Exception(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO '
-                                f'BE OF TYPE int OR float, GOT {type_left} AND {type_right}')
+                raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: OPERANDS SUPPOSED TO '
+                                   f'BE OF TYPE int OR float, GOT {type_left} AND {type_right}')
 
         if line['operation'] == ['+', 'opr']:
             sum_ = left[0] + right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [sum_, new_type], True
-        elif line['operation'] == ['-', 'opr']:
+        if line['operation'] == ['-', 'opr']:
             difference = left[0] - right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [difference, new_type], True
-        elif line['operation'] == ['*', 'opr']:
+        if line['operation'] == ['*', 'opr']:
             product = left[0] * right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [product, new_type], True
-        elif line['operation'] == ['/', 'opr']:
+        if line['operation'] == ['/', 'opr']:
             if right[0] != 0:
                 quotient = left[0] / right[0]
                 new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
                 return [quotient, new_type], True
-            else:
-                raise Exception(f'ZERO-DIVISION ERROR AT LINE {line_number}')
-        elif line['operation'] == ['%', 'opr']:
+
+            raise RuntimeError(f'ZERO-DIVISION ERROR AT LINE {line_number}')
+        if line['operation'] == ['%', 'opr']:
             modulo = left[0] % right[0]
             new_type = 'int' if type_left != 'float' and type_right != 'float' else 'float'
             return [modulo, new_type], True
-        elif line['operation'] == [',', 'sep']:
+        if line['operation'] == [',', 'sep']:
             args = []
             if isinstance(left[0], str):
                 args += left
@@ -182,8 +182,8 @@ def execute_line(line, callables, nesting_level, line_number, visible_variables)
                 args.append(right)
 
             return args, True
-        else:
-            raise Exception(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
+
+        raise RuntimeError(f'UNKNOWN IDENTIFIER ERROR AT LINE {line_number}')
 
 
 def validate_args(args, args_needed, function_name):
@@ -205,11 +205,11 @@ def validate_args(args, args_needed, function_name):
 
             types_available = args_needed[index]
             if type_ not in types_available:
-                raise Exception(f'COMPILATION ERROR: FUNCTION {function_name} EXPECTS ' +
-                                f'{types_available} AS A PARAMETER BUT {type_} GIVEN')
+                raise RuntimeError(f'COMPILATION ERROR: FUNCTION {function_name} EXPECTS ' +
+                                   f'{types_available} AS A PARAMETER BUT {type_} GIVEN')
     else:
-        raise Exception(f'COMPILATION ERROR: FUNCTION {function_name} REQUIRES ' +
-                        f'{len(args_needed)} ARGUMENTS BUT {len(args)} GIVEN')
+        raise RuntimeError(f'COMPILATION ERROR: FUNCTION {function_name} REQUIRES ' +
+                           f'{len(args_needed)} ARGUMENTS BUT {len(args)} GIVEN')
 
 
 def execute_function(function_name, callables, args):
@@ -245,29 +245,29 @@ def execute_function(function_name, callables, args):
                 return response
 
         return None
-    else:
-        args_needed = callables[function_name][1]
-        function = callables[function_name][0]
 
-        validate_args(args, args_needed, function_name)
+    args_needed = callables[function_name][1]
+    function = callables[function_name][0]
 
-        args_count = len(args_needed)
-        args_values = []
+    validate_args(args, args_needed, function_name)
 
-        for index in range(args_count):
-            token = args[index]
-            type_ = token[1]
+    args_count = len(args_needed)
+    args_values = []
 
-            if type_ == 'int':
-                args_values.append(int(token[0]))
-            elif type_ == 'float':
-                args_values.append(float(token[0]))
-            elif type_ == 'str':
-                args_values.append(token[0])
-            elif type_ == 'bool':
-                args_values.append(token[0] == 'true')
+    for index in range(args_count):
+        token = args[index]
+        type_ = token[1]
 
-        return function(args_values)
+        if type_ == 'int':
+            args_values.append(int(token[0]))
+        elif type_ == 'float':
+            args_values.append(float(token[0]))
+        elif type_ == 'str':
+            args_values.append(token[0])
+        elif type_ == 'bool':
+            args_values.append(token[0] == 'true')
+
+    return function(args_values)
 
 
 def find_callables(tree):
@@ -287,7 +287,6 @@ def find_callables(tree):
                 'args': block['args'],
                 'line': block['line']
             }
-            pass
         elif 'operation' in block.keys() and block['operation'] == 'use':
             root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
             path = root_directory + '/libraries/' + block['right'] + '.py'
@@ -321,10 +320,11 @@ def execute(file_name):
 
     callables = find_callables(tree)
 
-    if 'main' in callables.keys():
+    functions = callables.keys()
+    if 'main' in functions:
         execute_function('main', callables, [])
     else:
-        raise Exception("COMPILATION ERROR: 'main' FUNCTION NOT FOUND")
+        raise RuntimeError("COMPILATION ERROR: 'main' FUNCTION NOT FOUND")
 
 
 def print_code(file_name):
@@ -352,9 +352,9 @@ def print_code(file_name):
 
 if __name__ == '__main__':
     try:
-        first_arg = sys.argv[1]
+        FIRST_ARG = sys.argv[1]
 
-        if first_arg == '--help':
+        if FIRST_ARG == '--help':
             print('Usage: python interpreter.py [filename] [flag1] [flag2] ...')
             print('Flags available:')
             print('\t-c - show executed code')
@@ -370,14 +370,14 @@ if __name__ == '__main__':
                 print('Unknown token: Try typing interpreter.py --help to see usage info')
             else:
                 if '-c' in flags:
-                    print_code(first_arg)
+                    print_code(FIRST_ARG)
 
                 if '-l' in flags:
-                    print_tokens(first_arg)
+                    print_tokens(FIRST_ARG)
 
                 if '-p' in flags:
-                    print_tree(first_arg)
+                    print_tree(FIRST_ARG)
                 print("Produced output:")
-                execute(first_arg)
+                execute(FIRST_ARG)
     except (FileNotFoundError, IndexError):
         print('Try typing interpreter.py --help to see usage info')
