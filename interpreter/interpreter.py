@@ -18,7 +18,7 @@ import copy
 
 from typing import Any, Callable
 
-from min_parser import make_tree, print_tree, Token, NumToken
+from min_parser import make_tree, print_tree, Token
 from lexer import print_tokens
 
 # endregion
@@ -138,7 +138,7 @@ def execute_func_or_var_connected_block(expression: list[Token | dict | list],
     right = expression[2]
 
     operation = expression[1]
-    
+
     if operation == ['is', 'opr']:
         # type check
         if right[1] == 'typ':
@@ -203,7 +203,8 @@ def execute_func_or_var_connected_block(expression: list[Token | dict | list],
             return None, False
 
         if isinstance(right, dict):
-            return_, _ = execute_line(right, callables, nesting_level, line_number, visible_variables)
+            return_, _ = execute_line(right, callables, nesting_level,
+                                      line_number, visible_variables)
 
             return return_, False
 
