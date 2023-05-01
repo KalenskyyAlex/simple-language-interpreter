@@ -1,3 +1,11 @@
+"""
+This module implements structures used in whole interpreter, like Tokens, Nodes and Functions
+
+It is made, to provide error-handling just on site (inside of constructors), like type-checking;
+implementation of private fields with only public getters. The whole idea is to make sure objects
+keep being unchanged since creation
+"""
+
 from typing import Optional, Any
 from lexer import TYPES
 
@@ -63,8 +71,8 @@ class Node:
 
     once created, Node SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
-    def __init__(self, right: Optional[Any], left: Optional[Any],
-                 operator: Optional[Any], line_number: Optional[int]):
+    def __init__(self, operator: Optional[TokenType], line_number: Optional[int],
+                 right: Optional[Any] = None, left: Optional[Any] = None):
         """
         creates a Node
 
