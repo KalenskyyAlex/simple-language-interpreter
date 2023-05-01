@@ -17,18 +17,13 @@ from typing import Any
 from typing import Callable
 
 from lexer import get_tokens
+from structures import Token, TokenType, Node, NodeType
 
 # endregion
 
 # region Declared types
 
-StrToken = list[str]
-NumToken = list[str | float | int]
-Token = StrToken | NumToken
-TokenList = list[Token]
-NestedTokenList = list[Token | list]
-TreeNode = dict[str, Any]
-BlockList = list[TreeNode | TokenList | NestedTokenList]
+TokenList = list[TokenType]
 
 # endregion
 
@@ -36,11 +31,11 @@ BlockList = list[TreeNode | TokenList | NestedTokenList]
 
 tokens: list[TokenList] = []
 line_numbers: list[int] = []
-function_tree_element: TreeNode = {}
-variable_tree_element: TreeNode = {}
-return_tree_element: TreeNode = {}
-break_tree_element: TreeNode = {}
-body_tree_element: BlockList = []
+function_tree_element: NodeType
+variable_tree_element: NodeType
+return_tree_element: NodeType
+break_tree_element: NodeType
+body_tree_element: list[NodeType] = []
 
 tree: list[dict] = []
 
@@ -48,7 +43,7 @@ tree: list[dict] = []
 
 # region Private functions
 
-def validate_use_syntax(line: TokenList | NestedTokenList, line_number: int) -> None:
+def validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
     forms 'use'-like block of tree
     raise SYNTAX ERROR if syntax with 'use' keyword is incorrect
@@ -57,14 +52,14 @@ def validate_use_syntax(line: TokenList | NestedTokenList, line_number: int) -> 
     :param line_number: number of line given for error handling
     """
     if len(line) == 2:
-        if line[0][0] == 'use':
-            if line[1][1] == 'lib':
+        if line[0].value == 'use':
+            if line[1].type == 'lib':
                 return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID LIBRARY CALL')
 
 
-def validate_start_syntax(line: TokenList | NestedTokenList, line_number: int) -> None:
+def validate_start_syntax(line: TokenList, line_number: int) -> None:
     """
     forms 'function'-like block of tree
     raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
@@ -72,28 +67,25 @@ def validate_start_syntax(line: TokenList | NestedTokenList, line_number: int) -
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
     """
-    global function_tree_element
 
-    function_tree_element = {}
+    if line[0].value == 'start' and line[1].type == 'fnc':
+        name = line[1].value
 
-    if line[0][0] == 'start' and line[1][1] == 'fnc':
-        name = line[1][0]
-
-        function_tree_element['line'] = line_number
-        function_tree_element['name'] = name
-        function_tree_element['args'] = []
-        function_tree_element['body'] = []
+        function_tree_element.line = line_number
+        function_tree_element.name = name
+        function_tree_element.args = []
+        function_tree_element.body = []
 
         # check if we have arguments to fill 'args'
         if len(line) > 2:
-            if line[2][0] == '|' and len(line) > 3:
+            if line[2].value == '|' and len(line) > 3:
                 line = line[3:]
 
                 split: TokenList = []
 
                 for token in line:
                     # arguments are separated by coma
-                    if token[1] == 'sep':
+                    if token.type == 'sep':
                         validate_is_syntax(split, line_number)
 
                         function_tree_element['args'].append(variable_tree_element)
@@ -113,7 +105,7 @@ def validate_start_syntax(line: TokenList | NestedTokenList, line_number: int) -
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
 
-def validate_is_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
+def validate_is_syntax(block: TokenList, line_number: int) -> None:
     """
     forms 'variable'-like block of tree
     raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
@@ -139,7 +131,7 @@ def validate_is_syntax(block: TokenList | NestedTokenList, line_number: int) -> 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
 
-def validate_return_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
+def validate_return_syntax(block: TokenList, line_number: int) -> None:
     """
     forms 'return'-like block of tree
     raise SYNTAX ERROR if syntax with 'return' keyword is incorrect
@@ -162,7 +154,7 @@ def validate_return_syntax(block: TokenList | NestedTokenList, line_number: int)
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
 
-def validate_break_syntax(block: TokenList | NestedTokenList, line_number: int) -> None:
+def validate_break_syntax(block: TokenList, line_number: int) -> None:
     """
     forms 'break'-like block of tree
     raise SYNTAX ERROR if syntax with 'break' keyword is incorrect

@@ -11,6 +11,8 @@ text in .min file or use as module 'from lexer import get_tokens'
 from pprint import pprint
 from typing import TextIO
 
+from structures import TokenType, Token
+
 # endregion
 
 # region Declared constants
@@ -30,14 +32,13 @@ SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', '
 
 # region Declared types
 
-Token = list[str]
-TokenList = list[Token]
+TokenList = list[TokenType]
 
 # endregion
 
 # region Private functions
 
-def give_types_for_tokens(tokens_raw: TokenList) -> list[TokenList]:
+def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
     """
     gives each given token a type
     :param tokens_raw: nested array of tokens without type;
@@ -51,33 +52,36 @@ def give_types_for_tokens(tokens_raw: TokenList) -> list[TokenList]:
         line_with_types: list = []
 
         for token in line:
+            typed_token: Token
             if is_keyword(token):
-                line_with_types.append([token, 'kwd'])
+                typed_token = Token('kwd', token)
             elif is_operator(token):
                 if token == '|':
-                    line_with_types[-1][1] = 'fnc'
-                line_with_types.append([token, 'opr'])
+                    old_value = line_with_types[-1].value
+                    line_with_types[-1] = Token('fnc', old_value)
+                typed_token = Token('opr', token)
             elif is_separator(token):
-                line_with_types.append([token, 'sep'])
+                typed_token = Token('sep', token)
             elif is_type(token):
-                line_with_types.append([token, 'typ'])
+                typed_token = Token('typ', token)
             elif is_boolean(token):
-                line_with_types.append([token, 'bool'])
+                typed_token = Token('bool', token)
             elif is_integer(token):
-                line_with_types.append([int(token), 'int'])
+                typed_token = Token('int', int(token))
             elif is_float(token):
-                line_with_types.append([float(token), 'float'])
+                typed_token = Token('float', float(token))
             elif is_string(token):
-                line_with_types.append([token[1:-1], 'str'])
+                typed_token = Token('str', token[1:-1])
             else:
                 match prev_token:
                     case 'start':
-                        line_with_types.append([token, 'fnc'])
+                        typed_token = Token('fnc', token)
                     case 'use':
-                        line_with_types.append([token, 'lib'])
+                        typed_token = Token('lib', token)
                     case _:
-                        line_with_types.append([token, 'var'])
+                        typed_token = Token('var', token)
 
+            line_with_types.append(typed_token)
             prev_token = token
 
         tokens.append(line_with_types)
@@ -212,7 +216,7 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
     raw_lines: list[str] = file.readlines()
     lines, line_numbers = clear_lines(raw_lines)
 
-    tokens_raw: TokenList = []  # separated, but no types
+    tokens_raw: list[list[str]] = []  # separated, but no types
 
     for line in lines:
         line_of_tokens: list[str] = []
