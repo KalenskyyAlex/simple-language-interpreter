@@ -16,8 +16,8 @@ from pprint import pprint
 from typing import Any
 from typing import Callable
 
-from lexer import get_tokens
-from structures import Token, TokenType, Node, NodeType
+from lexer import get_tokens, TYPES
+from structures import Token, TokenType, Node, NodeType, Function, FunctionType
 
 # endregion
 
@@ -27,21 +27,67 @@ TokenList = list[TokenType]
 
 # endregion
 
+# region Declare constants
+
+PIPE = Token('opr', '|')
+CREATE = Token('opr', 'is')
+ASSIGN = Token('opr', '=')
+PLUS = Token('opr', '+')
+MINUS = Token('opr', '-')
+MULTIPLY = Token('opr', '*')
+DIVIDE = Token('opr', '/')
+MODULO = Token('opr', '%')
+MORE_THAN = Token('opr', '>=')
+LESS_THAN = Token('opr', '<=')
+EQUALS = Token('opr', '==')
+
+USE = Token('kwd', 'use')
+RETURN = Token('kwd', 'return')
+BREAK = Token('kwd', 'break')
+IF = Token('kwd', 'if')
+ELSE = Token('kwd', 'else')
+WHILE = Token('kwd', 'while')
+START = Token('kwd', 'start')
+END = Token('kwd', 'end')
+
+COMMA = Token('sep', ',')
+
+OPERATORS: TokenList = [PIPE, CREATE, ASSIGN, PLUS, MINUS, MULTIPLY, DIVIDE,
+                        MODULO, MORE_THAN, LESS_THAN, EQUALS]
+KEYWORDS: TokenList = [RETURN, BREAK, IF, ELSE, WHILE, START, END]
+
+# endregion
+
 # region Declared globals
 
 tokens: list[TokenList] = []
 line_numbers: list[int] = []
-function_tree_element: NodeType
-variable_tree_element: NodeType
-return_tree_element: NodeType
-break_tree_element: NodeType
 body_tree_element: list[NodeType] = []
 
-tree: list[dict] = []
+tree: list[FunctionType | NodeType] = []
 
 # endregion
 
 # region Private functions
+# TODO Docstrings for new methods
+# TODO Review usafe of split functions
+def is_valid_variable(token: TokenType) -> bool:
+    if token.type == 'var' and isinstance(token.value, str):
+        if token.value.strip():
+            return True
+
+    return False
+
+def is_valid_library(token: TokenType) -> bool:
+    if token.type == 'lib' and isinstance(token.value, str):
+        if token.value.strip():
+            return True
+
+    return False
+
+def is_valid_type(token: TokenType) -> bool:
+    return token.type == 'typ' and token.value in TYPES
+
 
 def validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
@@ -52,11 +98,13 @@ def validate_use_syntax(line: TokenList, line_number: int) -> None:
     :param line_number: number of line given for error handling
     """
     if len(line) == 2:
-        if line[0].value == 'use':
-            if line[1].type == 'lib':
-                return
+        if line[0] == USE and is_valid_library(line[1]):
+            return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID LIBRARY CALL')
+
+def create_use_node(line: TokenList, line_number: int) -> NodeType:
+    return Node(line[0], line_number, line[1])
 
 
 def validate_start_syntax(line: TokenList, line_number: int) -> None:
@@ -68,41 +116,72 @@ def validate_start_syntax(line: TokenList, line_number: int) -> None:
     :param line_number: number of line given for error handling
     """
 
-    if line[0].value == 'start' and line[1].type == 'fnc':
-        name = line[1].value
+    if not line[0] != START or not line[1].type == 'fnc':
+        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
-        function_tree_element.line = line_number
-        function_tree_element.name = name
-        function_tree_element.args = []
-        function_tree_element.body = []
+    if len(line) > 2:
+        if line[2] != PIPE:
+            raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                              'PIPE OPERATOR MUST BE BEFORE ARGUMENTS')
 
-        # check if we have arguments to fill 'args'
-        if len(line) > 2:
-            if line[2].value == '|' and len(line) > 3:
-                line = line[3:]
+        line = line[3:]
+        if len(line) == 0:
+            raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                              'NO ARGUMENTS AFTER PIPE OPERATOR')
 
-                split: TokenList = []
+        tokens_count = len(line)
+        if (tokens_count + 1) % 4 != 0:
+            raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                              'INVALID ARGUMENTS STRUCTURE')
 
-                for token in line:
-                    # arguments are separated by coma
-                    if token.type == 'sep':
-                        validate_is_syntax(split, line_number)
+        for index in range(tokens_count):
+            match index % 4:
+                case 0:
+                    if line[index].type != 'var':
+                        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                          'ARGUMENTS MUST BE OF TYPE VAR')
+                case 1:
+                    if line[index] != CREATE:
+                        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                          'MISSING IS OPERATOR')
+                case 2:
+                    if line[index].type != 'typ':
+                        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                          'INVALID TYPE')
+                case 3:
+                    if line[index] != COMMA:
+                        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                          'MISSING COMMA BETWEEN ARGUMENTS')
 
-                        function_tree_element['args'].append(variable_tree_element)
-                        split = []
-                    else:
-                        split.append(token)
+def create_start_node(line: TokenList, line_number: int) -> FunctionType:
+    if not isinstance(line[1].value, str):
+        raise TypeError(f'NAME OF FUNCTION MUST BE STRING AT LINE {line_number}')
 
-                # we check and add last argument block
+    name: str = line[1].value
+    args: list[NodeType] = []
+    body: list[NodeType] = []
+
+    # check if we have arguments to fill 'args'
+    if len(line) > 2:
+        line = line[3:]
+
+        split: TokenList = []
+
+        for token in line:
+            # arguments are separated by coma
+            if token == COMMA:
                 validate_is_syntax(split, line_number)
+                args.append(create_variable_node(split, line_number))
 
-                function_tree_element['args'].append(variable_tree_element)
+                split = []
+            else:
+                split.append(token)
 
-                return
-        else:
-            return
+        # we check and add last argument block
+        validate_is_syntax(split, line_number)
+        args.append(create_variable_node(split, line_number))
 
-    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID FUNCTION ASSIGN')
+    return Function(name, args, body, line_number)
 
 
 def validate_is_syntax(block: TokenList, line_number: int) -> None:
@@ -113,22 +192,14 @@ def validate_is_syntax(block: TokenList, line_number: int) -> None:
     :param block: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    global variable_tree_element
-
-    variable_tree_element = {}
-
     if len(block) == 3:
-        if block[1][0] == 'is':
-            if block[0][1] == 'var':
-                if block[2][1] == 'typ':
-                    variable_tree_element['line'] = line_number
-                    variable_tree_element['left'] = block[0]
-                    variable_tree_element['operation'] = ['is', 'opr']
-                    variable_tree_element['right'] = block[2]
-
-                    return
+        if block[1] == CREATE and is_valid_variable(block[0]) and is_valid_type(block[2]):
+            return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID VARIABLE ASSIGN')
+
+def create_variable_node(block: TokenList, line_number: int) -> NodeType:
+    return Node(CREATE, line_number, block[2], block[0])
 
 
 def validate_return_syntax(block: TokenList, line_number: int) -> None:
@@ -139,19 +210,11 @@ def validate_return_syntax(block: TokenList, line_number: int) -> None:
     :param block: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    global return_tree_element
+    if block[0] != RETURN:
+        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
-    return_tree_element = {}
-
-    if block[0] == ['return', 'kwd']:
-        return_tree_element['line'] = line_number
-        return_tree_element['left'] = None
-        return_tree_element['operation'] = ['return', 'kwd']
-        return_tree_element['right'] = block[1:]
-
-        return
-
-    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
+def create_return_node(block: TokenList, line_number: int) -> NodeType:
+    return Node(RETURN, line_number, block[1:])
 
 
 def validate_break_syntax(block: TokenList, line_number: int) -> None:
@@ -162,21 +225,12 @@ def validate_break_syntax(block: TokenList, line_number: int) -> None:
     :param block: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    global break_tree_element
+    if not len(block) == 1 or not block[0] == RETURN:
+        raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY ' +
+                          'AFTER \'return\'. VARIABLE EXPECTED')
 
-    break_tree_element = {}
-
-    if len(block) == 1:
-        if block[0] == ['break', 'kwd']:
-            break_tree_element['line'] = line_number
-            break_tree_element['left'] = None
-            break_tree_element['operation'] = block[0]
-            break_tree_element['right'] = None
-
-            return
-
-    raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY ' +
-                      'AFTER \'return\'. VARIABLE EXPECTED')
+def create_break_node(line_number: int) -> NodeType:
+    return Node(BREAK, line_number)
 
 
 def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
@@ -689,13 +743,7 @@ def make_tree(file_name: str) -> Any:
         else:
             if ['use', 'kwd'] in line:
                 validate_use_syntax(line, line_number)
-
-                tree.append({
-                    'line': line_number,
-                    'left': None,
-                    'operation': 'use',
-                    'right': line[1][0]
-                })
+                tree.append(create_use_node(line, line_number))
 
             if ['start', 'kwd'] in line:
                 validate_start_syntax(line, line_number)
