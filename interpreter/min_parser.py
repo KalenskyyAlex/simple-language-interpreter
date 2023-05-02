@@ -13,14 +13,14 @@ text in .min file or use as module 'from parser import make_tree'
 # region Imported modules
 
 from pprint import pprint
-from typing import Any, Callable, Optional
+from typing import Any, Callable  # , Optional
 
 from lexer import get_tokens
 from structures import TokenType, Node, NodeType, Function, FunctionType
 from commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
 from commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
 from commons import LEFT_BRACKET, RIGHT_BRACKET
-from commons import WHILE, IF, ELSE
+# from commons import WHILE, IF, ELSE
 from commons import TokenList
 
 # endregion
@@ -68,7 +68,13 @@ def is_valid_type(token: TokenType) -> bool:
 
 
 def is_unpackable(tokens_list: TokenList) -> bool:
-    return all([isinstance(element, (TokenType | list)) for element in tokens_list])
+    """
+    :param tokens_list: list of Tokens to check
+    :return: True if there is only one element in tokens list, which is Token itself,
+    otherwise False
+    """
+    return all(isinstance(element, (TokenType | list)) for element in tokens_list) \
+        and len(tokens_list) == 1
 
 def unpack_token_list(token_list: TokenList) -> TokenType | TokenList:
     """
@@ -82,8 +88,8 @@ def unpack_token_list(token_list: TokenList) -> TokenType | TokenList:
         case 1:
             if isinstance(token_list[0], TokenType):
                 return token_list[0]
-            else:
-                raise RuntimeError('FAILED TO UNPACK TOKEN LIST')
+
+            raise RuntimeError('FAILED TO UNPACK TOKEN LIST')
         case _:
             return token_list
 
@@ -430,7 +436,8 @@ def operate_calls(segment: TokenList, line_number: int) -> TokenList:
     return operated_segment
 
 
-def operate_helper(line: NodeType | TokenList, line_number: int, method: Callable) -> NodeType | TokenList:
+def operate_helper(line: NodeType | TokenList, line_number: int,
+                   method: Callable) -> NodeType | TokenList:
     """
     is needed to go through already modified line (partially nested)
     :param line: array of tokens, from one line of code
@@ -519,7 +526,9 @@ def operate_3(segment: TokenList, line_number: int) -> Any:
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, list) and MULTIPLY not in segment and DIVIDE not in segment and MODULO not in segment:
+    if isinstance(segment, list) and MULTIPLY not in segment \
+            and DIVIDE not in segment \
+            and MODULO not in segment:
         if not has_nesting(segment):
             return segment
 
