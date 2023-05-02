@@ -16,45 +16,10 @@ from pprint import pprint
 from typing import Any
 from typing import Callable
 
-from lexer import get_tokens, TYPES
-from structures import Token, TokenType, Node, NodeType, Function, FunctionType
-
-# endregion
-
-# region Declared types
-
-TokenList = list[TokenType]
-
-# endregion
-
-# region Declare constants
-
-PIPE = Token('opr', '|')
-CREATE = Token('opr', 'is')
-ASSIGN = Token('opr', '=')
-PLUS = Token('opr', '+')
-MINUS = Token('opr', '-')
-MULTIPLY = Token('opr', '*')
-DIVIDE = Token('opr', '/')
-MODULO = Token('opr', '%')
-MORE_THAN = Token('opr', '>=')
-LESS_THAN = Token('opr', '<=')
-EQUALS = Token('opr', '==')
-
-USE = Token('kwd', 'use')
-RETURN = Token('kwd', 'return')
-BREAK = Token('kwd', 'break')
-IF = Token('kwd', 'if')
-ELSE = Token('kwd', 'else')
-WHILE = Token('kwd', 'while')
-START = Token('kwd', 'start')
-END = Token('kwd', 'end')
-
-COMMA = Token('sep', ',')
-
-OPERATORS: TokenList = [PIPE, CREATE, ASSIGN, PLUS, MINUS, MULTIPLY, DIVIDE,
-                        MODULO, MORE_THAN, LESS_THAN, EQUALS]
-KEYWORDS: TokenList = [RETURN, BREAK, IF, ELSE, WHILE, START, END]
+from lexer import get_tokens
+from structures import TokenType, Node, NodeType, Function, FunctionType
+from commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
+from commons import TokenList
 
 # endregion
 
@@ -69,9 +34,12 @@ tree: list[FunctionType | NodeType] = []
 # endregion
 
 # region Private functions
-# TODO Docstrings for new methods
-# TODO Review usafe of split functions
+# TODO Review usage of split functions
 def is_valid_variable(token: TokenType) -> bool:
+    """
+    :param token: token
+    :return: True, if token has valid type and name to be a variable token, otherwise False
+    """
     if token.type == 'var' and isinstance(token.value, str):
         if token.value.strip():
             return True
@@ -79,6 +47,10 @@ def is_valid_variable(token: TokenType) -> bool:
     return False
 
 def is_valid_library(token: TokenType) -> bool:
+    """
+    :param token: token
+    :return: True, if token has valid type and name to be a library token, otherwise False
+    """
     if token.type == 'lib' and isinstance(token.value, str):
         if token.value.strip():
             return True
@@ -86,35 +58,47 @@ def is_valid_library(token: TokenType) -> bool:
     return False
 
 def is_valid_type(token: TokenType) -> bool:
-    return token.type == 'typ' and token.value in TYPES
+    """
+    :param token: token
+    :return: True, if token has valid type and name to be a type token, otherwise False
+    """
+    return token.type == 'typ' and token.value in TOKEN_TYPES
 
 
 def validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
-    forms 'use'-like block of tree
     raise SYNTAX ERROR if syntax with 'use' keyword is incorrect
 
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
     """
     if len(line) == 2:
-        if line[0] == USE and is_valid_library(line[1]):
-            return
+        if line[0] == USE and isinstance(line[1], TokenType):
+            if is_valid_library(line[1]):
+                return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID LIBRARY CALL')
 
 def create_use_node(line: TokenList, line_number: int) -> NodeType:
-    return Node(line[0], line_number, line[1])
+    """
+    creates Node for further library call
+
+    :param line: array of tokens from one line of code
+    :param line_number: number of line given for error handling
+    """
+    return Node(USE, line_number, line[1])
 
 
 def validate_start_syntax(line: TokenList, line_number: int) -> None:
     """
-    forms 'function'-like block of tree
     raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
 
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
     """
+
+    if not isinstance(line[0], TokenType) or not isinstance(line[1], TokenType):
+        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
 
     if not line[0] != START or not line[1].type == 'fnc':
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID FUNCTION ASSIGN')
@@ -135,25 +119,38 @@ def validate_start_syntax(line: TokenList, line_number: int) -> None:
                               'INVALID ARGUMENTS STRUCTURE')
 
         for index in range(tokens_count):
+            token = line[index]
+            if not isinstance(token, TokenType):
+                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
+
             match index % 4:
                 case 0:
-                    if line[index].type != 'var':
+                    if token.type != 'var':
                         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                           'ARGUMENTS MUST BE OF TYPE VAR')
                 case 1:
-                    if line[index] != CREATE:
+                    if token != CREATE:
                         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                           'MISSING IS OPERATOR')
                 case 2:
-                    if line[index].type != 'typ':
+                    if token.type != 'typ':
                         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                           'INVALID TYPE')
                 case 3:
-                    if line[index] != COMMA:
+                    if token != COMMA:
                         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                           'MISSING COMMA BETWEEN ARGUMENTS')
 
 def create_start_node(line: TokenList, line_number: int) -> FunctionType:
+    """
+    creates Function for logical tree
+
+    :param line: array of tokens from one line of code
+    :param line_number: number of line given for error handling
+    """
+    if not isinstance(line[1], TokenType):
+        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
+
     if not isinstance(line[1].value, str):
         raise TypeError(f'NAME OF FUNCTION MUST BE STRING AT LINE {line_number}')
 
@@ -186,25 +183,31 @@ def create_start_node(line: TokenList, line_number: int) -> FunctionType:
 
 def validate_is_syntax(block: TokenList, line_number: int) -> None:
     """
-    forms 'variable'-like block of tree
     raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
 
     :param block: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
     if len(block) == 3:
-        if block[1] == CREATE and is_valid_variable(block[0]) and is_valid_type(block[2]):
-            return
+        if block[1] == CREATE:
+            if isinstance(block[0], TokenType) and isinstance(block[2], TokenType):
+                if is_valid_variable(block[0]) and is_valid_type(block[2]):
+                    return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
 def create_variable_node(block: TokenList, line_number: int) -> NodeType:
+    """
+    creates Node for variable assign
+
+    :param block: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    """
     return Node(CREATE, line_number, block[2], block[0])
 
 
 def validate_return_syntax(block: TokenList, line_number: int) -> None:
     """
-    forms 'return'-like block of tree
     raise SYNTAX ERROR if syntax with 'return' keyword is incorrect
 
     :param block: array of tokens, part of one line of code
@@ -214,12 +217,23 @@ def validate_return_syntax(block: TokenList, line_number: int) -> None:
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
 def create_return_node(block: TokenList, line_number: int) -> NodeType:
-    return Node(RETURN, line_number, block[1:])
+    """
+    creates Node for function return handling
+
+    :param block: array of tokens, part of one line of code
+    :param line_number: number of line given for error handling
+    """
+    right = block[1:]
+    right = operate_calls(right, line_number)
+    right = operate_helper(right, line_number, operate_1)
+    right = operate_helper(right, line_number, operate_2)
+    right = operate_helper(right, line_number, operate_3)
+
+    return Node(RETURN, line_number, right)
 
 
 def validate_break_syntax(block: TokenList, line_number: int) -> None:
     """
-    forms 'break'-like block of tree
     raise SYNTAX ERROR if syntax with 'break' keyword is incorrect
 
     :param block: array of tokens, part of one line of code
@@ -230,10 +244,15 @@ def validate_break_syntax(block: TokenList, line_number: int) -> None:
                           'AFTER \'return\'. VARIABLE EXPECTED')
 
 def create_break_node(line_number: int) -> NodeType:
+    """
+    creates simple break-Node
+
+    :param line_number: number of line given for error handling
+    """
     return Node(BREAK, line_number)
 
 
-def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
+def fill_body(line: TokenList, line_number: int) -> None:
     """
     generalization of validate_* methods
     fills one line of code to 'body'-like tree block
@@ -246,28 +265,13 @@ def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
     """
     if ['is', 'opr'] in line:
         validate_is_syntax(line, line_number)
-
-        body_tree_element.append(variable_tree_element)
+        body_tree_element.append(create_variable_node(line, line_number))
     elif ['return', 'kwd'] in line:
         validate_return_syntax(line, line_number)
-
-        return_tree_element['right'] = operate_calls(return_tree_element['right'],
-                                                     line_number)
-        return_tree_element['right'] = operate_helper(return_tree_element['right'],
-                                                      line_number, operate_1)
-        return_tree_element['right'] = operate_helper(return_tree_element['right'],
-                                                      line_number, operate_2)
-        return_tree_element['right'] = operate_helper(return_tree_element['right'],
-                                                      line_number, operate_3)
-
-        if isinstance(return_tree_element, dict):
-            return_tree_element['line'] = line_number
-
-        body_tree_element.append(return_tree_element)
+        body_tree_element.append(create_return_node(line, line_number))
     elif ['break', 'kwd'] in line:
         validate_break_syntax(line, line_number)
-
-        body_tree_element.append(break_tree_element)
+        body_tree_element.append(create_break_node(line_number))
     else:
         if not line == ['end', 'kwd']:
             line = nest(line, line_number)
@@ -275,18 +279,16 @@ def fill_body(line: TokenList | NestedTokenList, line_number: int) -> None:
             line = operate_calls(line, line_number)
 
             line = operate_helper(line, line_number, operate_1)
-
             line = operate_helper(line, line_number, operate_2)
-
             line = operate_helper(line, line_number, operate_3)
 
-            if isinstance(line, dict):
-                line['line'] = line_number
+            if isinstance(line[0], NodeType):
+                complete_node = line[0]
+                body_tree_element.append(complete_node)
+            else:
+                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
 
-            body_tree_element.append(line)
-
-
-def has_nesting(line: TokenList | NestedTokenList) -> bool:
+def has_nesting(line: TokenList) -> bool:
     """
     :param line: array of tokens from one line of code
     :return: True if line has nesting, otherwise False
@@ -297,7 +299,7 @@ def has_nesting(line: TokenList | NestedTokenList) -> bool:
     return False
 
 
-def nest(line: TokenList | NestedTokenList, line_number: int) -> NestedTokenList:
+def nest(line: TokenList, line_number: int) -> TokenList:
     """
     nest given line recursively
     :param line: array of tokens from one line of code to nest
@@ -307,9 +309,9 @@ def nest(line: TokenList | NestedTokenList, line_number: int) -> NestedTokenList
     if not has_nesting(line):
         return line
 
-    nested_line: NestedTokenList = []
+    nested_line: TokenList = []
     nested_: int = 0
-    nested_segment: NestedTokenList = []
+    nested_segment: TokenList = []
     for token in line:
         if token == ['(', 'opr']:
             nested_ += 1
@@ -747,8 +749,8 @@ def make_tree(file_name: str) -> Any:
 
             if ['start', 'kwd'] in line:
                 validate_start_syntax(line, line_number)
+                tree.append(create_start_node(line, line_number))
 
-                tree.append(function_tree_element)
                 nested += 1
                 body_tree_element = []
                 in_function_body = True
@@ -763,10 +765,22 @@ def make_tree(file_name: str) -> Any:
 
         if nested == 0 and in_function_body:
             in_function_body = False
-            body_tree_element = nest_vertical(body_tree_element, tree[-1]['line'])
+
+            body_tree_element = nest_vertical(body_tree_element, tree[-1].line_number)
             if body_tree_element[-1] == [['end', 'kwd']]:
                 body_tree_element = body_tree_element[:-1]
-            tree[-1]['body'] = body_tree_element
+
+            if not isinstance(tree[-1], Function):
+                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
+                                  'BLOCK IS NOT RECOGNIZED AS FUNCTION')
+
+            proto_function = tree[-1]
+            complete_function = Function(proto_function.name,
+                                         proto_function.args,
+                                         body_tree_element,
+                                         proto_function.line_number)
+
+            tree[-1] = complete_function
 
     return tree
 
