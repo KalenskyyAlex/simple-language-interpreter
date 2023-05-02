@@ -2,8 +2,9 @@
 This module contains constants and declared types used in interpreter 
 """
 
-from structures import *
 from typing import Callable, Optional
+
+from structures import Token, TokenType
 
 KEYWORDS = ['start', 'end', 'use', 'return', 'break',
             'while', 'if', 'else', 'elif']
@@ -12,7 +13,8 @@ OPERATORS = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and',
 BOOLEANS = ['true', 'false']
 NUMERALS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 INNER_TYPES = ['int', 'float', 'str', 'bool']
-TOKEN_TYPES = ['kwd', 'int', 'float', 'str', 'bool', 'opr', 'fnc', 'var', 'sep']
+TOKEN_TYPES = ['kwd', 'int', 'float', 'str', 'bool', 'opr', 'fnc',
+               'var', 'sep', 'lib', 'typ']
 
 SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']
 

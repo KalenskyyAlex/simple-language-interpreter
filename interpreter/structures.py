@@ -7,7 +7,8 @@ keep being unchanged since creation
 """
 
 from typing import Optional, Any
-TOKEN_TYPES = ['kwd', 'int', 'float', 'str', 'bool', 'opr', 'fnc', 'var', 'sep']
+TOKEN_TYPES = ['kwd', 'int', 'float', 'str', 'bool', 'opr', 'fnc',
+               'var', 'sep', 'lib', 'typ']
 
 class Token:
     """
@@ -214,8 +215,11 @@ FunctionType = Function
 
 
 if __name__ == '__main__':
-    print('This module implements structures used in whole interpreter, like Tokens, Nodes and Functions\n')
+    print('This module implements structures used in whole interpreter, like Tokens,' +
+          ' Nodes and Functions\n')
     print()
-    print('It is made, to provide error-handling just on site (inside of constructors), like type-checking;\n')
-    print('implementation of private fields with only public getters. The whole idea is to make sure objects\n')
+    print('It is made, to provide error-handling just on site (inside of constructors), ' +
+          'like type-checking;\n')
+    print('implementation of private fields with only public getters. The whole idea is ' +
+          'to make sure objects\n')
     print('keep being unchanged since creation\n')
