@@ -11,28 +11,9 @@ text in .min file or use as module 'from lexer import get_tokens'
 from pprint import pprint
 from typing import TextIO
 
-from structures import TokenType, Token
-
-# endregion
-
-# region Declared constants
-
-KEYWORDS = ['start', 'end', 'use', 'return', 'break',
-            'while', 'if', 'else', 'elif']
-OPERATORS = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and',
-             'or', 'not', '>', '<', '<=', '>=', '==', '|', '=']
-BOOLEANS = ['true', 'false']
-NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-TYPES = ['int', 'float', 'str', 'bool']
-
-# when we 'hit' them, we add tokens
-SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']
-
-# endregion
-
-# region Declared types
-
-TokenList = list[TokenType]
+from structures import Token
+from commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
+from commons import TokenList
 
 # endregion
 
@@ -146,7 +127,7 @@ def is_type(token: str) -> bool:
     :param token: token as string
     :return: True if token is a type, otherwise False
     """
-    return token in TYPES
+    return token in INNER_TYPES
 
 
 def is_boolean(token: str) -> bool:
@@ -166,7 +147,7 @@ def is_integer(token: str) -> bool:
         token = token[1:]
 
     for numeral in token:
-        if numeral not in NUMBERS:
+        if numeral not in NUMERALS:
             return False
 
     return True
