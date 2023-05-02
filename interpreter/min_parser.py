@@ -34,7 +34,7 @@ tree: list[FunctionType | NodeType] = []
 # endregion
 
 # region Private functions
-# TODO Review usage of split functions
+
 def is_valid_variable(token: TokenType) -> bool:
     """
     :param token: token
