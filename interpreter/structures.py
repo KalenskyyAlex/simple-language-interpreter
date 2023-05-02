@@ -7,7 +7,7 @@ keep being unchanged since creation
 """
 
 from typing import Optional, Any
-from lexer import TYPES
+TOKEN_TYPES = ['kwd', 'int', 'float', 'str', 'bool', 'opr', 'fnc', 'var', 'sep']
 
 class Token:
     """
@@ -29,7 +29,7 @@ class Token:
 
         if __type is None:
             raise TypeError('TOKEN\'S TYPE CANNOT BE NONE')
-        if __type not in TYPES:
+        if __type not in TOKEN_TYPES:
             raise TypeError(f'GIVEN TYPE {__type} IS NOT A VALID TOKEN TYPE')
 
         if __value is None:
@@ -71,7 +71,7 @@ class Node:
 
     once created, Node SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
-    def __init__(self, operator: Optional[TokenType], line_number: Optional[int],
+    def __init__(self, __operator: Optional[TokenType], __line_number: Optional[int],
                  right: Optional[Any] = None, left: Optional[Any] = None):
         """
         creates a Node
@@ -85,22 +85,42 @@ class Node:
         self.right = right
         self.left = left
 
-        if operator is None:
+        if __operator is None:
             raise TypeError('NODE\'S OPERATOR CANNOT BE NONE')
-        if not isinstance(operator, Token):
+        if not isinstance(__operator, Token):
             raise TypeError('NODE\'S OPERATOR MUST BE OF TYPE TOKEN ONLY')
 
-        if line_number is None:
+        if __line_number is None:
             raise TypeError('NODE\'S LINE NUMBER CANNOT BE NONE')
+        if __line_number <= 0:
+            raise TypeError('NODE\'S LINE NUMBER MUST BE GREATER THAN ZERO')
 
-        self.line_number = line_number
-        self.operator = operator
+        self.__line_number = __line_number
+        self.__operator = __operator
+
+    @property
+    def operator(self) -> TokenType:
+        """
+        Node's operator should only be accessed via this method
+
+        :return: operator of Node (token)
+        """
+        return self.__operator
+
+    @property
+    def line_number(self) -> int:
+        """
+        line number of Node should only be accessed via this method
+
+        :return: line number of Node
+        """
+        return self.__line_number
 
     def __str__(self) -> str:
-        node_to_str: str = f'line: {self.line_number}\n'
+        node_to_str: str = f'line: {self.__line_number}\n'
         node_to_str += f'\tleft: {self.left}\n'
-        node_to_str += f'\toperator: {self.operator}\n'
-        node_to_str += f'\tright: {self.operator}\n'
+        node_to_str += f'\toperator: {self.__operator}\n'
+        node_to_str += f'\tright: {self.right}\n'
         return node_to_str
 
     def __repr__(self) -> str:
@@ -171,6 +191,7 @@ class Function:
         """
         return self.__args
 
+    @property
     def body(self) -> list[NodeType]:
         """
         body of function should only be accessed via this method
@@ -179,7 +200,8 @@ class Function:
         """
         return self.__body
 
-    def line_numer(self):
+    @property
+    def line_number(self) -> int:
         """
         line number of function should only be accessed via this method
 
@@ -189,3 +211,11 @@ class Function:
 
 
 FunctionType = Function
+
+
+if __name__ == '__main__':
+    print('This module implements structures used in whole interpreter, like Tokens, Nodes and Functions\n')
+    print()
+    print('It is made, to provide error-handling just on site (inside of constructors), like type-checking;\n')
+    print('implementation of private fields with only public getters. The whole idea is to make sure objects\n')
+    print('keep being unchanged since creation\n')

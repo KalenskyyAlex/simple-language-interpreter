@@ -18,17 +18,10 @@ import copy
 
 from typing import Any, Callable
 
-from min_parser import make_tree, print_tree, Token
 from lexer import print_tokens
-
-# endregion
-
-# region Declared types
-
-CallablePacked = list[Callable | list]
-CallablesList = dict[str, CallablePacked | dict]
-VariablesList = dict[int, dict]
-ExecutionResult = tuple[None | list | dict, bool]
+from min_parser import make_tree, print_tree
+from structures import Token
+from commons import CallablePacked, CallablesList, VariablesList, ExecutionResult
 
 # endregion
 
