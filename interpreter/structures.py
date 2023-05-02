@@ -73,14 +73,14 @@ class Node:
     once created, Node SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
     def __init__(self, __operator: Optional[TokenType], __line_number: Optional[int],
-                 right: Optional[Any] = None, left: Optional[Any] = None):
+                 right: Any = None, left: Any = None):
         """
         creates a Node
 
         :param right: right part of node -- either Token or another Node
         :param left: left part of node -- either Token or another Node
-        :param operator: operator of node -- Token ONLY
-        :param line_number: line number
+        :param __operator: operator of node -- Token ONLY
+        :param __line_number: line number
         """
 
         self.right = right
@@ -118,11 +118,10 @@ class Node:
         return self.__line_number
 
     def __str__(self) -> str:
-        node_to_str: str = f'line: {self.__line_number}\n'
-        node_to_str += f'\tleft: {self.left}\n'
-        node_to_str += f'\toperator: {self.__operator}\n'
-        node_to_str += f'\tright: {self.right}\n'
-        return node_to_str
+        return {'line': self.__line_number,
+                'left': self.left,
+                'operator': self.__operator.value,
+                'right': self.right}.__repr__()
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -209,6 +208,15 @@ class Function:
         :return: line number of function
         """
         return self.__line_number
+
+    def __str__(self) -> str:
+        return {'name': self.__name,
+                'args': self.__args,
+                'body': self.__body,
+                'line': self.__line_number}.__repr__()
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 FunctionType = Function

@@ -13,12 +13,14 @@ text in .min file or use as module 'from parser import make_tree'
 # region Imported modules
 
 from pprint import pprint
-from typing import Any
-from typing import Callable
+from typing import Any, Callable, Optional
 
 from lexer import get_tokens
 from structures import TokenType, Node, NodeType, Function, FunctionType
 from commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
+from commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
+from commons import LEFT_BRACKET, RIGHT_BRACKET
+from commons import WHILE, IF, ELSE
 from commons import TokenList
 
 # endregion
@@ -63,6 +65,27 @@ def is_valid_type(token: TokenType) -> bool:
     :return: True, if token has valid type and name to be a type token, otherwise False
     """
     return token.type == 'typ' and token.value in TOKEN_TYPES
+
+
+def is_unpackable(tokens_list: TokenList) -> bool:
+    return all([isinstance(element, (TokenType | list)) for element in tokens_list])
+
+def unpack_token_list(token_list: TokenList) -> TokenType | TokenList:
+    """
+    unpacks single Token in list
+    :token_list: list to check
+    :return: if list contains single Token, returns it, otherwise returns whole list unchanged
+    """
+    match len(token_list):
+        case 0:
+            raise RuntimeError('EMPTY TOKEN LIST GIVEN')
+        case 1:
+            if isinstance(token_list[0], TokenType):
+                return token_list[0]
+            else:
+                raise RuntimeError('FAILED TO UNPACK TOKEN LIST')
+        case _:
+            return token_list
 
 
 def validate_use_syntax(line: TokenList, line_number: int) -> None:
@@ -223,11 +246,14 @@ def create_return_node(block: TokenList, line_number: int) -> NodeType:
     :param block: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    right = block[1:]
-    right = operate_calls(right, line_number)
-    right = operate_helper(right, line_number, operate_1)
-    right = operate_helper(right, line_number, operate_2)
-    right = operate_helper(right, line_number, operate_3)
+    right: NodeType | TokenList = block[1:]
+
+    if isinstance(right, list):
+        right = operate_calls(right, line_number)
+        # TODO inverse operate_helper <-> operate logic
+        # right = operate_helper(right, line_number, operate_1)
+        # right = operate_helper(right, line_number, operate_2)
+        # right = operate_helper(right, line_number, operate_3)
 
     return Node(RETURN, line_number, right)
 
@@ -276,14 +302,15 @@ def fill_body(line: TokenList, line_number: int) -> None:
         if not line == ['end', 'kwd']:
             line = nest(line, line_number)
 
-            line = operate_calls(line, line_number)
+            processed_line = operate_helper(line, line_number, operate_calls)
 
-            line = operate_helper(line, line_number, operate_1)
-            line = operate_helper(line, line_number, operate_2)
-            line = operate_helper(line, line_number, operate_3)
+            # TODO inverse operate_helper <-> operate logic
+            # line = operate_helper(line, line_number, operate_1)
+            # line = operate_helper(line, line_number, operate_2)
+            # line = operate_helper(line, line_number, operate_3)
 
-            if isinstance(line[0], NodeType):
-                complete_node = line[0]
+            if isinstance(processed_line, NodeType):
+                complete_node = processed_line
                 body_tree_element.append(complete_node)
             else:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
@@ -293,7 +320,7 @@ def has_nesting(line: TokenList) -> bool:
     :param line: array of tokens from one line of code
     :return: True if line has nesting, otherwise False
     """
-    if ['(', 'opr'] in line or [')', 'opr'] in line:
+    if LEFT_BRACKET in line or RIGHT_BRACKET in line:
         return True
 
     return False
@@ -310,22 +337,22 @@ def nest(line: TokenList, line_number: int) -> TokenList:
         return line
 
     nested_line: TokenList = []
-    nested_: int = 0
+    nested: int = 0
     nested_segment: TokenList = []
     for token in line:
-        if token == ['(', 'opr']:
-            nested_ += 1
+        if token == LEFT_BRACKET:
+            nested += 1
 
-            if nested_ == 1:
+            if nested == 1:
                 continue
 
-        if token == [')', 'opr']:
-            nested_ -= 1
+        if token == RIGHT_BRACKET:
+            nested -= 1
 
-        if not nested_ == 0:
+        if not nested == 0:
             nested_segment.append(token)
 
-        if nested_ == 0:
+        if nested == 0:
             if len(nested_segment) == 0:
                 nested_line.append(token)
             else:
@@ -333,261 +360,186 @@ def nest(line: TokenList, line_number: int) -> TokenList:
                 nested_line.append(nested_segment)
                 nested_segment = []
 
-    if not nested_ == 0:
+    if nested != 0:
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID NESTING')
 
     return nested_line
 
 
-def operate_separators(segment: Any, line_number: int) -> Any:
+def operate_separators(segment: TokenList, line_number: int) -> TokenList:
     """
     nest code segment by separators
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    if isinstance(segment, (int, float)):
-        return segment
-    if len(segment) == 1 and isinstance(segment[0], str):
-        return segment
+    if isinstance(segment, list) and COMMA not in segment:
+        if not has_nesting(segment):
+            return segment
 
-    operated_segment = segment
+    operated_segment: TokenList = []
+
     tokens_count = len(segment)
     for index in range(tokens_count):
         token = segment[index]
-        if isinstance(token[0], str):
-            if token[1] == 'sep':
-                if token[0] == ',':
-                    left = operate_separators(segment[:index], line_number)
 
-                    if len(left) == 1 and isinstance(left[0], dict):
-                        left = left[0]
+        if isinstance(token, NodeType):
+            segment[index] = operate_helper(token, line_number, operate_separators)
+        elif isinstance(token, list):
+            segment[index] = operate_separators(token, line_number)
+        elif token == COMMA:
+            left = operate_separators(segment[:index], line_number)
 
-                    right = operate_separators(segment[index + 1:], line_number)
+            right = operate_separators(segment[index + 1:], line_number)
 
-                    if len(right) == 1 and isinstance(right[0], dict):
-                        right = right[0]
-
-                    operated_segment = {
-                        'left': left[0] if len(left) == 1 else left,
-                        'operation': token,
-                        'right': right[0] if len(right) == 1 else right
-                    }
-                    break
+            operated_segment = [Node(COMMA, line_number, right, left)]
+            break
 
     return operated_segment
 
 
 # TODO unify operate ... methods
 # TODO REPLACE operate1 and this methods sequence
-def operate_calls(segment: Any, line_number: int) -> Any:
+def operate_calls(segment: TokenList, line_number: int) -> TokenList:
     """
     nest code segment by '|' (function) operator
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    if isinstance(segment, (float, int)):
-        return segment
-    if len(segment) == 1 and isinstance(segment[0], str):
-        return segment
+    if isinstance(segment, list) and PIPE not in segment:
+        if not has_nesting(segment):
+            return segment
 
-    operated_segment = segment
-    if isinstance(segment, dict):
-        operated_segment['right'] = operate_calls(segment['right'], line_number)
-        operated_segment['left'] = operate_calls(segment['left'], line_number)
-    else:
-        tokens_count = len(segment)
-        for index in range(tokens_count):
-            token = segment[index]
+    operated_segment: TokenList = []
 
-            if not isinstance(token, int) and not isinstance(token, float):
-                if isinstance(token[0], str):
-                    if token[1] == 'opr':
-                        if token[0] == '|':
-                            left = operate_calls(segment[:index], line_number)
+    tokens_count = len(segment)
+    for index in range(tokens_count):
+        token = segment[index]
 
-                            if len(left) == 1 and isinstance(left[0], dict):
-                                left = left[0]
+        if isinstance(token, NodeType):
+            segment[index] = operate_helper(token, line_number, operate_calls)
+        elif token == PIPE:
+            left = operate_calls(segment[:index], line_number)
 
-                            right = operate_separators(segment[index + 1:], line_number)
+            right = operate_separators(segment[index + 1:], line_number)
+            if not isinstance(right, TokenType):
+                right = operate_calls(right, line_number)
 
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
-
-                            right = operate_calls(right, line_number)
-
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
-
-                            operated_segment = {
-                                'left': left[0] if len(left) == 1 else left,
-                                'operation': token,
-                                'right': right
-                            }
-                            break
-                else:
-                    segment[index] = operate_calls(token, line_number)
+            operated_segment = [Node(PIPE, line_number, right, left)]
+            break
 
     return operated_segment
 
 
-def operate_helper(line: Any, line_number: int, method: Callable) -> Any:
+def operate_helper(line: NodeType | TokenList, line_number: int, method: Callable) -> NodeType | TokenList:
     """
     is needed to go through already modified line (partially nested)
     :param line: array of tokens, from one line of code
     :param line_number: number of line given for error handling
     :param method: function to nest parts of not nested line
     """
-    if isinstance(line, dict):
-        line['left'] = operate_helper(line['left'], line_number, method)
-        line['right'] = operate_helper(line['right'], line_number, method)
+    if isinstance(line, NodeType):
+        if line.left is not None:
+            line.left = operate_helper(line.left, line_number, method)
+        if line.right is not None:
+            line.right = operate_helper(line.right, line_number, method)
     else:
         line = method(line, line_number)
 
     return line
 
 
-# def operate_helper_new(line, line_number, method, operators):
-#     if isinstance(line, dict):
-#         line['left'] = operate_helper(line['left'], line_number, method)
-#         line['right'] = operate_helper(line['right'], line_number, method)
-#     else:
-#         line = method(line, line_number)
-#
-#     return line
-
-
-def operate_1(segment: Any, line_number: int) -> Any:
+def operate_1(segment: TokenList, line_number: int) -> TokenList:
     """
     nest code segment by '=' (assign) operator
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, (int, float)):
-        return segment
-    if len(segment) == 1 and isinstance(segment[0], str):
-        return segment
+    if isinstance(segment, list) and ASSIGN not in segment:
+        if not has_nesting(segment):
+            return segment
 
-    operated_segment = segment
+    operated_segment: TokenList = []
+
     tokens_count = len(segment)
     for index in range(tokens_count):
         token = segment[index]
-        if not isinstance(token, (int, float)):
-            if isinstance(token[0], str):
-                if token[1] == 'opr':
-                    if token[0] == '=':
-                        left = operate_1(segment[:index], line_number)
 
-                        if len(left) == 1 and isinstance(left[0], dict):
-                            left = left[0]
+        if isinstance(token, NodeType):
+            segment[index] = operate_helper(token, line_number, operate_1)
+        elif isinstance(token, list):
+            segment[index] = operate_1(token, line_number)
+        elif token == ASSIGN:
+            left = operate_1(segment[:index], line_number)
 
-                        right = operate_1(segment[index + 1:], line_number)
+            right = operate_1(segment[index + 1:], line_number)
 
-                        if len(right) == 1 and isinstance(right[0], dict):
-                            right = right[0]
-
-                        operated_segment = {
-                            'left': left[0] if len(left) == 1 else left,
-                            'operation': token,
-                            'right': right[0] if len(right) == 1 else right
-                        }
-                        break
-            else:
-                segment[index] = operate_1(token, line_number)
+            operated_segment = [Node(ASSIGN, line_number, right, left)]
+            break
 
     return operated_segment
 
 
-def operate_2(segment: Any, line_number: int) -> Any:
+def operate_2(segment: TokenList, line_number: int) -> Any:
     """
     nest code segment by '+' (add) and '-' (subtract) operators
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, (int, float)):
-        return segment
-    if len(segment) == 1 and isinstance(segment[0], str):
-        return segment
+    if isinstance(segment, list) and PLUS not in segment and MINUS not in segment:
+        if not has_nesting(segment):
+            return segment
 
-    operated_segment = segment
+    operated_segment: TokenList = []
+
     tokens_count = len(segment)
     for index in range(tokens_count):
         token = segment[index]
-        if not isinstance(token, (int, float)):
-            if isinstance(token, dict):
-                continue
-            if isinstance(token[0], str):
-                if len(token) >= 2:
-                    if token[1] == 'opr':
-                        if token[0] == '+' or token[0] == '-':
-                            left = operate_2(segment[:index], line_number)
 
-                            if len(left) == 1 and isinstance(left[0], dict):
-                                left = left[0]
+        if isinstance(token, NodeType):
+            segment[index] = operate_helper(token, line_number, operate_2)
+        elif isinstance(token, list):
+            segment[index] = operate_2(token, line_number)
+        elif token == ASSIGN:
+            left = operate_2(segment[:index], line_number)
 
-                            right = operate_2(segment[index + 1:], line_number)
+            right = operate_2(segment[index + 1:], line_number)
 
-                            if len(right) == 1 and isinstance(right[0], dict):
-                                right = right[0]
-
-                            if len(left) == 0 and token[0] == '-':
-                                left = [0, 'int']
-
-                            operated_segment = {
-                                'left': left[0] if len(left) == 1 else left,
-                                'operation': token,
-                                'right': right[0] if len(right) == 1 else right
-                            }
-                            break
-            else:
-                segment[index] = operate_2(token, line_number)
+            operated_segment = [Node(ASSIGN, line_number, right, left)]
+            break
 
     return operated_segment
 
 
-def operate_3(segment: Any, line_number: int) -> Any:
+def operate_3(segment: TokenList, line_number: int) -> Any:
     """
     nest code segment by '*' (multiply), '/' (divide) and '%' (modulo) operators
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, (int, float)):
-        return segment
-    if not ['*', 'opr'] in segment and not ['/', 'opr'] in segment and not ['%', 'opr'] in segment:
-        return segment
+    if isinstance(segment, list) and MULTIPLY not in segment and DIVIDE not in segment and MODULO not in segment:
+        if not has_nesting(segment):
+            return segment
 
-    operated_segment = segment
+    operated_segment: TokenList = []
+
     tokens_count = len(segment)
     for index in range(tokens_count):
         token = segment[index]
 
-        if isinstance(token, dict):
-            operate_helper(token, line_number, operate_3)
-            continue
+        if isinstance(token, NodeType):
+            segment[index] = operate_helper(token, line_number, operate_2)
+        elif isinstance(token, list):
+            segment[index] = operate_2(token, line_number)
+        elif token == ASSIGN:
+            left = operate_2(segment[:index], line_number)
 
-        if isinstance(token[0], str):
-            if token[1] == 'opr':
-                if token[0] == '*' or token[0] == '/' or token[0] == '%':
-                    left = operate_3(segment[:index], line_number)
+            right = operate_2(segment[index + 1:], line_number)
 
-                    if len(left) == 1 and isinstance(left[0], dict):
-                        left = left[0]
-
-                    right = operate_3(segment[index + 1:], line_number)
-
-                    if len(right) == 1 and isinstance(right[0], dict):
-                        right = right[0]
-
-                    operated_segment = {
-                        'left': left[0] if len(left) == 1 else left,
-                        'operation': token,
-                        'right': right[0] if len(right) == 1 else right
-                    }
-                    break
-        else:
-            segment[index] = operate_3(token, line_number)
+            operated_segment = [Node(ASSIGN, line_number, right, left)]
+            break
 
     return operated_segment
 
@@ -620,78 +572,78 @@ def operate_3(segment: Any, line_number: int) -> Any:
 #                 return operated_segment
 
 
-def nest_vertical(block: Any, line_number: int) -> Any:
-    """
-    nest code segment by if/else/while constructions
-    :param block: array of tokens, several lines of code
-    :param line_number: number of first line from block, given for error handling
-    :return: nested block of code
-    """
-    new_block = []
-    writing_inner_block = False
-    block_nesting = 0
-    inner_block = {}
-    writing_else = False
-
-    tokens_count = len(block)
-    for index in range(tokens_count):
-        line = block[index]
-
-        if not writing_inner_block:
-            if not isinstance(line, dict):
-                if ['while', 'kwd'] in line:
-                    operation = line[0]
-                    condition = line[1:]
-                    inner_block = {
-                        'left': condition,
-                        'operation': operation,
-                        'right': [],
-                        'line': line_number
-                    }
-
-                    block_nesting += 1
-                    writing_inner_block = True
-                elif ['if', 'kwd'] in line:
-                    operation = line[0]
-                    condition = line[1:]
-                    inner_block = {
-                        'left': condition,
-                        'operation': operation,
-                        'right': [],
-                        'else': [],
-                        'line': line_number
-                    }
-                    block_nesting += 1
-                    writing_inner_block = True
-                else:
-                    new_block.append(line)
-            else:
-                new_block.append(line)
-        else:
-            if not isinstance(line, dict):
-                if ['if', 'kwd'] in line or \
-                        ['while', 'kwd'] in line:
-                    block_nesting += 1
-                elif ['end', 'kwd'] in line:
-                    block_nesting -= 1
-                elif block_nesting == 1 and ['else', 'kwd'] in line:
-                    writing_else = True
-                    continue
-
-                if block_nesting == 0:
-                    writing_inner_block = False
-                    writing_else = False
-                    inner_block['right'] = nest_vertical(inner_block['right'], line_number)
-                    new_block.append(inner_block)
-                elif writing_else:
-                    inner_block['else'].append(line)
-                else:
-                    inner_block['right'].append(line)
-            else:
-                inner_block['right'].append(line)
-
-        line_number += 1
-    return new_block
+# TODO rewrite nest_vertical in more adequate way
+# def nest_vertical(block: TokenList, line_number: int) -> Any:
+#     """
+#     nest code segment by if/else/while constructions
+#     :param block: array of tokens, several lines of code
+#     :param line_number: number of first line from block, given for error handling
+#     :return: nested block of code
+#     """
+#     new_block = []
+#     writing_inner_block = False
+#     block_nesting = 0
+#     inner_block: NodeType
+#     writing_else = False
+#
+#     tokens_count = len(block)
+#     for index in range(tokens_count):
+#         line = block[index]
+#
+#         if not writing_inner_block:
+#             if not isinstance(line, dict):
+#                 reveal_type(line)
+#                 if WHILE in line:
+#                     operation = line[0]
+#                     condition = line[1:]
+#                     inner_block = Node(operation, line_number, left=condition)
+#
+#                     block_nesting += 1
+#                     writing_inner_block = True
+#                 elif IF in line:
+#                     operation = line[0]
+#                     condition = line[1:]
+#
+#                     # TODO there is no way to fit if-statement in Node
+#
+#                     # inner_block
+#                     #     'left': condition,
+#                     #     'operation': operation,
+#                     #     'right': [],
+#                     #     'else': [],
+#                     #     'line': line_number
+#                     # }
+#                     block_nesting += 1
+#                     writing_inner_block = True
+#                 else:
+#                     new_block.append(line)
+#             else:
+#                 new_block.append(line)
+#         else:
+#             if not isinstance(line, dict):
+#                 if ['if', 'kwd'] in line or \
+#                         ['while', 'kwd'] in line:
+#                     block_nesting += 1
+#                 elif ['end', 'kwd'] in line:
+#                     block_nesting -= 1
+#                 elif block_nesting == 1 and ['else', 'kwd'] in line:
+#                     writing_else = True
+#                     continue
+#
+#                 if block_nesting == 0:
+#                     writing_inner_block = False
+#                     writing_else = False
+#                     inner_block['right'] = nest_vertical(inner_block['right'], line_number)
+#                     new_block.append(inner_block)
+#                 elif writing_else:
+#                     inner_block['else'].append(line)
+#                 else:
+#                     inner_block['right'].append(line)
+#             else:
+#                 inner_block['right'].append(line)
+#
+#         line_number += 1
+#     return new_block
 
 # endregion
 
@@ -766,7 +718,7 @@ def make_tree(file_name: str) -> Any:
         if nested == 0 and in_function_body:
             in_function_body = False
 
-            body_tree_element = nest_vertical(body_tree_element, tree[-1].line_number)
+            # body_tree_element = nest_vertical(body_tree_element, tree[-1].line_number)
             if body_tree_element[-1] == [['end', 'kwd']]:
                 body_tree_element = body_tree_element[:-1]
 
