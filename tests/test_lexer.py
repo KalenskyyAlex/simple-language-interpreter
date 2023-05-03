@@ -7,11 +7,11 @@ sys.path.insert(0, '../interpreter')
 print("YOU WILL SEE THIS")
 print(os.path.abspath(__file__))
 
-# from lexer import * # noqa
+from lexer import * # noqa
 
-# def test_is_keyword_wrong():
-# 	assert not is_keyword('typ')
-# 	assert not is_keyword('is')
+def test_is_keyword_wrong():
+	assert not is_keyword('typ')
+	assert not is_keyword('is')
 #
 # def test_is_keyword_right():
 # 	assert is_keyword('start')
