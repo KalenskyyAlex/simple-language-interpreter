@@ -1,10 +1,11 @@
 # pylint: skip-file
 import sys
-import os
 
 sys.path.insert(0, '../interpreter')
 
 from lexer import * # noqa
+
+# region Testing is_...() methods
 
 def test_is_keyword_wrong():
 	assert not is_keyword('typ')
@@ -119,4 +120,134 @@ def test_is_separator_right():
 def test_is_separator_none():
 	assert not is_separator(None)
 
+# endregion
 
+# region Testing clear_lines() methods
+
+def test_clear_lines_dry_run_none():
+	lines, line_numbers = clear_lines(None)
+	assert lines is None
+	assert line_numbers is None
+
+def test_clear_lines_dry_run_empty():
+	assert clear_lines([]) == ([], [])
+
+def test_clear_lines_dry_run_invalid():
+	assert clear_lines('string') == (None, None)
+	assert clear_lines(1) == (None, None)
+	assert clear_lines(['string', ['line']]) == (None, None)
+	assert clear_lines([[['string']]]) == (None, None)
+	assert clear_lines([[], ['string']]) == (None, None)
+	assert clear_lines([None, 'string']) == (None, None)
+
+def test_clear_lines_general():
+	input = [
+		'use io ',
+		'',
+		'~this is main function'
+		'start main',
+		'\tout | "Hello, World!" ~ printing hello world to console',
+		'end'
+	]
+
+	expected = (
+		[
+			'use io',
+			'start main',
+			'out | "Hello, World!"',
+			'end'
+		],
+		[
+			1,
+			4,
+			5,
+			6
+		]
+	)
+
+	assert clear_lines(input) == expected
+
+def test_clear_lines_many_comments():
+	input = [
+		'use io ',
+		'~ use math -- add later'
+		' ~ offset comment',
+		'~this is main function'
+		'start main ~ the function name is main',
+		'\tout | "~ some ~ tricky ~ text ~" ~ testing clear_lines'
+		'end ~ use end keyword to end block'
+	]
+
+	expected = (
+		[
+			'use io',
+			'start main',
+			'out | "~ some ~ tricky ~ text ~"',
+			'end'
+		],
+		[
+			1,
+			5,
+			6,
+			7
+		]
+	)
+
+	assert clear_lines(input) == expected
+
+def test_clear_lines_many_tabs():
+	input = [
+		'\tuse io',
+		'\tstart main',
+		'\t\t\t\tout | "I love writing code full of tabs"',
+		'\t\t\t\tout | "This is tab symbol: \\t"',
+		'\t\tend'
+	]
+
+	expected = (
+		[
+			'use io',
+			'start main',
+			'out | "I love writing code full of tabs"',
+			'out | "This is tab symbol: \\t"'
+			'end'
+		],
+		[
+			1,
+			2,
+			3,
+			4
+		]
+	)
+
+	assert clear_lines(input) == expected
+
+def test_clear_lines_trailing_whitespace():
+	input = [
+		'\tuse io       ',
+		'\tstart main       ',
+		'\t\t\t\tout | "I love  writing code full of tabs"  ',
+		'\t\t\t\tout | "This is tab symbol: \\t"            ~ some comment here',
+		'\t\tend'
+	]
+
+	expected = (
+		[
+			'use io',
+			'start main',
+			'out | "I love  writing code full of tabs"',
+			'out | "This is tab symbol: \\t"'
+			'end'
+		],
+		[
+			1,
+			2,
+			3,
+			4
+		]
+	)
+
+	assert clear_lines(input) == expected
+
+
+# endregion
