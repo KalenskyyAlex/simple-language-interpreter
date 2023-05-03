@@ -143,6 +143,9 @@ def is_integer(token: str) -> bool:
     :param token: token as string
     :return: True if token is a integer, otherwise False
     """
+    if token is None:
+        return False
+
     if token[0] == '-':
         token = token[1:]
 
@@ -158,10 +161,13 @@ def is_float(token: str) -> bool:
     :param token: token as string
     :return: True if token is a float, otherwise False
     """
+    if token is None:
+        return False
+
     parts: list[str] = token.split('.')
 
     # if string has NO point '.', it isn't a floating point number
-    if len(parts) == 1:
+    if len(parts) != 2:
         return False
 
     return is_integer(parts[0]) and is_integer(parts[1])
@@ -172,7 +178,10 @@ def is_string(token: str) -> bool:
     :param token: token as string
     :return: True if token is a string, otherwise False
     """
-    return token[0] == '"' and token[-1] == '"'
+    if token is None:
+        return False
+
+    return token[0] == '"' and token[-1] == '"' and len(token) > 1
 
 
 def is_separator(token: str) -> bool:
