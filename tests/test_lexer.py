@@ -1,6 +1,8 @@
 # pylint: skip-file
 import sys
-sys.path.insert(0, "./interpreter")
+import os
+
+sys.path.insert(0, os.path.abspath(__file__)[:-19] + '/interpreter')
 
 from lexer import * # noqa
 
