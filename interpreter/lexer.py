@@ -76,6 +76,9 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     :param lines_raw: unprocessed lines of text from .min file
     :return: array of 'cleared' lines with parallel array of line numbers for each line
     """
+    if lines_raw is None:
+        return None, None
+
     lines: list[str] = []
     line_numbers: list[int] = []
 
