@@ -67,7 +67,7 @@ class Token:
         if not isinstance(other, Token):
             raise TypeError('CANNOT COMPARE TOKEN AND NON TOKEN OBJECTS')
 
-        return self.__type == other.__type and self.__value == other.__value
+        return self.__type == other.type and self.__value == other.value
 
 
 TokenType = Token
@@ -139,7 +139,7 @@ class Node:
         return self.__line_number == other.line_number and \
             self.left == other.left and \
             self.right == other.right and \
-            self.__operator == other.__operator
+            self.__operator == other.operator
 
 
 NodeType = Node
@@ -238,9 +238,9 @@ class Function:
             raise TypeError('CANNOT COMPARE FUNCTION AND NON FUNCTION OBJECTS')
 
         return self.__line_number == other.line_number and \
-            self.__name == other.__name and \
-            self.__args == other.__args and \
-            self.__body == other.__body
+            self.__name == other.name and \
+            self.__args == other.args and \
+            self.__body == other.body
 
 
 FunctionType = Function
