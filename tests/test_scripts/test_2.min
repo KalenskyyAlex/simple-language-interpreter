@@ -1,0 +1,16 @@
+use io ~ this is standard i/o library
+use math ~ this is standard library for math operations
+
+~ |\    /|
+~
+~ \______/
+~   \^^/
+
+start main ~ this is main function
+	out | "Hello, world" ~ We can print text
+	out | "And tilda(~) can be inside this text" ~ for real
+	out | (sqrt | 9) ~ pow | 2, 3 ~ at first I've thought to use pow function,
+	~ but sqrt fits better
+	~ var1 is int
+	~ future line code, but not now
+end ~ end keyword

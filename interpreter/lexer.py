@@ -20,7 +20,7 @@ from commons import TokenList
 
 # region Private functions
 
-def give_type(token: str, prev_token: str) -> TokenType:
+def __give_type(token: str, prev_token: str) -> TokenType:
     """
     for given token return token with evaluated type (sometimes depends on previous token)
 
@@ -31,21 +31,21 @@ def give_type(token: str, prev_token: str) -> TokenType:
     if not isinstance(token, str) or not isinstance(prev_token, str):
         return None
 
-    if is_keyword(token):
+    if __is_keyword(token):
         typed_token = Token('kwd', token)
-    elif is_operator(token):
+    elif __is_operator(token):
         typed_token = Token('opr', token)
-    elif is_separator(token):
+    elif __is_separator(token):
         typed_token = Token('sep', token)
-    elif is_type(token):
+    elif __is_type(token):
         typed_token = Token('typ', token)
-    elif is_boolean(token):
+    elif __is_boolean(token):
         typed_token = Token('bool', token == 'true')
-    elif is_integer(token):
+    elif __is_integer(token):
         typed_token = Token('int', int(token))
-    elif is_float(token):
+    elif __is_float(token):
         typed_token = Token('float', float(token))
-    elif is_string(token):
+    elif __is_string(token):
         typed_token = Token('str', token[1:-1])
     else:
         match prev_token:
@@ -58,7 +58,7 @@ def give_type(token: str, prev_token: str) -> TokenType:
 
     return typed_token
 
-def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
+def __give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
     """
     gives each given token a type
     :param tokens_raw: nested array of tokens without type;
@@ -79,7 +79,7 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
         line_with_types: list = []
 
         for token in line:
-            typed_token: Token = give_type(token, prev_token)
+            typed_token: Token = __give_type(token, prev_token)
 
             if typed_token == PIPE and line_with_types:
                 old_value = line_with_types[-1].value
@@ -94,7 +94,7 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
     return tokens
 
 
-def in_string(line: str, index_needed: int) -> bool:
+def __in_string(line: str, index_needed: int) -> bool:
     """
     :param line: line to check in
     :param index_needed: check symbol at index_needed
@@ -121,7 +121,7 @@ def in_string(line: str, index_needed: int) -> bool:
 
     return False
 
-def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
+def __clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     """
     deletes whitespace, eol, comments
     :param lines_raw: unprocessed lines of text from .min file
@@ -145,7 +145,7 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
         symbols_count = len(line)
         for symbol_index in range(symbols_count):
             symbol = line[symbol_index]
-            if not in_string(line, symbol_index) and symbol == '~':
+            if not __in_string(line, symbol_index) and symbol == '~':
                 line = line[:symbol_index]
                 break
         line = line.strip()
@@ -159,7 +159,7 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     return lines, line_numbers
 
 
-def is_keyword(token: str) -> bool:
+def __is_keyword(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a keyword, otherwise False
@@ -167,7 +167,7 @@ def is_keyword(token: str) -> bool:
     return token in KEYWORDS
 
 
-def is_operator(token: str) -> bool:
+def __is_operator(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is an operator, otherwise False
@@ -175,7 +175,7 @@ def is_operator(token: str) -> bool:
     return token in OPERATORS
 
 
-def is_type(token: str) -> bool:
+def __is_type(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a type, otherwise False
@@ -183,7 +183,7 @@ def is_type(token: str) -> bool:
     return token in INNER_TYPES
 
 
-def is_boolean(token: str) -> bool:
+def __is_boolean(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a boolean, otherwise False
@@ -191,7 +191,7 @@ def is_boolean(token: str) -> bool:
     return token in BOOLEANS
 
 
-def is_integer(token: str) -> bool:
+def __is_integer(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a integer, otherwise False
@@ -209,7 +209,7 @@ def is_integer(token: str) -> bool:
     return True
 
 
-def is_float(token: str) -> bool:
+def __is_float(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a float, otherwise False
@@ -223,10 +223,10 @@ def is_float(token: str) -> bool:
     if len(parts) != 2:
         return False
 
-    return is_integer(parts[0]) and is_integer(parts[1])
+    return __is_integer(parts[0]) and __is_integer(parts[1])
 
 
-def is_string(token: str) -> bool:
+def __is_string(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a string, otherwise False
@@ -237,7 +237,7 @@ def is_string(token: str) -> bool:
     return token[0] == '"' and token[-1] == '"' and len(token) > 1
 
 
-def is_separator(token: str) -> bool:
+def __is_separator(token: str) -> bool:
     """
     :param token: token as string
     :return: True if token is a separator, otherwise False
@@ -254,10 +254,16 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
     :param file_name: path to .min file to be processed
     :return: nested array of tokens and line numbers to each line
     """
-    file: TextIO = open(file_name, 'r')
+    if not isinstance(file_name, str):
+        return None, None
+
+    try:
+        file: TextIO = open(file_name, 'r')
+    except FileNotFoundError:
+        raise FileNotFoundError('FILE NOT FOUND, MAKE SURE YOUR PATH TO FILE IS CORRECT')
 
     raw_lines: list[str] = file.readlines()
-    lines, line_numbers = clear_lines(raw_lines)
+    lines, line_numbers = __clear_lines(raw_lines)
 
     tokens_raw: list[list[str]] = []  # separated, but no types
 
@@ -281,7 +287,7 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
                 continue
 
             # when we are in string we don't care about any operators, spaces, but care about '\'
-            if in_string(line, index) and line[index] == '\\' and index + 1 < length:
+            if __in_string(line, index) and line[index] == '\\' and index + 1 < length:
                 match line[index + 1]:
                     case 'n':
                         token += '\n'
@@ -296,7 +302,7 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
                 continue  # we've already added token
 
             # when we're not in string things are easier
-            if line[index] in SPECIAL_SYMBOLS and not in_string(line, index):
+            if line[index] in SPECIAL_SYMBOLS and not __in_string(line, index):
                 # several special symbols in raw creates '' tokens
                 if token != '':
                     line_of_tokens.append(token)
@@ -323,7 +329,7 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
         if line_of_tokens:
             tokens_raw.append(line_of_tokens)
 
-    tokens: list[TokenList] = give_types_for_tokens(tokens_raw)  # differentiate tokens
+    tokens: list[TokenList] = __give_types_for_tokens(tokens_raw)  # differentiate tokens
 
     return tokens, line_numbers
 
@@ -333,10 +339,13 @@ def print_tokens(file_name: str) -> None:
     Used for outputting processed tokens from .min file
     :param file_name: path to the file to be checked
     """
-    print('Raw tokens:')
+    if not isinstance(file_name, str):
+        return
 
     tokens, line_numbers = get_tokens(file_name)
     combined = zip(line_numbers, tokens)
+
+    print('Raw tokens:')
     pprint(dict(combined))
 
     print('-' * 70)
