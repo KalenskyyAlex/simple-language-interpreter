@@ -25,6 +25,16 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
     :param tokens_raw: nested array of tokens without type;
     :return: array of tokens with added types
     """
+    if tokens_raw is None:
+        return None
+
+    if not isinstance(tokens_raw, list):
+        return None
+
+    for line in tokens_raw:
+        if not isinstance(line, list):
+            return None
+
     prev_token: str = ''
 
     tokens: list[TokenList] = []
@@ -38,15 +48,17 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
                 typed_token = Token('kwd', token)
             elif is_operator(token):
                 if token == '|':
-                    old_value = line_with_types[-1].value
-                    line_with_types[-1] = Token('fnc', old_value)
+                    if line_with_types:
+                        old_value = line_with_types[-1].value
+                        line_with_types[-1] = Token('fnc', old_value)
+
                 typed_token = Token('opr', token)
             elif is_separator(token):
                 typed_token = Token('sep', token)
             elif is_type(token):
                 typed_token = Token('typ', token)
             elif is_boolean(token):
-                typed_token = Token('bool', token)
+                typed_token = Token('bool', True if token == 'true' else False)
             elif is_integer(token):
                 typed_token = Token('int', int(token))
             elif is_float(token):
@@ -65,10 +77,38 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
             line_with_types.append(typed_token)
             prev_token = token
 
-        tokens.append(line_with_types)
+        if line_with_types:
+            tokens.append(line_with_types)
 
     return tokens
 
+
+def in_string(line: str, index_needed: int) -> bool:
+    """
+    :param line: line to check in
+    :param index_needed: check symbol at index_needed
+    :return: True if symbol in index_needed is inside string, otherwise False
+    """
+    if line is None or index_needed is None:
+        return False
+
+    previous: str = ''
+
+    in_string_flag: bool = False
+    symbols_count = len(line)
+    for index in range(symbols_count):
+        current = line[index]
+
+        if current == '"' and previous != '\\':
+            in_string_flag = not in_string_flag
+            continue
+
+        if index == index_needed:
+            return in_string_flag
+
+        previous = current
+
+    return False
 
 def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     """
@@ -76,8 +116,12 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     :param lines_raw: unprocessed lines of text from .min file
     :return: array of 'cleared' lines with parallel array of line numbers for each line
     """
-    if lines_raw is None:
+    if not isinstance(lines_raw, list):
         return None, None
+
+    for line in lines_raw:
+        if not isinstance(line, str):
+            return None, None
 
     lines: list[str] = []
     line_numbers: list[int] = []
@@ -87,18 +131,13 @@ def clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
     for index in range(lines_count):
         line = lines_raw[index]
 
-        line = line.split('~')[0]
-
-        if line == '':
-            continue
-
-        if line[-1] == '\n':
-            line = line[:-1]
-
-        if line == '':
-            continue
-
-        line = line.replace('\t', '')
+        symbols_count = len(line)
+        for symbol_index in range(symbols_count):
+            symbol = line[symbol_index]
+            if not in_string(line, symbol_index) and symbol == '~':
+                line = line[:symbol_index]
+                break
+        line = line.strip()
 
         if line == '':
             continue

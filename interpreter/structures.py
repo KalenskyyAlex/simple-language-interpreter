@@ -63,6 +63,12 @@ class Token:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def __eq__(self, other: object):
+        if not isinstance(other, Token):
+            raise TypeError('CANNOT COMPARE TOKEN AND NON TOKEN OBJECTS')
+
+        return self.__type == other.__type and self.__value == other.__value
+
 
 TokenType = Token
 
@@ -125,6 +131,15 @@ class Node:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def __eq__(self, other: object):
+        if not isinstance(other, Node):
+            raise TypeError('CANNOT COMPARE NODE AND NON NODE OBJECTS')
+
+        return self.__line_number == other.line_number and \
+            self.left == other.left and \
+            self.right == other.right and \
+            self.__operator == other.__operator
 
 
 NodeType = Node
@@ -217,6 +232,15 @@ class Function:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def __eq__(self, other: object):
+        if not isinstance(other, Function):
+            raise TypeError('CANNOT COMPARE FUNCTION AND NON FUNCTION OBJECTS')
+
+        return self.__line_number == other.line_number and \
+            self.__name == other.__name and \
+            self.__args == other.__args and \
+            self.__body == other.__body
 
 
 FunctionType = Function
