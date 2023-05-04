@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, '../interpreter')
 
 from lexer import * # noqa
+from structures import Token
 
 # region Testing is_...() methods
 
@@ -122,6 +123,35 @@ def test_is_separator_none():
 
 # endregion
 
+# region Testing in_string() methods
+
+def test_in_string_dry_run_none():
+	assert not in_string(None, None)
+	assert not in_string(None, 0)
+	assert not in_string('string', None)
+
+def test_in_string_dry_run_invalid():
+	assert not in_string('short', 100)
+	assert not in_string('string', -20)
+
+def test_in_string_general():
+	assert in_string('out | "Hello"', 7)
+	assert not in_string('out | "Hello"', 6)
+	assert not in_string('out | "Hello"', 12)
+
+def test_in_string_many_strings():
+	assert not in_string('out | "Hello" + "World"', 13)
+	assert in_string('out | "Hello" + "World"', 7)
+	assert in_string('out | "Hello" + "World"', 17)
+
+def test_in_string_quotes_in_string():
+	assert in_string('out | "Hello\\"World\\""', 7)
+	assert in_string('out | "Hello\\"World\\""', 12)
+	assert in_string('out | "Hello\\"World\\""', 13)
+	assert in_string('out | "Hello\\"World\\""', 18)
+
+# endregion
+
 # region Testing clear_lines() methods
 
 def test_clear_lines_dry_run_none():
@@ -139,12 +169,13 @@ def test_clear_lines_dry_run_invalid():
 	assert clear_lines([[['string']]]) == (None, None)
 	assert clear_lines([[], ['string']]) == (None, None)
 	assert clear_lines([None, 'string']) == (None, None)
+	assert clear_lines(('string', 'string')) == (None, None)
 
 def test_clear_lines_general():
-	input = [
+	given = [
 		'use io ',
 		'',
-		'~this is main function'
+		'~this is main function',
 		'start main',
 		'\tout | "Hello, World!" ~ printing hello world to console',
 		'end'
@@ -165,16 +196,16 @@ def test_clear_lines_general():
 		]
 	)
 
-	assert clear_lines(input) == expected
+	assert clear_lines(given) == expected
 
 def test_clear_lines_many_comments():
-	input = [
+	given = [
 		'use io ',
-		'~ use math -- add later'
+		'~ use math -- add later',
 		' ~ offset comment',
-		'~this is main function'
+		'~this is main function',
 		'start main ~ the function name is main',
-		'\tout | "~ some ~ tricky ~ text ~" ~ testing clear_lines'
+		'\tout | "~ some ~ tricky ~ text ~" ~ testing clear_lines',
 		'end ~ use end keyword to end block'
 	]
 
@@ -192,11 +223,10 @@ def test_clear_lines_many_comments():
 			7
 		]
 	)
-
-	assert clear_lines(input) == expected
+	assert clear_lines(given) == expected
 
 def test_clear_lines_many_tabs():
-	input = [
+	given = [
 		'\tuse io',
 		'\tstart main',
 		'\t\t\t\tout | "I love writing code full of tabs"',
@@ -209,21 +239,22 @@ def test_clear_lines_many_tabs():
 			'use io',
 			'start main',
 			'out | "I love writing code full of tabs"',
-			'out | "This is tab symbol: \\t"'
+			'out | "This is tab symbol: \\t"',
 			'end'
 		],
 		[
 			1,
 			2,
 			3,
-			4
+			4,
+			5
 		]
 	)
 
-	assert clear_lines(input) == expected
+	assert clear_lines(given) == expected
 
 def test_clear_lines_trailing_whitespace():
-	input = [
+	given = [
 		'\tuse io       ',
 		'\tstart main       ',
 		'\t\t\t\tout | "I love  writing code full of tabs"  ',
@@ -236,18 +267,129 @@ def test_clear_lines_trailing_whitespace():
 			'use io',
 			'start main',
 			'out | "I love  writing code full of tabs"',
-			'out | "This is tab symbol: \\t"'
+			'out | "This is tab symbol: \\t"',
 			'end'
 		],
 		[
 			1,
 			2,
 			3,
-			4
+			4,
+			5
 		]
 	)
 
-	assert clear_lines(input) == expected
+	assert clear_lines(given) == expected
 
+
+# endregion
+
+# region Testing give_types_for_tokens()
+
+def test_give_types_for_tokens_dry_run_none():
+	assert give_types_for_tokens(None) is None
+
+def test_give_types_for_tokens_dry_run_invalid():
+	assert give_types_for_tokens([['token'], 'token']) is None
+	assert give_types_for_tokens((['token'], ['token'])) is None
+	assert give_types_for_tokens({}) is None
+
+def test_give_types_for_tokens_dry_run_empty():
+	assert give_types_for_tokens([]) == []
+	assert give_types_for_tokens([[], []]) == []
+
+def test_give_types_for_tokens_general():
+	given = [
+		['use', 'io'],
+		['start', 'main'],
+		['out', '|', '"Hello, World!"'],
+		['end']
+	]
+
+	expected = [
+		[Token('kwd', 'use'), Token('lib', 'io')],
+		[Token('kwd', 'start'), Token('fnc', 'main')],
+		[Token('fnc', 'out'), Token('opr', '|'), Token('str', 'Hello, World!')],
+		[Token('kwd', 'end')]
+	]
+
+	assert give_types_for_tokens(given) == expected
+
+def test_give_types_for_tokens_literals():
+	given = [
+		['1'],
+		['1.0'],
+		['-1'],
+		['-1.0'],
+		['true'],
+		['false'],
+		['""'],
+		['"\""'],
+		['"string"']
+	]
+
+	expected = [
+		[Token('int', 1)],
+		[Token('float', 1.0)],
+		[Token('int', -1)],
+		[Token('float', -1.0)],
+		[Token('bool', True)],
+		[Token('bool', False)],
+		[Token('str', '')],
+		[Token('str', '"')],
+		[Token('str', 'string')]
+	]
+
+	assert give_types_for_tokens(given) == expected
+
+def test_give_types_for_tokens_keywords():
+	given = [
+		['start'],
+		['end'],
+		['if'],
+		['else'],
+		['while'],
+		['use'],
+		['return'],
+		['break'],
+	]
+
+	expected = [
+		[Token('kwd', 'start')],
+		[Token('kwd', 'end')],
+		[Token('kwd', 'if')],
+		[Token('kwd', 'else')],
+		[Token('kwd', 'while')],
+		[Token('kwd', 'use')],
+		[Token('kwd', 'return')],
+		[Token('kwd', 'break')],
+	]
+
+	assert give_types_for_tokens(given) == expected
+
+def test_give_types_for_tokens_operators():
+	given = [
+		['+'],
+		['-'],
+		['='],
+		['|'],
+		['is'],
+		['*'],
+		['/'],
+		['%'],
+	]
+
+	expected = [
+		[Token('opr', '+')],
+		[Token('opr', '-')],
+		[Token('opr', '=')],
+		[Token('opr', '|')],
+		[Token('opr', 'is')],
+		[Token('opr', '*')],
+		[Token('opr', '/')],
+		[Token('opr', '%')],
+	]
+
+	assert give_types_for_tokens(given) == expected
 
 # endregion
