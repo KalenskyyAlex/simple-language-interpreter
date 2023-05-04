@@ -11,13 +11,52 @@ text in .min file or use as module 'from lexer import get_tokens'
 from pprint import pprint
 from typing import TextIO
 
-from structures import Token
+from structures import Token, TokenType
 from commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
+from commons import PIPE
 from commons import TokenList
 
 # endregion
 
 # region Private functions
+
+def give_type(token: str, prev_token: str) -> TokenType:
+    """
+    for given token return token with evaluated type (sometimes depends on previous token)
+
+    :param token: token to give it a type
+    :param prev_token: previous token
+    :return: typed token
+    """
+    if not isinstance(token, str) or not isinstance(prev_token, str):
+        return None
+
+    if is_keyword(token):
+        typed_token = Token('kwd', token)
+    elif is_operator(token):
+        typed_token = Token('opr', token)
+    elif is_separator(token):
+        typed_token = Token('sep', token)
+    elif is_type(token):
+        typed_token = Token('typ', token)
+    elif is_boolean(token):
+        typed_token = Token('bool', token == 'true')
+    elif is_integer(token):
+        typed_token = Token('int', int(token))
+    elif is_float(token):
+        typed_token = Token('float', float(token))
+    elif is_string(token):
+        typed_token = Token('str', token[1:-1])
+    else:
+        match prev_token:
+            case 'start':
+                typed_token = Token('fnc', token)
+            case 'use':
+                typed_token = Token('lib', token)
+            case _:
+                typed_token = Token('var', token)
+
+    return typed_token
 
 def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
     """
@@ -25,9 +64,6 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
     :param tokens_raw: nested array of tokens without type;
     :return: array of tokens with added types
     """
-    if tokens_raw is None:
-        return None
-
     if not isinstance(tokens_raw, list):
         return None
 
@@ -43,36 +79,11 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
         line_with_types: list = []
 
         for token in line:
-            typed_token: Token
-            if is_keyword(token):
-                typed_token = Token('kwd', token)
-            elif is_operator(token):
-                if token == '|':
-                    if line_with_types:
-                        old_value = line_with_types[-1].value
-                        line_with_types[-1] = Token('fnc', old_value)
+            typed_token: Token = give_type(token, prev_token)
 
-                typed_token = Token('opr', token)
-            elif is_separator(token):
-                typed_token = Token('sep', token)
-            elif is_type(token):
-                typed_token = Token('typ', token)
-            elif is_boolean(token):
-                typed_token = Token('bool', token == 'true')
-            elif is_integer(token):
-                typed_token = Token('int', int(token))
-            elif is_float(token):
-                typed_token = Token('float', float(token))
-            elif is_string(token):
-                typed_token = Token('str', token[1:-1])
-            else:
-                match prev_token:
-                    case 'start':
-                        typed_token = Token('fnc', token)
-                    case 'use':
-                        typed_token = Token('lib', token)
-                    case _:
-                        typed_token = Token('var', token)
+            if typed_token == PIPE and line_with_types:
+                old_value = line_with_types[-1].value
+                line_with_types[-1] = Token('fnc', old_value)
 
             line_with_types.append(typed_token)
             prev_token = token
