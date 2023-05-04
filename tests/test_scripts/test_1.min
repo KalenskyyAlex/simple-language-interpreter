@@ -1,0 +1,9 @@
+   use    io
+~ test script one
+    start many_tabs | tabs is       int,    spaces   is float
+             return    tabs +  spaces
+           end
+	start   main
+ out |   (many_tabs | 0, 1.0)
+ 	end
+
