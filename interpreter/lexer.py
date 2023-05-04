@@ -58,7 +58,7 @@ def give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
             elif is_type(token):
                 typed_token = Token('typ', token)
             elif is_boolean(token):
-                typed_token = Token('bool', True if token == 'true' else False)
+                typed_token = Token('bool', token == 'true')
             elif is_integer(token):
                 typed_token = Token('int', int(token))
             elif is_float(token):
@@ -256,7 +256,6 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
         length: int = len(line)
         token: str = ''
 
-        in_string: bool = False
         skip_next: bool = False
 
         for index in range(length):
@@ -270,14 +269,8 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
                 skip_next = False
                 continue
 
-            # when we hit " it's time to count all text as string till we hit other ",
-            # however it MUSTN'T be an " in the text
-            if line[index] == '"' and not line[index - 1] == '\\':
-                in_string = not in_string
-                # don't 'continue', because we need " to recognize token as string
-
             # when we are in string we don't care about any operators, spaces, but care about '\'
-            if in_string and line[index] == '\\':
+            if in_string(line, index) and line[index] == '\\' and index + 1 < length:
                 match line[index + 1]:
                     case 'n':
                         token += '\n'
@@ -290,10 +283,9 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
 
                 skip_next = True
                 continue  # we've already added token
-            # till here
 
             # when we're not in string things are easier
-            if line[index] in SPECIAL_SYMBOLS and not in_string:
+            if line[index] in SPECIAL_SYMBOLS and not in_string(line, index):
                 # several special symbols in raw creates '' tokens
                 if token != '':
                     line_of_tokens.append(token)
