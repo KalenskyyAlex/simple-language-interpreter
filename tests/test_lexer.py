@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, '../interpreter')
 
 from lexer import * # noqa
-from structures import Token
+from structures import Token # noqa
 
 # region Testing is_...() methods
 
