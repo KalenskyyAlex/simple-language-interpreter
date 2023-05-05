@@ -415,20 +415,25 @@ def test_give_type_dry_run_invalid():
 # region Testing get_tokens()
 
 def test_get_tokens_dry_run_none():
-	assert get_tokens(None) == (None, None)
+	try:
+		get_tokens(None)
+	except FileNotFoundError:
+		...
+	else:
+		assert False
 
 def test_get_tokens_dry_run_invalid():
 	try:
 		get_tokens('invalid.filename')
 	except FileNotFoundError:
-		assert True
+		...
 	else:
 		assert False
 
 	try:
 		get_tokens('./test_scripts/test_1.pin')
 	except FileNotFoundError:
-		assert True
+		...
 	else:
 		assert False
 

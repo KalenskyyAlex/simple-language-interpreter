@@ -254,13 +254,11 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
     :param file_name: path to .min file to be processed
     :return: nested array of tokens and line numbers to each line
     """
-    if not isinstance(file_name, str):
-        return None, None
-
     try:
         file: TextIO = open(file_name, 'r')
-    except FileNotFoundError:
-        raise FileNotFoundError('FILE NOT FOUND, MAKE SURE YOUR PATH TO FILE IS CORRECT')
+    except (FileNotFoundError, TypeError) as file_e:
+        raise FileNotFoundError('FILE NOT FOUND, MAKE SURE YOUR ' +
+                                'PATH TO FILE IS CORRECT') from file_e
 
     raw_lines: list[str] = file.readlines()
     lines, line_numbers = __clear_lines(raw_lines)
@@ -325,7 +323,6 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
         if token != '':
             line_of_tokens.append(token)
 
-        # extra cautiousness
         if line_of_tokens:
             tokens_raw.append(line_of_tokens)
 
