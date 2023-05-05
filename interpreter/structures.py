@@ -99,6 +99,8 @@ class Node:
 
         if __line_number is None:
             raise TypeError('NODE\'S LINE NUMBER CANNOT BE NONE')
+        if not isinstance(__line_number, int):
+            raise TypeError('NODE\'S LINE NUMBER MUST BE INT')
         if __line_number <= 0:
             raise TypeError('NODE\'S LINE NUMBER MUST BE GREATER THAN ZERO')
 
@@ -183,6 +185,8 @@ class Function:
 
         if __line_number is None:
             raise TypeError('FUNCTIONS\'S LINE NUMBER CANNOT BE NONE')
+        if not isinstance(__line_number, int):
+            raise TypeError('NODE\'S LINE NUMBER MUST BE INT')
         if __line_number <= 0:
             raise TypeError('FUNCTIONS\'S LINE NUMBER CANNOT BE LOWER THAN ONE')
 
