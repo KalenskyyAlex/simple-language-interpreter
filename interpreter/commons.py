@@ -44,6 +44,12 @@ RIGHT_BRACKET = ('opr', ')')
 
 COMMA = Token('sep', ',')
 
+INT = Token('typ', 'int')
+FLOAT = Token('typ', 'float')
+BOOL = Token('typ', 'bool')
+STR = Token('typ', 'str')
+
+
 TokenList = list[TokenType | NodeType | list]
 
 OPERATOR_TOKENS: TokenList = [PIPE, CREATE, ASSIGN, PLUS, MINUS, MULTIPLY, DIVIDE,
