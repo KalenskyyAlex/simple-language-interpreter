@@ -649,20 +649,25 @@ def make_line(line: TokenList, line_number: int) -> Optional[NodeType]:
 
         if isinstance(processed_line, NodeType):
             return processed_line
-        else:
-            raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
+
+        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
 
     return None
 
 
 def make_function(block: list[TokenList], line_numbers: list[int]) -> FunctionType:
+    """
+    creates a function
+
+    :param block: block of code to parse into function(including header)
+    :param line_numbers: corresponding line numbers for each line
+    """
     validate_start_syntax(block[0], line_numbers[0])
     args, name = parse_start(block[0], line_numbers[0])
     body: list[NodeType] = []
 
     # block = nest_vertical # TODO
 
-    nested = 1
     for line, line_number in zip(block, line_numbers):
         if IF in line or \
                 WHILE in line or \
@@ -688,6 +693,7 @@ def make_tree(file_name: str) -> Any:
     in_function_body = False
 
     body: list[TokenList] = []
+    body_line_numbers: list[int] = []
 
     tokens_count = len(tokens)
     for index in range(tokens_count):
@@ -708,6 +714,7 @@ def make_tree(file_name: str) -> Any:
                 nested -= 1
 
             body.append(line)
+            body_line_numbers.append(line_number)
         else:
             if USE in line:
                 validate_use_syntax(line, line_number)
@@ -715,6 +722,7 @@ def make_tree(file_name: str) -> Any:
 
             if START in line:
                 body = [line]
+                body_line_numbers = [line_number]
 
                 nested += 1
                 in_function_body = True
