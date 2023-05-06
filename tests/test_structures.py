@@ -6,7 +6,6 @@ sys.path.insert(0, '../interpreter')
 from structures import *  # noqa
 from commons import *  # noqa
 
-
 # region Testing Token class
 
 def test_token_init_valid():
