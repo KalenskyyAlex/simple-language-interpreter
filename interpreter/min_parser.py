@@ -13,23 +13,20 @@ text in .min file or use as module 'from parser import make_tree'
 # region Imported modules
 
 from pprint import pprint
-from typing import Any, Callable  # , Optional
+from typing import Any, Callable, Optional
 
 from lexer import get_tokens
 from structures import TokenType, Node, NodeType, Function, FunctionType
 from commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
 from commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
 from commons import LEFT_BRACKET, RIGHT_BRACKET
-# from commons import WHILE, IF, ELSE
+from commons import WHILE, IF, ELSE, END
 from commons import TokenList
 
 # endregion
 
 # region Declared globals
-
-tokens: list[TokenList] = []
-line_numbers: list[int] = []
-body_tree_element: list[NodeType] = []
+# body_tree_element: list[NodeType] = []
 
 tree: list[FunctionType | NodeType] = []
 
@@ -170,9 +167,9 @@ def validate_start_syntax(line: TokenList, line_number: int) -> None:
                         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                           'MISSING COMMA BETWEEN ARGUMENTS')
 
-def create_start_node(line: TokenList, line_number: int) -> FunctionType:
+def parse_start(line: TokenList, line_number: int) -> tuple[list[NodeType], str]:
     """
-    creates Function for logical tree
+    parses arguments for function
 
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
@@ -185,7 +182,6 @@ def create_start_node(line: TokenList, line_number: int) -> FunctionType:
 
     name: str = line[1].value
     args: list[NodeType] = []
-    body: list[NodeType] = []
 
     # check if we have arguments to fill 'args'
     if len(line) > 2:
@@ -207,7 +203,7 @@ def create_start_node(line: TokenList, line_number: int) -> FunctionType:
         validate_is_syntax(split, line_number)
         args.append(create_variable_node(split, line_number))
 
-    return Function(name, args, body, line_number)
+    return args, name
 
 
 def validate_is_syntax(block: TokenList, line_number: int) -> None:
@@ -283,43 +279,6 @@ def create_break_node(line_number: int) -> NodeType:
     """
     return Node(BREAK, line_number)
 
-
-def fill_body(line: TokenList, line_number: int) -> None:
-    """
-    generalization of validate_* methods
-    fills one line of code to 'body'-like tree block
-    on error raise one of exceptions from validate_* methods
-    if there is no special commands in line, then
-    parse line with operate_* methods
-
-    :param line: array of tokens from one line of code
-    :param line_number: number of line given for error handling
-    """
-    if ['is', 'opr'] in line:
-        validate_is_syntax(line, line_number)
-        body_tree_element.append(create_variable_node(line, line_number))
-    elif ['return', 'kwd'] in line:
-        validate_return_syntax(line, line_number)
-        body_tree_element.append(create_return_node(line, line_number))
-    elif ['break', 'kwd'] in line:
-        validate_break_syntax(line, line_number)
-        body_tree_element.append(create_break_node(line_number))
-    else:
-        if not line == ['end', 'kwd']:
-            line = nest(line, line_number)
-
-            processed_line = operate_helper(line, line_number, operate_calls)
-
-            # TODO inverse operate_helper <-> operate logic
-            # line = operate_helper(line, line_number, operate_1)
-            # line = operate_helper(line, line_number, operate_2)
-            # line = operate_helper(line, line_number, operate_3)
-
-            if isinstance(processed_line, NodeType):
-                complete_node = processed_line
-                body_tree_element.append(complete_node)
-            else:
-                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
 
 def has_nesting(line: TokenList) -> bool:
     """
@@ -658,28 +617,77 @@ def operate_3(segment: TokenList, line_number: int) -> Any:
 
 # region Public functions
 
+def make_line(line: TokenList, line_number: int) -> Optional[NodeType]:
+    """
+    generalization of validate_* methods
+    creates one full converted to nodes line of code
+    on error raise one of exceptions from validate_* methods
+    if there is no special commands in line, then
+    parse line with operate_* methods
+
+    :param line: array of tokens from one line of code
+    :param line_number: number of line given for error handling
+    :return"
+    """
+    if CREATE in line:
+        validate_is_syntax(line, line_number)
+        return create_variable_node(line, line_number)
+    if RETURN in line:
+        validate_return_syntax(line, line_number)
+        return create_return_node(line, line_number)
+    if BREAK in line:
+        validate_break_syntax(line, line_number)
+        return create_break_node(line_number)
+
+    if not line == END:
+        line = nest(line, line_number)
+
+        processed_line = operate_helper(line, line_number, operate_calls)
+        processed_line = operate_helper(processed_line, line_number, operate_1)
+        processed_line = operate_helper(processed_line, line_number, operate_2)
+        processed_line = operate_helper(processed_line, line_number, operate_3)
+
+        if isinstance(processed_line, NodeType):
+            return processed_line
+        else:
+            raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
+
+    return None
+
+
+def make_function(block: list[TokenList], line_numbers: list[int]) -> FunctionType:
+    validate_start_syntax(block[0], line_numbers[0])
+    args, name = parse_start(block[0], line_numbers[0])
+    body: list[NodeType] = []
+
+    # block = nest_vertical # TODO
+
+    nested = 1
+    for line, line_number in zip(block, line_numbers):
+        if IF in line or \
+                WHILE in line or \
+                END in line:
+            continue
+
+        processed_line = make_line(line, line_number)
+        if processed_line is not None:
+            body.append(processed_line)
+
+    return Function(name, args, body, line_numbers[0])
+
+
 def make_tree(file_name: str) -> Any:
     """
     creates logical tree from code in .min file
     :param file_name: path to .min file to be processed
     :return: logical tree created
     """
-    global body_tree_element
+    tokens, line_numbers = get_tokens(file_name)
 
-    global tokens
-    global line_numbers
-
-    old_type_tokens, line_numbers = get_tokens(file_name)
-
-    tokens = []
     nested = 0
     in_function_body = False
 
-    for old_type_line in old_type_tokens:
-        new_type_line: TokenList = []
-        for old_type_token in old_type_line:
-            new_type_line.append(old_type_token)
-        tokens.append(new_type_line)
+    body: list[TokenList] = []
 
     tokens_count = len(tokens)
     for index in range(tokens_count):
@@ -688,60 +696,46 @@ def make_tree(file_name: str) -> Any:
         line_number = line_numbers[index]
 
         if in_function_body:
-            if ['start', 'kwd'] in line:
+            if START in line:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}:' +
                                   ' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
 
-            if ['if', 'kwd'] in line:
+            if IF in line:
                 nested += 1
-            if ['while', 'kwd'] in line:
+            if WHILE in line:
                 nested += 1
-            if ['end', 'kwd'] in line:
+            if END in line:
                 nested -= 1
 
-            fill_body(line, line_number)
-            if len(body_tree_element) == 0:
-                raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
-                                  'UNABLE TO READ LINE')
+            body.append(line)
         else:
-            if ['use', 'kwd'] in line:
+            if USE in line:
                 validate_use_syntax(line, line_number)
                 tree.append(create_use_node(line, line_number))
 
-            if ['start', 'kwd'] in line:
-                validate_start_syntax(line, line_number)
-                tree.append(create_start_node(line, line_number))
+            if START in line:
+                body = [line]
 
                 nested += 1
-                body_tree_element = []
                 in_function_body = True
 
-            if ['if', 'kwd'] in line or\
-                    ['else', 'kwd'] in line or\
-                    ['elif', 'kwd'] in line or\
-                    ['loop', 'kwd'] in line or\
-                    ['end', 'kdw'] in line:
+            if IF in line or\
+                    ELSE in line or\
+                    WHILE in line or\
+                    END in line:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                   'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
 
         if nested == 0 and in_function_body:
             in_function_body = False
 
-            # body_tree_element = nest_vertical(body_tree_element, tree[-1].line_number)
-            if body_tree_element[-1] == [['end', 'kwd']]:
-                body_tree_element = body_tree_element[:-1]
+            function = make_function(body, line_numbers)
 
-            if not isinstance(tree[-1], Function):
+            if not isinstance(function, Function):
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                   'BLOCK IS NOT RECOGNIZED AS FUNCTION')
 
-            proto_function = tree[-1]
-            complete_function = Function(proto_function.name,
-                                         proto_function.args,
-                                         body_tree_element,
-                                         proto_function.line_number)
-
-            tree[-1] = complete_function
+            tree.append(function)
 
     return tree
 
