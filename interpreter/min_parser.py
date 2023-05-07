@@ -7,7 +7,7 @@ Parser handles syntax errors such as unexpected statements,
 invalid statements
 
 Run '$python min_parser.py' to only get logical tree of .min from raw
-text in .min file or use as module 'from parser import make_tree'
+text in .min file or use as module 'from parser import parse'
 """
 
 # region Imported modules
@@ -25,16 +25,9 @@ from commons import TokenList
 
 # endregion
 
-# region Declared globals
-# body_tree_element: list[NodeType] = []
-
-tree: list[FunctionType | NodeType] = []
-
-# endregion
-
 # region Private functions
 
-def is_valid_variable(token: TokenType) -> bool:
+def __is_valid_variable(token: TokenType) -> bool:
     """
     :param token: token
     :return: True, if token has valid type and name to be a variable token, otherwise False
@@ -45,7 +38,7 @@ def is_valid_variable(token: TokenType) -> bool:
 
     return False
 
-def is_valid_library(token: TokenType) -> bool:
+def __is_valid_library(token: TokenType) -> bool:
     """
     :param token: token
     :return: True, if token has valid type and name to be a library token, otherwise False
@@ -56,7 +49,7 @@ def is_valid_library(token: TokenType) -> bool:
 
     return False
 
-def is_valid_type(token: TokenType) -> bool:
+def __is_valid_type(token: TokenType) -> bool:
     """
     :param token: token
     :return: True, if token has valid type and name to be a type token, otherwise False
@@ -64,16 +57,15 @@ def is_valid_type(token: TokenType) -> bool:
     return token.type == 'typ' and token.value in TOKEN_TYPES
 
 
-def is_unpackable(tokens_list: TokenList) -> bool:
+def __is_unpackable(tokens_list: TokenList) -> bool:
     """
     :param tokens_list: list of Tokens to check
     :return: True if there is only one element in tokens list, which is Token itself,
     otherwise False
     """
-    return all(isinstance(element, (TokenType | list)) for element in tokens_list) \
-        and len(tokens_list) == 1
+    return len(tokens_list) == 1 and isinstance(tokens_list[0], NodeType)
 
-def unpack_token_list(token_list: TokenList) -> TokenType | TokenList:
+def __extract_node(token_list: TokenList) -> NodeType | TokenList:
     """
     unpacks single Token in list
     :token_list: list to check
@@ -83,7 +75,7 @@ def unpack_token_list(token_list: TokenList) -> TokenType | TokenList:
         case 0:
             raise RuntimeError('EMPTY TOKEN LIST GIVEN')
         case 1:
-            if isinstance(token_list[0], TokenType):
+            if isinstance(token_list[0], NodeType):
                 return token_list[0]
 
             raise RuntimeError('FAILED TO UNPACK TOKEN LIST')
@@ -91,7 +83,7 @@ def unpack_token_list(token_list: TokenList) -> TokenType | TokenList:
             return token_list
 
 
-def validate_use_syntax(line: TokenList, line_number: int) -> None:
+def __validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
     raise SYNTAX ERROR if syntax with 'use' keyword is incorrect
 
@@ -100,12 +92,12 @@ def validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
     if len(line) == 2:
         if line[0] == USE and isinstance(line[1], TokenType):
-            if is_valid_library(line[1]):
+            if __is_valid_library(line[1]):
                 return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID LIBRARY CALL')
 
-def create_use_node(line: TokenList, line_number: int) -> NodeType:
+def __create_use_node(line: TokenList, line_number: int) -> NodeType:
     """
     creates Node for further library call
 
@@ -115,7 +107,7 @@ def create_use_node(line: TokenList, line_number: int) -> NodeType:
     return Node(USE, line_number, line[1])
 
 
-def validate_start_syntax(line: TokenList, line_number: int) -> None:
+def __validate_start_syntax(line: TokenList, line_number: int) -> None:
     """
     raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
 
@@ -126,7 +118,7 @@ def validate_start_syntax(line: TokenList, line_number: int) -> None:
     if not isinstance(line[0], TokenType) or not isinstance(line[1], TokenType):
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
 
-    if not line[0] != START or not line[1].type == 'fnc':
+    if line[0] != START or line[1].type != 'fnc':
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID FUNCTION ASSIGN')
 
     if len(line) > 2:
@@ -167,7 +159,7 @@ def validate_start_syntax(line: TokenList, line_number: int) -> None:
                         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                           'MISSING COMMA BETWEEN ARGUMENTS')
 
-def parse_start(line: TokenList, line_number: int) -> tuple[list[NodeType], str]:
+def __parse_start(line: TokenList, line_number: int) -> tuple[list[NodeType], str]:
     """
     parses arguments for function
 
@@ -192,21 +184,21 @@ def parse_start(line: TokenList, line_number: int) -> tuple[list[NodeType], str]
         for token in line:
             # arguments are separated by coma
             if token == COMMA:
-                validate_is_syntax(split, line_number)
-                args.append(create_variable_node(split, line_number))
+                __validate_is_syntax(split, line_number)
+                args.append(__create_variable_node(split, line_number))
 
                 split = []
             else:
                 split.append(token)
 
         # we check and add last argument block
-        validate_is_syntax(split, line_number)
-        args.append(create_variable_node(split, line_number))
+        __validate_is_syntax(split, line_number)
+        args.append(__create_variable_node(split, line_number))
 
     return args, name
 
 
-def validate_is_syntax(block: TokenList, line_number: int) -> None:
+def __validate_is_syntax(block: TokenList, line_number: int) -> None:
     """
     raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
 
@@ -216,12 +208,12 @@ def validate_is_syntax(block: TokenList, line_number: int) -> None:
     if len(block) == 3:
         if block[1] == CREATE:
             if isinstance(block[0], TokenType) and isinstance(block[2], TokenType):
-                if is_valid_variable(block[0]) and is_valid_type(block[2]):
+                if __is_valid_variable(block[0]) and __is_valid_type(block[2]):
                     return
 
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
-def create_variable_node(block: TokenList, line_number: int) -> NodeType:
+def __create_variable_node(block: TokenList, line_number: int) -> NodeType:
     """
     creates Node for variable assign
 
@@ -231,7 +223,7 @@ def create_variable_node(block: TokenList, line_number: int) -> NodeType:
     return Node(CREATE, line_number, block[2], block[0])
 
 
-def validate_return_syntax(block: TokenList, line_number: int) -> None:
+def __validate_return_syntax(block: TokenList, line_number: int) -> None:
     """
     raise SYNTAX ERROR if syntax with 'return' keyword is incorrect
 
@@ -241,7 +233,7 @@ def validate_return_syntax(block: TokenList, line_number: int) -> None:
     if block[0] != RETURN:
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
-def create_return_node(block: TokenList, line_number: int) -> NodeType:
+def __create_return_node(block: TokenList, line_number: int) -> NodeType:
     """
     creates Node for function return handling
 
@@ -251,16 +243,15 @@ def create_return_node(block: TokenList, line_number: int) -> NodeType:
     right: NodeType | TokenList = block[1:]
 
     if isinstance(right, list):
-        right = operate_calls(right, line_number)
-        # TODO inverse operate_helper <-> operate logic
-        # right = operate_helper(right, line_number, operate_1)
-        # right = operate_helper(right, line_number, operate_2)
-        # right = operate_helper(right, line_number, operate_3)
+        right = __parse_helper(right, line_number, __parse_by, [ASSIGN])
+        right = __parse_helper(right, line_number, __parse_calls, [PIPE])
+        right = __parse_helper(right, line_number, __parse_by, [PLUS, MINUS])
+        right = __parse_helper(right, line_number, __parse_by, [MULTIPLY, DIVIDE, MODULO])
 
     return Node(RETURN, line_number, right)
 
 
-def validate_break_syntax(block: TokenList, line_number: int) -> None:
+def __validate_break_syntax(block: TokenList, line_number: int) -> None:
     """
     raise SYNTAX ERROR if syntax with 'break' keyword is incorrect
 
@@ -271,7 +262,7 @@ def validate_break_syntax(block: TokenList, line_number: int) -> None:
         raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY ' +
                           'AFTER \'return\'. VARIABLE EXPECTED')
 
-def create_break_node(line_number: int) -> NodeType:
+def __create_break_node(line_number: int) -> NodeType:
     """
     creates simple break-Node
 
@@ -280,7 +271,7 @@ def create_break_node(line_number: int) -> NodeType:
     return Node(BREAK, line_number)
 
 
-def has_nesting(line: TokenList) -> bool:
+def __has_nesting(line: TokenList) -> bool:
     """
     :param line: array of tokens from one line of code
     :return: True if line has nesting, otherwise False
@@ -291,14 +282,14 @@ def has_nesting(line: TokenList) -> bool:
     return False
 
 
-def nest(line: TokenList, line_number: int) -> TokenList:
+def __nest(line: TokenList, line_number: int) -> TokenList:
     """
-    nest given line recursively
-    :param line: array of tokens from one line of code to nest
+    __nest given line recursively
+    :param line: array of tokens from one line of code to __nest
     :param line_number: number of line given for error handling
     """
     # base case - no nesting
-    if not has_nesting(line):
+    if not __has_nesting(line):
         return line
 
     nested_line: TokenList = []
@@ -321,7 +312,7 @@ def nest(line: TokenList, line_number: int) -> TokenList:
             if len(nested_segment) == 0:
                 nested_line.append(token)
             else:
-                nested_segment = nest(nested_segment, line_number)
+                nested_segment = __nest(nested_segment, line_number)
                 nested_line.append(nested_segment)
                 nested_segment = []
 
@@ -331,47 +322,15 @@ def nest(line: TokenList, line_number: int) -> TokenList:
     return nested_line
 
 
-def operate_separators(segment: TokenList, line_number: int) -> TokenList:
-    """
-    nest code segment by separators
-    :param segment: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
-    if isinstance(segment, list) and COMMA not in segment:
-        if not has_nesting(segment):
-            return segment
-
-    operated_segment: TokenList = []
-
-    tokens_count = len(segment)
-    for index in range(tokens_count):
-        token = segment[index]
-
-        if isinstance(token, NodeType):
-            segment[index] = operate_helper(token, line_number, operate_separators)
-        elif isinstance(token, list):
-            segment[index] = operate_separators(token, line_number)
-        elif token == COMMA:
-            left = operate_separators(segment[:index], line_number)
-
-            right = operate_separators(segment[index + 1:], line_number)
-
-            operated_segment = [Node(COMMA, line_number, right, left)]
-            break
-
-    return operated_segment
-
-
-# TODO unify operate ... methods
 # TODO REPLACE operate1 and this methods sequence
-def operate_calls(segment: TokenList, line_number: int) -> TokenList:
+def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) -> TokenList:
     """
-    nest code segment by '|' (function) operator
+    __nest code segment by '|' (function) operator
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    if isinstance(segment, list) and PIPE not in segment:
-        if not has_nesting(segment):
+    if isinstance(segment, list) and not any(operator in segment for operator in operators):
+        if not __has_nesting(segment):
             return segment
 
     operated_segment: TokenList = []
@@ -381,48 +340,54 @@ def operate_calls(segment: TokenList, line_number: int) -> TokenList:
         token = segment[index]
 
         if isinstance(token, NodeType):
-            segment[index] = operate_helper(token, line_number, operate_calls)
-        elif token == PIPE:
-            left = operate_calls(segment[:index], line_number)
+            segment[index] = __parse_helper(token, line_number, __parse_calls, [PIPE])
+        elif isinstance(token, list):
+            segment[index] = __parse_calls(token, [PIPE], line_number)
+        elif token in operators:
+            left = __parse_calls(segment[:index], [PIPE], line_number)
 
-            right = operate_separators(segment[index + 1:], line_number)
+            right = __parse_by(segment[index + 1:], [COMMA], line_number)
             if not isinstance(right, TokenType):
-                right = operate_calls(right, line_number)
+                right = __parse_calls(right, [PIPE], line_number)
 
-            operated_segment = [Node(PIPE, line_number, right, left)]
+            operated_segment = [Node(token, line_number, right, left)]
             break
 
     return operated_segment
 
 
-def operate_helper(line: NodeType | TokenList, line_number: int,
-                   method: Callable) -> NodeType | TokenList:
+def __parse_helper(line: NodeType | TokenList, line_number: int,
+                   method: Callable, operators: TokenList) -> NodeType | TokenList:
     """
     is needed to go through already modified line (partially nested)
     :param line: array of tokens, from one line of code
     :param line_number: number of line given for error handling
-    :param method: function to nest parts of not nested line
+    :param method: function to __nest parts of not nested line
     """
     if isinstance(line, NodeType):
         if line.left is not None:
-            line.left = operate_helper(line.left, line_number, method)
+            line.left = __parse_helper(line.left, line_number, method, operators)
         if line.right is not None:
-            line.right = operate_helper(line.right, line_number, method)
+            line.right = __parse_helper(line.right, line_number, method, operators)
     else:
-        line = method(line, line_number)
+        line = method(line, operators, line_number)
+
+    if isinstance(line, list):
+        if __is_unpackable(line):
+            line = __extract_node(line)
 
     return line
 
 
-def operate_1(segment: TokenList, line_number: int) -> TokenList:
+def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> TokenList:
     """
-    nest code segment by '=' (assign) operator
+    __nest code segment by '*' (multiply), '/' (divide) and '%' (modulo) operators
     :param segment: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     :return: nested segment of code
     """
-    if isinstance(segment, list) and ASSIGN not in segment:
-        if not has_nesting(segment):
+    if isinstance(segment, list) and not any(operator in segment for operator in operators):
+        if not __has_nesting(segment):
             return segment
 
     operated_segment: TokenList = []
@@ -432,118 +397,24 @@ def operate_1(segment: TokenList, line_number: int) -> TokenList:
         token = segment[index]
 
         if isinstance(token, NodeType):
-            segment[index] = operate_helper(token, line_number, operate_1)
+            segment[index] = __parse_helper(token, line_number, __parse_by, operators)
         elif isinstance(token, list):
-            segment[index] = operate_1(token, line_number)
-        elif token == ASSIGN:
-            left = operate_1(segment[:index], line_number)
+            segment[index] = __parse_by(token, operators, line_number)
+        elif token in operators:
+            left = __parse_by(segment[:index], operators, line_number)
 
-            right = operate_1(segment[index + 1:], line_number)
+            right = __parse_by(segment[index + 1:], operators, line_number)
 
-            operated_segment = [Node(ASSIGN, line_number, right, left)]
+            operated_segment = [Node(token, line_number, right, left)]
             break
 
     return operated_segment
-
-
-def operate_2(segment: TokenList, line_number: int) -> Any:
-    """
-    nest code segment by '+' (add) and '-' (subtract) operators
-    :param segment: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    :return: nested segment of code
-    """
-    if isinstance(segment, list) and PLUS not in segment and MINUS not in segment:
-        if not has_nesting(segment):
-            return segment
-
-    operated_segment: TokenList = []
-
-    tokens_count = len(segment)
-    for index in range(tokens_count):
-        token = segment[index]
-
-        if isinstance(token, NodeType):
-            segment[index] = operate_helper(token, line_number, operate_2)
-        elif isinstance(token, list):
-            segment[index] = operate_2(token, line_number)
-        elif token == ASSIGN:
-            left = operate_2(segment[:index], line_number)
-
-            right = operate_2(segment[index + 1:], line_number)
-
-            operated_segment = [Node(ASSIGN, line_number, right, left)]
-            break
-
-    return operated_segment
-
-
-def operate_3(segment: TokenList, line_number: int) -> Any:
-    """
-    nest code segment by '*' (multiply), '/' (divide) and '%' (modulo) operators
-    :param segment: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    :return: nested segment of code
-    """
-    if isinstance(segment, list) and MULTIPLY not in segment \
-            and DIVIDE not in segment \
-            and MODULO not in segment:
-        if not has_nesting(segment):
-            return segment
-
-    operated_segment: TokenList = []
-
-    tokens_count = len(segment)
-    for index in range(tokens_count):
-        token = segment[index]
-
-        if isinstance(token, NodeType):
-            segment[index] = operate_helper(token, line_number, operate_2)
-        elif isinstance(token, list):
-            segment[index] = operate_2(token, line_number)
-        elif token == ASSIGN:
-            left = operate_2(segment[:index], line_number)
-
-            right = operate_2(segment[index + 1:], line_number)
-
-            operated_segment = [Node(ASSIGN, line_number, right, left)]
-            break
-
-    return operated_segment
-
-
-# TODO
-# def operate(segment: Any, line_number: int, operators: list[str]) -> Any:
-#     """
-#     nest code segment by given operators
-#     :param segment: array of tokens, part of one line of code
-#     :param line_number: number of line given for error handling
-#     :param operators: operators for used to nest code segment
-#     :return: nested segment of code
-#     """
-#     operated_segment = segment
-#
-#     for index in range(len(segment)):
-#         token = segment[index]
-#
-#         if token[1] == 'opr':
-#             if token[0] in operators:
-#                 left = operate_helper_new(segment[:index], line_number, operate, operators)
-#                 right = operate_helper_new(segment[index + 1:], line_number, operate, operators)
-#
-#                 operated_segment = {
-#                     'left': left,
-#                     'operation': token,
-#                     'right': right
-#                 }
-#
-#                 return operated_segment
 
 
 # TODO rewrite nest_vertical in more adequate way
 # def nest_vertical(block: TokenList, line_number: int) -> Any:
 #     """
-#     nest code segment by if/else/while constructions
+#     __nest code segment by if/else/while constructions
 #     :param block: array of tokens, several lines of code
 #     :param line_number: number of first line from block, given for error handling
 #     :return: nested block of code
@@ -617,7 +488,7 @@ def operate_3(segment: TokenList, line_number: int) -> Any:
 
 # region Public functions
 
-def make_line(line: TokenList, line_number: int) -> Optional[NodeType]:
+def parse_line(line: TokenList, line_number: int) -> Optional[NodeType]:
     """
     generalization of validate_* methods
     creates one full converted to nodes line of code
@@ -627,25 +498,28 @@ def make_line(line: TokenList, line_number: int) -> Optional[NodeType]:
 
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
-    :return"
+    :return:
     """
     if CREATE in line:
-        validate_is_syntax(line, line_number)
-        return create_variable_node(line, line_number)
+        __validate_is_syntax(line, line_number)
+        return __create_variable_node(line, line_number)
     if RETURN in line:
-        validate_return_syntax(line, line_number)
-        return create_return_node(line, line_number)
+        __validate_return_syntax(line, line_number)
+        return __create_return_node(line, line_number)
     if BREAK in line:
-        validate_break_syntax(line, line_number)
-        return create_break_node(line_number)
+        __validate_break_syntax(line, line_number)
+        return __create_break_node(line_number)
 
-    if not line == END:
-        line = nest(line, line_number)
+    if not line == [END]:
+        line = __nest(line, line_number)
 
-        processed_line = operate_helper(line, line_number, operate_calls)
-        processed_line = operate_helper(processed_line, line_number, operate_1)
-        processed_line = operate_helper(processed_line, line_number, operate_2)
-        processed_line = operate_helper(processed_line, line_number, operate_3)
+        processed_line = __parse_helper(line, line_number, __parse_by,
+                                        [ASSIGN])
+        processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
+        processed_line = __parse_helper(processed_line, line_number, __parse_by,
+                                        [PLUS, MINUS])
+        processed_line = __parse_helper(processed_line, line_number, __parse_by,
+                                        [MULTIPLY, DIVIDE, MODULO])
 
         if isinstance(processed_line, NodeType):
             return processed_line
@@ -655,18 +529,20 @@ def make_line(line: TokenList, line_number: int) -> Optional[NodeType]:
     return None
 
 
-def make_function(block: list[TokenList], line_numbers: list[int]) -> FunctionType:
+def parse_function(block: list[TokenList], line_numbers: list[int]) -> FunctionType:
     """
     creates a function
 
     :param block: block of code to parse into function(including header)
     :param line_numbers: corresponding line numbers for each line
     """
-    validate_start_syntax(block[0], line_numbers[0])
-    args, name = parse_start(block[0], line_numbers[0])
+    __validate_start_syntax(block[0], line_numbers[0])
+    args, name = __parse_start(block[0], line_numbers[0])
     body: list[NodeType] = []
 
     # block = nest_vertical # TODO
+    block = block[1:]
+    line_numbers = line_numbers[1:]
 
     for line, line_number in zip(block, line_numbers):
         if IF in line or \
@@ -674,19 +550,20 @@ def make_function(block: list[TokenList], line_numbers: list[int]) -> FunctionTy
                 END in line:
             continue
 
-        processed_line = make_line(line, line_number)
+        processed_line = parse_line(line, line_number)
         if processed_line is not None:
             body.append(processed_line)
 
     return Function(name, args, body, line_numbers[0])
 
 
-def make_tree(file_name: str) -> Any:
+def parse(file_name: str) -> Any:
     """
     creates logical tree from code in .min file
     :param file_name: path to .min file to be processed
     :return: logical tree created
     """
+    tree: list[FunctionType | NodeType] = []
     tokens, line_numbers = get_tokens(file_name)
 
     nested = 0
@@ -717,8 +594,8 @@ def make_tree(file_name: str) -> Any:
             body_line_numbers.append(line_number)
         else:
             if USE in line:
-                validate_use_syntax(line, line_number)
-                tree.append(create_use_node(line, line_number))
+                __validate_use_syntax(line, line_number)
+                tree.append(__create_use_node(line, line_number))
 
             if START in line:
                 body = [line]
@@ -737,7 +614,7 @@ def make_tree(file_name: str) -> Any:
         if nested == 0 and in_function_body:
             in_function_body = False
 
-            function = make_function(body, line_numbers)
+            function = parse_function(body, line_numbers)
 
             if not isinstance(function, Function):
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
@@ -755,7 +632,7 @@ def print_tree(file_name: str) -> None:
     """
     print("Produced tree:")
 
-    pprint(make_tree(file_name),
+    pprint(parse(file_name),
            width=140)
 
     print("-" * 70)
