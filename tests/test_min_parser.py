@@ -6,20 +6,20 @@ sys.path.insert(0, '../interpreter')
 from min_parser import *  # noqa
 from commons import *  # noqa
 
-# region Testing
+# region Testing parse_line
 
-def test_fill_body_dry_run_none():
+def test_make_line_dry_run_none():
 	assert True
 
 
 # endregion
 
-# TODO test make_line
-# TODO test has_nesting
-# TODO test nest
-# TODO test operate_separators
-# TODO test operate_calls
-# TODO test operate_helper
+# TODO test parse_line
+# TODO test __has_nesting
+# TODO test __nest
+# TODO test __operate_separators
+# TODO test __parse_calls
+# TODO test __parse_helper
 # TODO test operate_...
-# TODO test make_tree
+# TODO test parse
 # TODO test print_tree

@@ -39,8 +39,8 @@ WHILE = Token('kwd', 'while')
 START = Token('kwd', 'start')
 END = Token('kwd', 'end')
 
-LEFT_BRACKET = ('opr', '(')
-RIGHT_BRACKET = ('opr', ')')
+LEFT_BRACKET = Token('opr', '(')
+RIGHT_BRACKET = Token('opr', ')')
 
 COMMA = Token('sep', ',')
 
