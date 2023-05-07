@@ -4,7 +4,7 @@ This module contains constants and declared types used in interpreter
 
 from typing import Callable, Optional
 
-from structures import Token, TokenType, NodeType
+from structures import Token, Token, Node
 
 KEYWORDS = ['start', 'end', 'use', 'return', 'break',
             'while', 'if', 'else', 'elif']
@@ -26,8 +26,10 @@ MINUS = Token('opr', '-')
 MULTIPLY = Token('opr', '*')
 DIVIDE = Token('opr', '/')
 MODULO = Token('opr', '%')
-MORE_THAN = Token('opr', '>=')
-LESS_THAN = Token('opr', '<=')
+MORE_THAN = Token('opr', '>')
+LESS_THAN = Token('opr', '<')
+NO_LESS_THAN = Token('opr', '>=')
+NO_MORE_THAN = Token('opr', '<=')
 EQUALS = Token('opr', '==')
 
 USE = Token('kwd', 'use')
@@ -50,7 +52,7 @@ BOOL = Token('typ', 'bool')
 STR = Token('typ', 'str')
 
 
-TokenList = list[TokenType | NodeType | list]
+TokenList = list[Token | Node | list]
 
 OPERATOR_TOKENS: TokenList = [PIPE, CREATE, ASSIGN, PLUS, MINUS, MULTIPLY, DIVIDE,
                               MODULO, MORE_THAN, LESS_THAN, EQUALS]

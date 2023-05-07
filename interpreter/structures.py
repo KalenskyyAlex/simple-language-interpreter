@@ -64,13 +64,11 @@ class Token:
         return self.__str__()
 
     def __eq__(self, other: object):
-        if not isinstance(other, TokenType):
+        if not isinstance(other, Token):
             return False
 
         return self.__type == other.type and self.__value == other.value
 
-
-TokenType = Token
 
 class Node:
     """
@@ -78,7 +76,7 @@ class Node:
 
     once created, Node SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
-    def __init__(self, __operator: Optional[TokenType], __line_number: Optional[int],
+    def __init__(self, __operator: Optional[Token], __line_number: Optional[int],
                  right: Any = None, left: Any = None):
         """
         creates a Node
@@ -108,7 +106,7 @@ class Node:
         self.__operator = __operator
 
     @property
-    def operator(self) -> TokenType:
+    def operator(self) -> Token:
         """
         Node's operator should only be accessed via this method
 
@@ -135,7 +133,7 @@ class Node:
         return self.__str__()
 
     def __eq__(self, other: object):
-        if not isinstance(other, NodeType):
+        if not isinstance(other, Node):
             return False
 
         return self.__line_number == other.line_number and \
@@ -144,7 +142,112 @@ class Node:
             self.__operator == other.operator
 
 
-NodeType = Node
+class Block:
+    """
+    Blocks contains other blocks and nodes and are used to form nested conditional code
+    like if/else blocks, while blocks and so on
+
+    once created, Block SHOULD NOT be changed for purpose of avoiding malfunctioning
+    """
+    def __init__(self, __operator: Optional[Token], __condition: Node,
+                 __body: Optional[list[Node]], __line_number: int,
+                 next_block: Optional['Block'] = None):
+        """
+        creates a Block of Nodes
+
+        :param __operator: operator of block -- Token ONLY
+        :param __condition: condition to step in block Node ONLY
+        :param __line_number: line number
+        :param next_block: next block to check if condition is False (optional)
+        """
+        if __operator is None:
+            raise TypeError('BLOCK\'S OPERATOR NOT SPECIFIED')
+        if not isinstance(__operator, Token):
+            raise TypeError('BLOCK\'S OPERATOR CAN BE TOKEN ONLY')
+
+        self.__operator = __operator
+
+        if __condition is None:
+            raise TypeError('BLOCK\'S CONDITION NOT SPECIFIED')
+        if not isinstance(__condition, Token):
+            raise TypeError('BLOCK\'S CONDITION CAN BE NODE ONLY')
+
+        self.__condition = __condition
+
+        if __body is None:
+            raise TypeError('BLOCK\'S BODY CANNOT BE NONE (BUT CAN BE AN EMPTY LIST)')
+        if not isinstance(__body, list):
+            raise TypeError('BLOCK\'S BODY MUST BE A LIST')
+
+        self.__body = __body
+
+        if __line_number is None:
+            raise TypeError('FUNCTIONS\'S LINE NUMBER CANNOT BE NONE')
+        if not isinstance(__line_number, int):
+            raise TypeError('NODE\'S LINE NUMBER MUST BE INT')
+        if __line_number <= 0:
+            raise TypeError('FUNCTIONS\'S LINE NUMBER CANNOT BE LOWER THAN ONE')
+
+        self.__line_number = __line_number
+
+        self.next_block = next_block
+
+    @property
+    def operator(self) -> Token:
+        """
+        operator of block should only be accessed via this method
+
+        :return: operator of block(token)
+        """
+        return self.__operator
+
+    @property
+    def condition(self):
+        """
+        condition of block should only be accessed via this method
+
+        :return: condition of block(node)
+        """
+        return self.__condition
+
+    @property
+    def body(self) -> list[Node | 'Block']:
+        """
+        body of block should only be accessed via this method
+
+        :return: body of block(list of nodes/blocks)
+        """
+        return self.__body
+
+    @property
+    def line_number(self) -> int:
+        """
+        line number of block should only be accessed via this method
+
+        :return: line number of block(int)
+        """
+        return self.__line_number
+
+    def __str__(self) -> str:
+        return {'operator': self.__operator,
+                'condition': self.__condition,
+                'body': self.__body,
+                'next': self.next_block,
+                'line': self.__line_number}.__repr__()
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __eq__(self, other: object):
+        if not isinstance(other, Block):
+            return False
+
+        return self.__line_number == other.line_number and \
+            self.__operator == other.operator and \
+            self.__body == other.body and \
+            self.__condition == other.condition and \
+            self.next_block == other.next_block
+
 
 class Function:
     """
@@ -152,8 +255,8 @@ class Function:
 
     once created, Function SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
-    def __init__(self, __name: Optional[str], __args: Optional[list[NodeType]],
-                 __body: Optional[list[NodeType]], __line_number: Optional[int]):
+    def __init__(self, __name: Optional[str], __args: Optional[list[Node]],
+                 __body: Optional[list[Node]], __line_number: Optional[int]):
         """
         creates Function
 
@@ -202,7 +305,7 @@ class Function:
         return self.__name
 
     @property
-    def args(self) -> list[NodeType]:
+    def args(self) -> list[Node]:
         """
         arguments of function should only be accessed via this method
 
@@ -211,7 +314,7 @@ class Function:
         return self.__args
 
     @property
-    def body(self) -> list[NodeType]:
+    def body(self) -> list[Node]:
         """
         body of function should only be accessed via this method
 
@@ -245,9 +348,6 @@ class Function:
             self.__name == other.name and \
             self.__args == other.args and \
             self.__body == other.body
-
-
-FunctionType = Function
 
 
 if __name__ == '__main__':

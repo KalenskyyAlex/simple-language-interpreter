@@ -11,7 +11,7 @@ text in .min file or use as module 'from lexer import get_tokens'
 from pprint import pprint
 from typing import TextIO
 
-from structures import Token, TokenType
+from structures import Token, Token
 from commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
 from commons import PIPE
 from commons import TokenList
@@ -20,7 +20,7 @@ from commons import TokenList
 
 # region Private functions
 
-def __give_type(token: str, prev_token: str) -> TokenType:
+def __give_type(token: str, prev_token: str) -> Token:
     """
     for given token return token with evaluated type (sometimes depends on previous token)
 
