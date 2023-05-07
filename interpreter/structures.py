@@ -64,8 +64,8 @@ class Token:
         return self.__str__()
 
     def __eq__(self, other: object):
-        if not isinstance(other, Token):
-            raise TypeError('CANNOT COMPARE TOKEN AND NON TOKEN OBJECTS')
+        if not isinstance(other, TokenType):
+            return False
 
         return self.__type == other.type and self.__value == other.value
 
@@ -135,8 +135,8 @@ class Node:
         return self.__str__()
 
     def __eq__(self, other: object):
-        if not isinstance(other, Node):
-            raise TypeError('CANNOT COMPARE NODE AND NON NODE OBJECTS')
+        if not isinstance(other, NodeType):
+            return False
 
         return self.__line_number == other.line_number and \
             self.left == other.left and \
@@ -252,10 +252,10 @@ FunctionType = Function
 
 if __name__ == '__main__':
     print('This module implements structures used in whole interpreter, like Tokens,' +
-          ' Nodes and Functions\n')
+          ' Nodes and Functions')
     print()
     print('It is made, to provide error-handling just on site (inside of constructors), ' +
-          'like type-checking;\n')
+          'like type-checking;')
     print('implementation of private fields with only public getters. The whole idea is ' +
-          'to make sure objects\n')
-    print('keep being unchanged since creation\n')
+          'to make sure objects')
+    print('keep being unchanged since creation')

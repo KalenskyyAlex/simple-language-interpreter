@@ -19,7 +19,7 @@ import copy
 from typing import Any, Callable
 
 from lexer import print_tokens
-from min_parser import make_tree, print_tree
+from min_parser import parse, print_tree
 from structures import Token
 from commons import CallablePacked, CallablesList, VariablesList, ExecutionResult
 
@@ -438,7 +438,7 @@ def execute(file_name: str):
 
     :param file_name: name of .min file to be executed
     """
-    tree: list = make_tree(file_name)
+    tree: list = parse(file_name)
 
     callables: CallablesList = find_callables(tree)
 
