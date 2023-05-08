@@ -9,7 +9,7 @@ from lexer import __is_keyword, __give_type, __give_types_for_tokens # noqa
 from lexer import __in_string, __is_boolean, __is_float, __is_integer # noqa
 from lexer import __is_operator, __is_separator, __is_string, __is_type # noqa
 from lexer import __clear_lines, get_tokens, print_tokens # noqa
-from structures import Token # noqa
+from utils.structures import Token # noqa
 import lexer # noqa
 
 # region Testing is_...() methods

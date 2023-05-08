@@ -3,8 +3,8 @@ import sys
 
 sys.path.insert(0, '../interpreter')
 
-from structures import *  # noqa
-from commons import *  # noqa
+from utils.structures import *  # noqa
+from utils.commons import *  # noqa
 
 # region Testing Token class
 
