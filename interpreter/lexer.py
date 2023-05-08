@@ -11,10 +11,10 @@ text in .min file or use as module 'from lexer import get_tokens'
 from pprint import pprint
 from typing import TextIO
 
-from structures import Token, Token
-from commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
-from commons import PIPE
-from commons import TokenList
+from utils.structures import Token
+from utils.commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
+from utils.commons import PIPE
+from utils.commons import TokenList
 
 # endregion
 

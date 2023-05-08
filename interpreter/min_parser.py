@@ -16,12 +16,12 @@ from pprint import pprint
 from typing import Any, Callable, Optional
 
 from lexer import get_tokens
-from structures import Token, Node, Function, Block
-from commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
-from commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
-from commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS, MORE_THAN, LESS_THAN
-from commons import WHILE, IF, ELSE, END
-from commons import TokenList
+from utils.structures import Token, Node, Function, Block
+from utils.commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
+from utils.commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
+from utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS
+from utils.commons import WHILE, IF, ELSE, END
+from utils.commons import TokenList
 
 # endregion
 
@@ -502,7 +502,7 @@ def __nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | B
 def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
     """
     creates one full converted to nodes line of code
-    if can't parse line, raise a specific error
+    if method can't parse line, raise a specific error
 
     :param line: array of tokens from one line of code
     :param line_number: number of line given for error handling
