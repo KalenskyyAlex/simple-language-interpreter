@@ -4,7 +4,7 @@ This module contains constants and declared types used in interpreter
 
 from typing import Callable, Optional
 
-from structures import Token, Token, Node
+from .structures import Token, Node
 
 KEYWORDS = ['start', 'end', 'use', 'return', 'break',
             'while', 'if', 'else', 'elif']
