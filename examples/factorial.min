@@ -5,6 +5,7 @@ def factorial | num
 		return 1
 	else
 		return num * (factorial | n - 1)
+	end
 end
 
 start main
