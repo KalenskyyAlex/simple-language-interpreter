@@ -414,7 +414,7 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
     return operated_segment
 
 
-def nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | Block]:
+def __nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | Block]:
     """
     nest code segment by if/else/while constructions
     :param block: array of tokens, several lines of code
@@ -422,8 +422,8 @@ def nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | Blo
     :return: nested block of code
     """
     pass
-# TODO rewrite nest_vertical in more adequate way
-# def nest_vertical(block: TokenList, line_number: int) -> Any:
+# TODO rewrite __nest_vertical in more adequate way
+# def __nest_vertical(block: TokenList, line_number: int) -> Any:
 #     """
 #     __nest code segment by if/else/while constructions
 #     :param block: array of tokens, several lines of code
@@ -483,7 +483,7 @@ def nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | Blo
 #                 if block_nesting == 0:
 #                     writing_inner_block = False
 #                     writing_else = False
-#                     inner_block['right'] = nest_vertical(inner_block['right'], line_number)
+#                     inner_block['right'] = __nest_vertical(inner_block['right'], line_number)
 #                     new_block.append(inner_block)
 #                 elif writing_else:
 #                     inner_block['else'].append(line)
@@ -548,7 +548,7 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
     args, name = __parse_start(block[0], line_numbers[0])
     body: list[Node] = []
 
-    # block = nest_vertical # TODO
+    # block = __nest_vertical # TODO
     block = block[1:]
     line_numbers = line_numbers[1:]
 
