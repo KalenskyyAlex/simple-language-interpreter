@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, '../interpreter')
 
 from min_parser import *  # noqa
-from commons import *  # noqa
+from utils.commons import *  # noqa
 
 # region Testing parse_line
 
