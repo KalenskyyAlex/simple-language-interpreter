@@ -211,7 +211,7 @@ class Block:
         return self.__condition
 
     @property
-    def body(self) -> list[Node | 'Block']:
+    def body(self) -> list:
         """
         body of block should only be accessed via this method
 

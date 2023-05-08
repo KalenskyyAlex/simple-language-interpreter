@@ -20,8 +20,8 @@ from typing import Any, Callable
 
 from lexer import print_tokens
 from min_parser import parse, print_tree
-from structures import Token
-from commons import CallablePacked, CallablesList, VariablesList, ExecutionResult
+from utils.structures import Token
+from utils.commons import CallablePacked, CallablesList, VariablesList, ExecutionResult
 
 # endregion
 
