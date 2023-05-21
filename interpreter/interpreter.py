@@ -12,18 +12,17 @@ as module 'from interpreter import execute'
 # region Imported modules
 
 import os
-import sys
 import importlib.util
 import copy
 
 from typing import Callable, Optional, Any
 
-from lexer import print_tokens
-from min_parser import parse, print_tree
-from utils.structures import Token, Node, Function
-from utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult
-from utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
-from utils.commons import RETURN, PIPE, USE
+from .lexer import print_tokens
+from .min_parser import parse, print_tree
+from .utils.structures import Token, Node, Function
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult
+from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
+from .utils.commons import RETURN, PIPE, USE
 
 # endregion
 
@@ -151,8 +150,6 @@ def __execute_var_related_block(expression: Node,
         if right.type == 'typ' and left.type == 'var':
             if nesting_level not in visible_variables.keys():
                 visible_variables[nesting_level] = {}
-            # TODO VISIBLE VARIABLES CHANGE TO OUTER SCOPE USING THIS
-            # https://stackoverflow.com/questions/575196/why-can-a-function-modify-some-arguments-as-perceived-by-the-caller-but-not-oth
 
             # conflicting variables
             for index in range(nesting_level):
@@ -180,7 +177,6 @@ def __execute_var_related_block(expression: Node,
         # type check
         if right.type == type_:
             visible_variables[nesting_level][var_name] = right
-            # WATCH UPPER TODO
             return None, True
 
         raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: {var_name} IS ' +
@@ -468,39 +464,3 @@ def print_code(file_name: str):
     print("-" * (max_len + 1))
 
 # endregion
-
-
-if __name__ == '__main__':
-    # do not output errors traceback from Python
-    sys.tracebacklimit = -1
-
-    try:
-        FIRST_ARG = sys.argv[1]
-
-        if FIRST_ARG == '--help':
-            print('Usage: python interpreter.py [filename] [flag1] [flag2] ...')
-            print('Flags available:')
-            print('\t-c - show executed code')
-            print('\t-l - shot lexer result (raw tokens)')
-            print('\t-p - show parser result (code tree)')
-        else:
-            available_flags = ['-p', '-c', '-l']
-            flags = sys.argv[2:]
-
-            unknown_token = any(flag for flag in flags if flag not in available_flags)
-
-            if unknown_token:
-                print('Unknown token: Try typing interpreter.py --help to see usage info')
-            else:
-                if '-c' in flags:
-                    print_code(FIRST_ARG)
-
-                if '-l' in flags:
-                    print_tokens(FIRST_ARG)
-
-                if '-p' in flags:
-                    print_tree(FIRST_ARG)
-                print("Produced output:")
-                execute(FIRST_ARG)
-    except (FileNotFoundError, IndexError):
-        print('Try typing interpreter.py --help to see usage info')

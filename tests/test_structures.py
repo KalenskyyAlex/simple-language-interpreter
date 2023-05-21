@@ -1,10 +1,7 @@
 # pylint: skip-file
-import sys
+import pytest
 
-sys.path.insert(0, '../interpreter')
-
-from utils.structures import *  # noqa
-from utils.commons import *  # noqa
+from interpreter.utils.commons import *
 
 # region Testing Token class
 
@@ -16,27 +13,14 @@ def test_token_init_valid():
 
 
 def test_token_init_invalid():
-	try:
-		token = Token('invalid type', True)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Token('invalid type', True)
 
-	try:
-		token = Token('int', None)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Token('int', None)
 
-	try:
-		token = Token(None, 1)
-	except TypeError:
-		...
-	else:
-		assert False
-
+	with pytest.raises(TypeError):
+		Token(None, 1)
 
 def test_token_str():
 	assert str(Token('int', 1)) == 'int: 1'
@@ -83,40 +67,20 @@ def test_node_init_valid():
 
 
 def test_node_init_invalid():
-	try:
-		node = Node(Node(PIPE, 10), 10, Token('int', 3), Token('fnc', 'out'))
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Node(Node(PIPE, 10), 10, Token('int', 3), Token('fnc', 'out'))
 
-	try:
-		node = Node(None, 10, Token('int', 3), Token('fnc', 'out'))
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Node(None, 10, Token('int', 3), Token('fnc', 'out'))
 
-	try:
-		node = Node(PIPE, 0, Token('int', 3), Token('fnc', 'out'))
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Node(PIPE, 0, Token('int', 3), Token('fnc', 'out'))
 
-	try:
-		node = Node(PIPE, None, Token('int', 3), Token('fnc', 'out'))
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Node(PIPE, None, Token('int', 3), Token('fnc', 'out'))
 
-	try:
-		node = Node(PIPE, 1.1, Token('int', 3), Token('fnc', 'out'))
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Node(PIPE, 1.1, Token('int', 3), Token('fnc', 'out'))
 
 
 def test_node_str():
@@ -161,9 +125,7 @@ def test_function_init_valid():
 	]
 
 	body = [
-		Node(PIPE, 11, Token('fnc', 'out'),
-			Node(PLUS, 11, Token('var', 'var1'), Token('var', 'var1'))
-		),
+		Node(PIPE, 11, Token('fnc', 'out'), Node(PLUS, 11, Token('var', 'var1'), Token('var', 'var1'))),
 		Node(RETURN, 12, Token('var', 'var1'))
 	]
 
@@ -181,46 +143,24 @@ def test_function_init_invalid():
 	]
 
 	body = [
-		Node(PIPE, 11, Token('fnc', 'out'),
-		     Node(PLUS, 11, Token('var', 'var1'), Token('var', 'var1'))
-		     ),
+		Node(PIPE, 11, Token('fnc', 'out'), Node(PLUS, 11, Token('var', 'var1'), Token('var', 'var1'))),
 		Node(RETURN, 12, Token('var', 'var1'))
 	]
 
-	try:
-		function = Function(None, args, body, 10)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Function(None, args, body, 10)
 
-	try:
-		function = Function('name', args, body, -1)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Function('name', args, body, -1)
 
-	try:
-		function = Function('name', args, body, 1.1)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Function('name', args, body, 1.1)
 
-	try:
-		function = Function('name', None, body, 10)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Function('name', None, body, 10)
 
-	try:
-		function = Function('name', args, None, 10)
-	except TypeError:
-		...
-	else:
-		assert False
+	with pytest.raises(TypeError):
+		Function('name', args, None, 10)
 
 # endregion
 

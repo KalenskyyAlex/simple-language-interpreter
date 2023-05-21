@@ -15,13 +15,13 @@ text in .min file or use as module 'from parser import parse'
 from pprint import pprint
 from typing import Callable, Optional
 
-from lexer import get_tokens
-from utils.structures import Token, Node, Function, Block
-from utils.commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
-from utils.commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
-from utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS
-from utils.commons import WHILE, IF, ELSE, END
-from utils.commons import TokenList
+from .lexer import get_tokens
+from .utils.structures import Token, Node, Function, Block
+from .utils.commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
+from .utils.commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
+from .utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS
+from .utils.commons import WHILE, IF, ELSE, END
+from .utils.commons import TokenList
 
 # endregion
 
@@ -323,7 +323,6 @@ def __nest(line: TokenList, line_number: int) -> TokenList:
     return nested_line
 
 
-# TODO REPLACE operate1 and this methods sequence
 def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) -> TokenList:
     """
     __nest code segment by '|' (function) operator
@@ -508,6 +507,9 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
     :param line_number: number of line given for error handling
     :return:
     """
+    if line is None or line_number < 1:
+        return None
+
     if CREATE in line:
         __validate_is_syntax(line, line_number)
         return __create_variable_node(line, line_number)
@@ -646,8 +648,3 @@ def print_tree(file_name: str) -> None:
     print("-" * 70)
 
 # endregion
-
-
-if __name__ == '__main__':
-    filename = input('Enter path to .min file you want to parse: ')
-    print_tree(filename)
