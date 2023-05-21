@@ -55,3 +55,13 @@ jobs:
         working-directory: ./tests
         run: |
           pytest -v
+          coverage run -m pytest
+          coverage xml
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Coverage
+        uses: orgoro/coverage@v3.1
+        with:
+          coverageFile: coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
