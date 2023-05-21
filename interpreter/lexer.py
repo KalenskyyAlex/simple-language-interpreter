@@ -11,10 +11,10 @@ text in .min file or use as module 'from lexer import get_tokens'
 from pprint import pprint
 from typing import TextIO
 
-from utils.structures import Token
-from utils.commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
-from utils.commons import PIPE
-from utils.commons import TokenList
+from .utils.structures import Token
+from .utils.commons import INNER_TYPES, KEYWORDS, SPECIAL_SYMBOLS, OPERATORS, NUMERALS, BOOLEANS
+from .utils.commons import PIPE
+from .utils.commons import TokenList
 
 # endregion
 
@@ -348,8 +348,3 @@ def print_tokens(file_name: str) -> None:
     print('-' * 70)
 
 # endregion
-
-
-if __name__ == '__main__':
-    filename = input('Enter path to .min file you want to convert to tokens of: ')
-    print_tokens(filename)

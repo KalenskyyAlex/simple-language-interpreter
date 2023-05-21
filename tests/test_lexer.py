@@ -1,16 +1,14 @@
 # pylint: skip-file
-import sys
 import io
 import contextlib
 
-sys.path.insert(0, '../interpreter')
+import pytest
 
-from lexer import __is_keyword, __give_type, __give_types_for_tokens # noqa
-from lexer import __in_string, __is_boolean, __is_float, __is_integer # noqa
-from lexer import __is_operator, __is_separator, __is_string, __is_type # noqa
-from lexer import __clear_lines, get_tokens, print_tokens # noqa
-from utils.structures import Token # noqa
-import lexer # noqa
+from interpreter.lexer import __is_keyword, __give_type, __give_types_for_tokens
+from interpreter.lexer import __in_string, __is_boolean, __is_float, __is_integer
+from interpreter.lexer import __is_operator, __is_separator, __is_string, __is_type
+from interpreter.lexer import __clear_lines, get_tokens, print_tokens
+from interpreter.utils.structures import Token
 
 # region Testing is_...() methods
 
@@ -415,27 +413,15 @@ def test_give_type_dry_run_invalid():
 # region Testing get_tokens()
 
 def test_get_tokens_dry_run_none():
-	try:
+	with pytest.raises(FileNotFoundError):
 		get_tokens(None)
-	except FileNotFoundError:
-		...
-	else:
-		assert False
 
 def test_get_tokens_dry_run_invalid():
-	try:
+	with pytest.raises(FileNotFoundError):
 		get_tokens('invalid.filename')
-	except FileNotFoundError:
-		...
-	else:
-		assert False
 
-	try:
-		get_tokens('./test_scripts/test_1.pin')
-	except FileNotFoundError:
-		...
-	else:
-		assert False
+	with pytest.raises(FileNotFoundError):
+		get_tokens('./tests/test_scripts/test_1.pin')
 
 def test_get_tokens_general_1():
 	expected = (
@@ -464,7 +450,7 @@ def test_get_tokens_general_1():
 		]
 	)
 
-	assert get_tokens('./test_scripts/test_1.min') == expected
+	assert get_tokens('./tests/test_scripts/test_1.min') == expected
 
 def test_get_tokens_general_2():
 	expected = (
@@ -485,7 +471,7 @@ def test_get_tokens_general_2():
 		]
 	)
 
-	assert get_tokens('./test_scripts/test_2.min') == expected
+	assert get_tokens('./tests/test_scripts/test_2.min') == expected
 
 def test_get_tokens_general_3():
 	expected = (
@@ -519,7 +505,7 @@ def test_get_tokens_general_3():
 		]
 	)
 
-	assert get_tokens('./test_scripts/test_3.min') == expected
+	assert get_tokens('./tests/test_scripts/test_3.min') == expected
 
 # endregion
 
@@ -536,19 +522,11 @@ def test_print_tokens_dry_run_none():
 	buffer.close()
 
 def test_print_tokens_dry_run_invalid():
-	try:
+	with pytest.raises(FileNotFoundError):
 		print_tokens('invalid.filename')
-	except FileNotFoundError:
-		assert True
-	else:
-		assert False
 
-	try:
-		print_tokens('./test_scripts/test_1.pin')
-	except FileNotFoundError:
-		assert True
-	else:
-		assert False
+	with pytest.raises(FileNotFoundError):
+		print_tokens('./tests/test_scripts/test_1.pin')
 
 def test_print_tokens_general_1():
 	expected = \
@@ -582,7 +560,7 @@ def test_print_tokens_general_1():
 	buffer = io.StringIO()
 
 	with contextlib.redirect_stdout(buffer):
-		print_tokens('./test_scripts/test_1.min')
+		print_tokens('./tests/test_scripts/test_1.min')
 
 	assert buffer.getvalue() == expected
 
@@ -603,7 +581,7 @@ def test_print_tokens_general_2():
 	buffer = io.StringIO()
 
 	with contextlib.redirect_stdout(buffer):
-		print_tokens('./test_scripts/test_2.min')
+		print_tokens('./tests/test_scripts/test_2.min')
 
 	assert buffer.getvalue() == expected
 
@@ -639,7 +617,7 @@ def test_print_tokens_general_3():
 	buffer = io.StringIO()
 
 	with contextlib.redirect_stdout(buffer):
-		print_tokens('./test_scripts/test_3.min')
+		print_tokens('./tests/test_scripts/test_3.min')
 
 	assert buffer.getvalue() == expected
 

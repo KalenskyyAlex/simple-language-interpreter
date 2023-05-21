@@ -1,16 +1,17 @@
 # pylint: skip-file
-import sys
-
-sys.path.insert(0, '../interpreter')
-
-from min_parser import *  # noqa
-from utils.commons import *  # noqa
+from interpreter.min_parser import *  # noqa
+from interpreter.utils.commons import *  # noqa
 
 # region Testing parse_line
 
-def test_make_line_dry_run_none():
+def test_parse_line_dry_run_invalid():
+	assert parse_line(None, 1) is None
+	assert parse_line([], 0) is None
+	assert parse_line([], -1) is None
 	assert True
 
+def test_parse_line_simple_inputs():
+	assert True
 
 # endregion
 
