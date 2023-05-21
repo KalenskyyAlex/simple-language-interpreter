@@ -13,7 +13,7 @@ text in .min file or use as module 'from parser import parse'
 # region Imported modules
 
 from pprint import pprint
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from lexer import get_tokens
 from utils.structures import Token, Node, Function, Block
@@ -421,7 +421,7 @@ def __nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | B
     :param line_number: number of first line from block, given for error handling
     :return: nested block of code
     """
-    pass
+    return []
 # TODO rewrite __nest_vertical in more adequate way
 # def __nest_vertical(block: TokenList, line_number: int) -> Any:
 #     """
@@ -565,7 +565,7 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
     return Function(name, args, body, line_numbers[0])
 
 
-def parse(file_name: str) -> Any:
+def parse(file_name: str) -> list[Function | Node]:
     """
     creates logical tree from code in .min file
     :param file_name: path to .min file to be processed

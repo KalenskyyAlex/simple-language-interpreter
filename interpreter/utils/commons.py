@@ -4,7 +4,7 @@ This module contains constants and declared types used in interpreter
 
 from typing import Callable, Optional
 
-from .structures import Token, Node
+from .structures import Token, Node, Function
 
 KEYWORDS = ['start', 'end', 'use', 'return', 'break',
             'while', 'if', 'else', 'elif']
@@ -58,10 +58,10 @@ OPERATOR_TOKENS: TokenList = [PIPE, CREATE, ASSIGN, PLUS, MINUS, MULTIPLY, DIVID
                               MODULO, MORE_THAN, LESS_THAN, EQUALS]
 KEYWORD_TOKENS: TokenList = [RETURN, BREAK, IF, ELSE, WHILE, START, END]
 
-CallablePacked = list[Callable | list]
-CallablesList = dict[str, CallablePacked | dict]
+PyFunction = list[Callable | list[str]]
+CallablesList = dict[str, PyFunction | Function]
 VariablesList = dict[int, dict]
-ExecutionResult = tuple[Optional[list] | Optional[dict], Optional[bool]]
+ExecutionResult = tuple[Optional[Token], bool]
 
 if __name__ == '__main__':
     print('This module contains constants and declared types used in interpreter\n')
