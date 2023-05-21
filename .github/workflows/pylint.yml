@@ -52,9 +52,9 @@ jobs:
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Test with pytest
-        working-directory: ./tests
+        working-directory: .
         run: |
-          pytest -v
+          pytest -vv
           coverage run -m pytest
           coverage xml
   coverage:
