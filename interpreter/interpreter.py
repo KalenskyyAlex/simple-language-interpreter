@@ -171,7 +171,7 @@ def __execute_var_related_block(expression: Node,
 
         raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: ' +
                            'WRONG IS OPERATOR USAGE')
-    elif operator == ASSIGN:
+    if operator == ASSIGN:
         var_name = left.value
         type_ = visible_variables[nesting_level][var_name][1]
 
@@ -305,7 +305,8 @@ def __execute_min_function(function_name: str, function: Function, args: list,
     """
     visible_variables: VariablesList = {}
 
-    for index in range(len(function.args)):
+    args_count = len(function.args)
+    for index in range(args_count):
         line = function.args[index]
         execute_line(line, callables, 0, function.line_number, visible_variables)
 
