@@ -2,8 +2,6 @@
 This library implements standard i/o operations in MINIMUM
 """
 
-from typing import Any
-
 def get_methods():
     """
     used for MINIMUM interpreter to interact with library
@@ -14,7 +12,7 @@ def get_methods():
     ]
 
 
-def out(arg: list[Any]) -> None:
+def out(arg: list) -> None:
     """
     outputs an arg
     :param arg: variable to print
