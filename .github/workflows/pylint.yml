@@ -57,13 +57,19 @@ jobs:
         working-directory: .
         run: |
           pytest -vv
-          coverage run -m pytest
-          coverage xml
   coverage:
     runs-on: ubuntu-latest
+    name: CI Build
     steps:
-      - name: Get Coverage
-        uses: orgoro/coverage@v3.1
-        with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        run: |
+          pip install coverage
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Test
+        run: |
+          coverage run -m pytest
+          coverage -m
