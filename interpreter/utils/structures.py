@@ -149,7 +149,7 @@ class Block:
 
     once created, Block SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
-    def __init__(self, __operator: Optional[Token], __condition: Node,
+    def __init__(self, __operator: Optional[Token], __condition: Optional[Node],
                  __body: Optional[list[Node]], __line_number: int,
                  next_block: Optional['Block'] = None):
         """
@@ -167,10 +167,8 @@ class Block:
 
         self.__operator = __operator
 
-        if __condition is None:
-            raise TypeError('BLOCK\'S CONDITION NOT SPECIFIED')
-        if not isinstance(__condition, Token):
-            raise TypeError('BLOCK\'S CONDITION CAN BE NODE ONLY')
+        if not isinstance(__condition, Node | type(None)):
+            raise TypeError('BLOCK\'S CONDITION CAN BE NODE OR NONE ONLY')
 
         self.__condition = __condition
 
@@ -342,20 +340,9 @@ class Function:
 
     def __eq__(self, other: object):
         if not isinstance(other, Function):
-            raise TypeError('CANNOT COMPARE FUNCTION AND NON FUNCTION OBJECTS')
+            return False
 
         return self.__line_number == other.line_number and \
             self.__name == other.name and \
             self.__args == other.args and \
             self.__body == other.body
-
-
-if __name__ == '__main__':
-    print('This module implements structures used in whole interpreter, like Tokens,' +
-          ' Nodes and Functions')
-    print()
-    print('It is made, to provide error-handling just on site (inside of constructors), ' +
-          'like type-checking;')
-    print('implementation of private fields with only public getters. The whole idea is ' +
-          'to make sure objects')
-    print('keep being unchanged since creation')

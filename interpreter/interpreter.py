@@ -17,8 +17,7 @@ import copy
 
 from typing import Callable, Optional, Any
 
-from .lexer import print_tokens
-from .min_parser import parse, print_tree
+from .min_parser import parse
 from .utils.structures import Token, Node, Function
 from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
