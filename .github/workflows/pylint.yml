@@ -59,17 +59,14 @@ jobs:
           pytest -vv
   coverage:
     runs-on: ubuntu-latest
-    name: CI Build
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
       - name: Setup Python
         run: |
           pip install coverage
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
       - name: Test
         run: |
           coverage run -m pytest
-          coverage -m
+          coverage report -m
