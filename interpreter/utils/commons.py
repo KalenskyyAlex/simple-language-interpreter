@@ -62,6 +62,3 @@ PyFunction = list[Callable | list[str]]
 CallablesList = dict[str, PyFunction | Function]
 VariablesList = dict[int, dict]
 ExecutionResult = tuple[Optional[Token], bool]
-
-if __name__ == '__main__':
-    print('This module contains constants and declared types used in interpreter\n')
