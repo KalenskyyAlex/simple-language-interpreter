@@ -1,5 +1,7 @@
 import sys
-from interpreter.interpreter import print_code, print_tokens, print_tree, execute
+from interpreter.interpreter import print_code, execute
+from interpreter.lexer import print_tokens
+from interpreter.min_parser import print_tree
 
 if __name__ == '__main__':
     # do not output errors traceback from Python
