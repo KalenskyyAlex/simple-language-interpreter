@@ -28,10 +28,6 @@ from .utils.commons import TokenList
 # region Private functions
 
 def __is_valid_variable(token: Token) -> bool:
-    """
-    :param token: token
-    :return: True, if token has valid type and name to be a variable token, otherwise False
-    """
     if token.type == 'var' and isinstance(token.value, str):
         if token.value.strip():
             return True
@@ -39,10 +35,6 @@ def __is_valid_variable(token: Token) -> bool:
     return False
 
 def __is_valid_library(token: Token) -> bool:
-    """
-    :param token: token
-    :return: True, if token has valid type and name to be a library token, otherwise False
-    """
     if token.type == 'lib' and isinstance(token.value, str):
         if token.value.strip():
             return True
@@ -50,28 +42,17 @@ def __is_valid_library(token: Token) -> bool:
     return False
 
 def __is_valid_type(token: Token) -> bool:
-    """
-    :param token: token
-    :return: True, if token has valid type and name to be a type token, otherwise False
-    """
     return token.type == 'typ' and token.value in TOKEN_TYPES
 
 
 def __is_unpackable(tokens_list: TokenList) -> bool:
-    """
-    :param tokens_list: list of Tokens to check
-    :return: True if there is only one element in tokens list, which is Token itself,
-    otherwise False
-    """
+    # returns True if there is only one element in tokens list, which is Token itself,
+    # otherwise False
     return len(tokens_list) == 1 and isinstance(tokens_list[0], Node)
 
 
 def __extract_node(token_list: TokenList) -> Node | TokenList:
-    """
-    unpacks single Token in list
-    :token_list: list to check
-    :return: if list contains single Node, returns it, otherwise returns whole list unchanged
-    """
+    # unpacks single Token in list
     match len(token_list):
         case 0:
             raise RuntimeError('EMPTY TOKEN LIST GIVEN')
@@ -85,11 +66,7 @@ def __extract_node(token_list: TokenList) -> Node | TokenList:
 
 
 def __extract_token(token_list: TokenList) -> Token:
-    """
-    extracts Token from list, raises an error on fail
-    :token_list: list to check
-    :return: if list contains single Token, returns it, otherwise returns whole list unchanged
-    """
+    # extracts Token from list, raises an error on fail
     match len(token_list):
         case 1:
             if isinstance(token_list[0], Token):
@@ -98,6 +75,7 @@ def __extract_token(token_list: TokenList) -> Token:
             raise RuntimeError('FAILED TO EXTRACT SINGLE TOKENS IN FINAL NODES')
 
 def __extract_inlist_tokens_from_node(node: Node) -> Node:
+    # extracts all one-in-list Tokens from Node
     if isinstance(node.left, Node):
         node.left = __extract_inlist_tokens_from_node(node.left)
     elif isinstance(node.left, list):
@@ -111,6 +89,7 @@ def __extract_inlist_tokens_from_node(node: Node) -> Node:
     return node
 
 def __extract_inlist_tokens_from_tree(tree: list[Function | Node]) -> list[Function | Node]:
+    # extracts all one-in-list Tokens from tree
     tree_length = len(tree)
     for index in range(tree_length):
         if isinstance(tree[index], Node):
@@ -122,12 +101,7 @@ def __extract_inlist_tokens_from_tree(tree: list[Function | Node]) -> list[Funct
             raise TypeError('UNKNOWN ELEMENTS IN PARSED TREE')
 
 def __validate_use_syntax(line: TokenList, line_number: int) -> None:
-    """
-    raise SYNTAX ERROR if syntax with 'use' keyword is incorrect
-
-    :param line: array of tokens from one line of code
-    :param line_number: number of line given for error handling
-    """
+    # raises SYNTAX ERROR if syntax with 'use' keyword is incorrect
     if len(line) == 2:
         if line[0] == USE and isinstance(line[1], Token):
             if __is_valid_library(line[1]):
@@ -136,22 +110,12 @@ def __validate_use_syntax(line: TokenList, line_number: int) -> None:
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID LIBRARY CALL')
 
 def __create_use_node(line: TokenList, line_number: int) -> Node:
-    """
-    creates Node for further library call
-
-    :param line: array of tokens from one line of code
-    :param line_number: number of line given for error handling
-    """
+    # creates Node for further library call
     return Node(USE, line_number, line[1])
 
 
 def __validate_start_syntax(line: TokenList, line_number: int) -> None:
-    """
-    raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
-
-    :param line: array of tokens from one line of code
-    :param line_number: number of line given for error handling
-    """
+    # raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
 
     if not isinstance(line[0], Token) or not isinstance(line[1], Token):
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
@@ -198,12 +162,7 @@ def __validate_start_syntax(line: TokenList, line_number: int) -> None:
                                           'MISSING COMMA BETWEEN ARGUMENTS')
 
 def __parse_start(line: TokenList, line_number: int) -> tuple[list[Node], str]:
-    """
-    parses arguments for function
-
-    :param line: array of tokens from one line of code
-    :param line_number: number of line given for error handling
-    """
+    # parses arguments for function
     if not isinstance(line[1], Token):
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
 
@@ -237,12 +196,7 @@ def __parse_start(line: TokenList, line_number: int) -> tuple[list[Node], str]:
 
 
 def __validate_is_syntax(block: TokenList, line_number: int) -> None:
-    """
-    raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
-
-    :param block: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
+    # raise SYNTAX ERROR if syntax with 'is' keyword is incorrect
     if len(block) == 3:
         if block[1] == CREATE:
             if isinstance(block[0], Token) and isinstance(block[2], Token):
@@ -252,32 +206,17 @@ def __validate_is_syntax(block: TokenList, line_number: int) -> None:
     raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID VARIABLE ASSIGN')
 
 def __create_variable_node(block: TokenList, line_number: int) -> Node:
-    """
-    creates Node for variable assign
-
-    :param block: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
+    # creates Node for variable assign
     return Node(CREATE, line_number, block[2], block[0])
 
 
 def __validate_return_syntax(block: TokenList, line_number: int) -> None:
-    """
-    raise SYNTAX ERROR if syntax with 'return' keyword is incorrect
-
-    :param block: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
+    # raise SYNTAX ERROR if syntax with 'return' keyword is incorrect
     if block[0] != RETURN:
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: INVALID KEY AFTER \'return\'.')
 
 def __create_return_node(block: TokenList, line_number: int) -> Node:
-    """
-    creates Node for function return handling
-
-    :param block: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
+    # creates Node for function return handling
     right: Node | TokenList = block[1:]
 
     if len(right) == 0:
@@ -294,44 +233,31 @@ def __create_return_node(block: TokenList, line_number: int) -> Node:
 
 
 def __validate_break_syntax(block: TokenList, line_number: int) -> None:
-    """
-    raise SYNTAX ERROR if syntax with 'break' keyword is incorrect
-
-    :param block: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
+    # raise SYNTAX ERROR if syntax with 'break' keyword is incorrect
     if not len(block) == 1 or not block[0] == BREAK:
         raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY AFTER \'break\'')
 
 def __create_break_node(line_number: int) -> Node:
-    """
-    creates simple break-Node
-
-    :param line_number: number of line given for error handling
-    """
+    # creates simple break-Node
     return Node(BREAK, line_number)
 
 
 def __has_nesting_raw(line: TokenList) -> bool:
-    """
-    :param line: array of tokens from one line of code
-    :return: True if line has nesting, otherwise False
-    """
+    # returns True if line has nesting, otherwise False. Is used to nest raw line
     if LEFT_BRACKET in line or RIGHT_BRACKET in line:
         return True
 
     return False
 
 def __has_nesting_processed(line: TokenList) -> bool:
+    # returns True if line has nesting, otherwise False. Is used to check
+    # for nesting in already nested line
     return any(isinstance(token, list) for token in line)
 
 
 def __nest(line: TokenList, line_number: int) -> TokenList:
-    """
-    __nest given line recursively
-    :param line: array of tokens from one line of code to __nest
-    :param line_number: number of line given for error handling
-    """
+    # nests given line recursively
+
     # base case - no nesting
     if not __has_nesting_raw(line):
         return line
@@ -367,11 +293,7 @@ def __nest(line: TokenList, line_number: int) -> TokenList:
 
 
 def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) -> TokenList:
-    """
-    __nest code segment by '|' (function) operator
-    :param segment: array of tokens, part of one line of code
-    :param line_number: number of line given for error handling
-    """
+    # nests code segment by '|' (function) operator
     if isinstance(segment, list) and not any(operator in segment for operator in operators):
         if not __has_nesting_processed(segment):
             return segment
@@ -400,12 +322,7 @@ def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) ->
 
 def __parse_helper(line: Node | TokenList, line_number: int,
                    method: Callable, operators: TokenList) -> Node | TokenList:
-    """
-    is needed to go through already modified line (partially nested)
-    :param line: array of tokens, from one line of code
-    :param line_number: number of line given for error handling
-    :param method: function to __nest parts of not nested line
-    """
+    # is needed to go through already modified line (partially nested)
     if isinstance(line, Node):
         if line.left is not None:
             line.left = __parse_helper(line.left, line_number, method, operators)
@@ -422,14 +339,7 @@ def __parse_helper(line: Node | TokenList, line_number: int,
 
 
 def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> TokenList:
-    """
-    parse line by given operators
-
-    :param segment: array of tokens, part of one line of code
-    :param operators: operators to parse by
-    :param line_number: number of line given for error handling
-    :return: nested segment of code
-    """
+    # parse line by given operators
     if isinstance(segment, list) and not any(operator in segment for operator in operators):
         if not __has_nesting_processed(segment):
             return segment

@@ -29,15 +29,7 @@ from .utils.commons import RETURN, PIPE, USE
 
 def __unpack_var(token: Token, line_number: int, nesting_level: int,
                  visible_variables: VariablesList) -> Token:
-    """
-    if given is a variable returns stored value, otherwise does nothing
-
-    :param token: given Token
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :return: stored value or token itself
-    """
+    # if given token is a variable returns stored value, otherwise does nothing
     if token.type == 'var':
         found = False
 
@@ -54,15 +46,7 @@ def __unpack_var(token: Token, line_number: int, nesting_level: int,
 def __execute_separator_block(expression: Node,
                               line_number: int, nesting_level: int,
                               visible_variables: VariablesList) -> tuple[list[Token], bool]:
-    """
-    merges two separated operands to array of operands
-
-    :param expression: array in form of [operand] [operation] [operand]
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :return: array of Tokens
-    """
+    # merges two separated operands to array of operands
     left: Token = expression.left
     right: Token = expression.right
 
@@ -83,17 +67,9 @@ def __execute_separator_block(expression: Node,
 def __execute_arithmetical_block(expression: Node,
                                  line_number: int, nesting_level: int,
                                  visible_variables: VariablesList) -> ExecutionResult:
-    """
-    executes processed [operand] [operation] [operand]-like block of code
-    if none of known operators present raises a runtime error
-    if any of types doesn't match raises a runtime error
-
-    :param expression: array in form of [operand] [operation] [operand]
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :return: (execution_result, function_still_running)
-    """
+    # executes processed [operand] [operation] [operand]-like block of code
+    # if none of known operators present raises a runtime error
+    # if any of types doesn't match raises a runtime error
     left: Token = expression.left
     right: Token = expression.right
     operator: Token = expression.operator
@@ -131,15 +107,7 @@ def __execute_arithmetical_block(expression: Node,
 def __execute_var_related_block(expression: Node,
                                 line_number: int, nesting_level: int,
                                 visible_variables: VariablesList) -> ExecutionResult:
-    """
-    executes operations of variable creation and assigning
-
-    :param expression: array in form of [operand] [operation] [operand]
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :return: (execution_result, function_still_running)
-    """
+    # executes operations of variable creation and assigning
     left: Token = expression.left
     right: Token = expression.right
     operator = expression.operator
@@ -187,16 +155,7 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
                                  line_number: int, nesting_level: int,
                                  visible_variables: VariablesList,
                                  callables: CallablesList) -> ExecutionResult:
-    """
-    executes operations function calling, function returning
-
-    :param expression: array in form of [operand] [operation] [operand]
-    :param nesting_level: current nesting level
-    :param line_number: number of current line for error handling
-    :param visible_variables: pool of variables visible in current nesting level
-    :param callables: functions pool in program
-    :return: (execution_result, function_still_running)
-    """
+    # executes operations function calling, function returning
     if not isinstance(expression[0], Token) or \
             not isinstance(expression[2], list) or \
             not isinstance(expression[1], Token):
@@ -233,14 +192,7 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
 
 
 def __validate_args(args: list[Token], args_needed: list[str], function_name: str) -> None:
-    """
-    checks if arguments fit to function
-    raises error if not
-
-    :param args: arguments, that are passed
-    :param args_needed: arguments, that are needed (and acceptable)
-    :param function_name: function for which arguments are checked
-    """
+    # checks if arguments fit to function, raises an error if not
     args_count_needed = len(args_needed)
     args_count = len(args)
 
@@ -258,14 +210,7 @@ def __validate_args(args: list[Token], args_needed: list[str], function_name: st
 
 def __execute_py_function(function_name: str, packed_function: PyFunction,
                           args: list[Token]) -> Optional[Token]:
-    """
-    execute python built-in function
-
-    :param function_name: function to be executed
-    :param packed_function: function to execute
-    :param args: arguments which are passed to the function
-    :return: return of function, if exists
-    """
+    # execute python built-in function
     args_needed: list[str] = []
     if isinstance(packed_function[1], list):
         args_needed = packed_function[1]
@@ -289,15 +234,7 @@ def __execute_py_function(function_name: str, packed_function: PyFunction,
 
 def __execute_min_function(function_name: str, function: Function, args: list,
                            callables: CallablesList) -> Optional[Token]:
-    """
-    execute function line by line
-
-    :param function_name: function to be executed
-    :param function: function to execute
-    :param args: arguments which are passed to the function
-    :param callables: global pool of functions in program
-    :return: return of function, if exists
-    """
+    # execute function line by line
     visible_variables: VariablesList = {}
 
     args_count = len(function.args)
@@ -326,15 +263,8 @@ def __execute_min_function(function_name: str, function: Function, args: list,
 
 
 def __find_callables(tree: list[Function | Node]) -> CallablesList:
-    """
-        fills functions_list, which are either Python callables from
-        imported libraries or MINIMUM functions
-
-        :param tree: code tree made on base of given file with min_parser.py
-        :return: returns dictionary of functions:
-        {'function_name': *either Python callable or MINIMUM code block*, ...}
-    """
-
+    # fills functions_list, which are either Python callables
+    # from imported libraries or MINIMUM functions
     callables: CallablesList = {}
     for block in tree:
         if isinstance(block, Function):
