@@ -1,0 +1,8 @@
+use io
+
+start main
+	out | "\n"
+	out | "\""
+	out | "\\"
+	out | "\\Hello, \"World!\"\\\n"
+end
