@@ -71,6 +71,7 @@ def __extract_token(token_list: TokenList) -> Token:
         case 1:
             if isinstance(token_list[0], Token):
                 return token_list[0]
+            raise RuntimeError('FAILED TO UNPACK ARRAY OF NON-TOKEN TYPE')
         case _:
             raise RuntimeError('FAILED TO EXTRACT SINGLE TOKENS IN FINAL NODES')
 
@@ -92,13 +93,20 @@ def __extract_inlist_tokens_from_tree(tree: list[Function | Node]) -> list[Funct
     # extracts all one-in-list Tokens from tree
     tree_length = len(tree)
     for index in range(tree_length):
-        if isinstance(tree[index], Node):
-            tree[index] = __extract_inlist_tokens_from_node(tree[index])
-        elif isinstance(tree[index], Function):
-            tree[index].args = map(lambda x: __extract_inlist_tokens_from_node(x), tree[index].args)
-            tree[index].body = map(lambda x: __extract_inlist_tokens_from_node(x), tree[index].body)
+        element = tree[index]
+        if isinstance(element, Node):
+            tree[index] = __extract_inlist_tokens_from_node(element)
+        elif isinstance(element, Function):
+            new_body = [__extract_inlist_tokens_from_node(n) for n in element.body]
+            new_args = [__extract_inlist_tokens_from_node(n) for n in element.args]
+            name = element.name
+            line_number = element.line_number
+
+            tree[index] = Function(name, new_args, new_body, line_number)
         else:
             raise TypeError('UNKNOWN ELEMENTS IN PARSED TREE')
+
+    return tree
 
 def __validate_use_syntax(line: TokenList, line_number: int) -> None:
     # raises SYNTAX ERROR if syntax with 'use' keyword is incorrect
@@ -217,9 +225,9 @@ def __validate_return_syntax(block: TokenList, line_number: int) -> None:
 
 def __create_return_node(block: TokenList, line_number: int) -> Node:
     # creates Node for function return handling
-    right: Node | TokenList = block[1:]
+    right: Optional[Node | TokenList] = block[1:]
 
-    if len(right) == 0:
+    if isinstance(right, list) and len(right) == 0:
         right = None
 
     if isinstance(right, list):
