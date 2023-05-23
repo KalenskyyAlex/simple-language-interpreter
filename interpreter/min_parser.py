@@ -65,11 +65,12 @@ def __is_unpackable(tokens_list: TokenList) -> bool:
     """
     return len(tokens_list) == 1 and isinstance(tokens_list[0], Node)
 
+
 def __extract_node(token_list: TokenList) -> Node | TokenList:
     """
     unpacks single Token in list
     :token_list: list to check
-    :return: if list contains single Token, returns it, otherwise returns whole list unchanged
+    :return: if list contains single Node, returns it, otherwise returns whole list unchanged
     """
     match len(token_list):
         case 0:
@@ -82,6 +83,43 @@ def __extract_node(token_list: TokenList) -> Node | TokenList:
         case _:
             return token_list
 
+
+def __extract_token(token_list: TokenList) -> Token:
+    """
+    extracts Token from list, raises an error on fail
+    :token_list: list to check
+    :return: if list contains single Token, returns it, otherwise returns whole list unchanged
+    """
+    match len(token_list):
+        case 1:
+            if isinstance(token_list[0], Token):
+                return token_list[0]
+        case _:
+            raise RuntimeError('FAILED TO EXTRACT SINGLE TOKENS IN FINAL NODES')
+
+def __extract_inlist_tokens_from_node(node: Node) -> Node:
+    if isinstance(node.left, Node):
+        node.left = __extract_inlist_tokens_from_node(node.left)
+    elif isinstance(node.left, list):
+        node.left = __extract_token(node.left)
+
+    if isinstance(node.right, Node):
+        node.right = __extract_inlist_tokens_from_node(node.right)
+    elif isinstance(node.right, list):
+        node.right = __extract_token(node.right)
+
+    return node
+
+def __extract_inlist_tokens_from_tree(tree: list[Function | Node]) -> list[Function | Node]:
+    tree_length = len(tree)
+    for index in range(tree_length):
+        if isinstance(tree[index], Node):
+            tree[index] = __extract_inlist_tokens_from_node(tree[index])
+        elif isinstance(tree[index], Function):
+            tree[index].args = map(lambda x: __extract_inlist_tokens_from_node(x), tree[index].args)
+            tree[index].body = map(lambda x: __extract_inlist_tokens_from_node(x), tree[index].body)
+        else:
+            raise TypeError('UNKNOWN ELEMENTS IN PARSED TREE')
 
 def __validate_use_syntax(line: TokenList, line_number: int) -> None:
     """
@@ -242,6 +280,9 @@ def __create_return_node(block: TokenList, line_number: int) -> Node:
     """
     right: Node | TokenList = block[1:]
 
+    if len(right) == 0:
+        right = None
+
     if isinstance(right, list):
         right = __parse_helper(right, line_number, __parse_by, [ASSIGN])
         right = __parse_helper(right, line_number, __parse_calls, [PIPE])
@@ -259,9 +300,8 @@ def __validate_break_syntax(block: TokenList, line_number: int) -> None:
     :param block: array of tokens, part of one line of code
     :param line_number: number of line given for error handling
     """
-    if not len(block) == 1 or not block[0] == RETURN:
-        raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY ' +
-                          'AFTER \'return\'. VARIABLE EXPECTED')
+    if not len(block) == 1 or not block[0] == BREAK:
+        raise SyntaxError(f'INVALID SYNTAX AT LINE{line_number}: INVALID KEY AFTER \'break\'')
 
 def __create_break_node(line_number: int) -> Node:
     """
@@ -272,7 +312,7 @@ def __create_break_node(line_number: int) -> Node:
     return Node(BREAK, line_number)
 
 
-def __has_nesting(line: TokenList) -> bool:
+def __has_nesting_raw(line: TokenList) -> bool:
     """
     :param line: array of tokens from one line of code
     :return: True if line has nesting, otherwise False
@@ -282,6 +322,9 @@ def __has_nesting(line: TokenList) -> bool:
 
     return False
 
+def __has_nesting_processed(line: TokenList) -> bool:
+    return any(isinstance(token, list) for token in line)
+
 
 def __nest(line: TokenList, line_number: int) -> TokenList:
     """
@@ -290,7 +333,7 @@ def __nest(line: TokenList, line_number: int) -> TokenList:
     :param line_number: number of line given for error handling
     """
     # base case - no nesting
-    if not __has_nesting(line):
+    if not __has_nesting_raw(line):
         return line
 
     nested_line: TokenList = []
@@ -330,29 +373,28 @@ def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) ->
     :param line_number: number of line given for error handling
     """
     if isinstance(segment, list) and not any(operator in segment for operator in operators):
-        if not __has_nesting(segment):
+        if not __has_nesting_processed(segment):
             return segment
 
-    operated_segment: TokenList = []
+    operated_segment: TokenList = list(segment)
 
     tokens_count = len(segment)
     for index in range(tokens_count):
         token = segment[index]
 
-        if isinstance(token, Node):
-            segment[index] = __parse_helper(token, line_number, __parse_calls, [PIPE])
-        elif isinstance(token, list):
-            segment[index] = __parse_calls(token, [PIPE], line_number)
+        if isinstance(token, Node | list):
+            token = __parse_helper(token, line_number, __parse_calls, [PIPE])
         elif token in operators:
-            left = __parse_calls(segment[:index], [PIPE], line_number)
+            left = __parse_calls(operated_segment[:index], [PIPE], line_number)
 
-            right = __parse_by(segment[index + 1:], [COMMA], line_number)
+            right = __parse_by(operated_segment[index + 1:], [COMMA], line_number)
             if not isinstance(right, Token):
                 right = __parse_calls(right, [PIPE], line_number)
 
             operated_segment = [Node(token, line_number, right, left)]
             break
 
+        operated_segment[index] = token
     return operated_segment
 
 
@@ -389,26 +431,26 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
     :return: nested segment of code
     """
     if isinstance(segment, list) and not any(operator in segment for operator in operators):
-        if not __has_nesting(segment):
+        if not __has_nesting_processed(segment):
             return segment
 
-    operated_segment: TokenList = []
+    operated_segment: TokenList = list(segment)
 
     tokens_count = len(segment)
     for index in range(tokens_count):
         token = segment[index]
 
-        if isinstance(token, Node):
-            segment[index] = __parse_helper(token, line_number, __parse_by, operators)
-        elif isinstance(token, list):
-            segment[index] = __parse_by(token, operators, line_number)
+        if isinstance(token, Node | list):
+            token = __parse_helper(token, line_number, __parse_by, operators)
         elif token in operators:
-            left = __parse_by(segment[:index], operators, line_number)
+            left = __parse_helper(operated_segment[:index], line_number, __parse_by, operators)
 
-            right = __parse_by(segment[index + 1:], operators, line_number)
+            right = __parse_helper(operated_segment[index + 1:], line_number, __parse_by, operators)
 
             operated_segment = [Node(token, line_number, right, left)]
             break
+
+        operated_segment[index] = token
 
     return operated_segment
 
@@ -522,7 +564,6 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
 
     if not line == [END]:
         line = __nest(line, line_number)
-
         processed_line = __parse_helper(line, line_number, __parse_by,
                                         [ASSIGN])
         processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
@@ -632,6 +673,7 @@ def parse(file_name: str) -> list[Function | Node]:
 
             tree.append(function)
 
+    tree = __extract_inlist_tokens_from_tree(tree)
     return tree
 
 

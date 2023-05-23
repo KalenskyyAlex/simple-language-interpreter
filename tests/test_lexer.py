@@ -507,6 +507,23 @@ def test_get_tokens_general_3():
 
 	assert get_tokens('./tests/test_scripts/test_3.min') == expected
 
+def test_get_tokens_special_symbols_in_strings():
+	expected = (
+		[
+			[Token('kwd', 'use'), Token('lib', 'io')],
+			[Token('kwd', 'start'), Token('fnc', 'main')],
+			[Token('fnc', 'out'), Token('opr', '|'), Token('str', '\n')],
+			[Token('fnc', 'out'), Token('opr', '|'), Token('str', '\"')],
+			[Token('fnc', 'out'), Token('opr', '|'), Token('str', '\\')],
+			[Token('fnc', 'out'), Token('opr', '|'), Token('str', '\\Hello, "World!"\\\n')],
+			[Token('kwd', 'end')]
+		],
+		[
+			1, 3, 4, 5, 6, 7, 8
+		]
+	)
+
+	assert get_tokens('./tests/test_scripts/test_4.min') == expected
 # endregion
 
 # region Testing print_tokens

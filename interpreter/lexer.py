@@ -289,9 +289,7 @@ def get_tokens(file_name: str) -> tuple[list[TokenList], list[int]]:
                 match line[index + 1]:
                     case 'n':
                         token += '\n'
-                    case '\'':
-                        token += '\''
-                    case '\"':
+                    case '"':
                         token += '\"'
                     case '\\':
                         token += '\\'
