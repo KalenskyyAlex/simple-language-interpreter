@@ -21,13 +21,7 @@ from .utils.commons import TokenList
 # region Private functions
 
 def __give_type(token: str, prev_token: str) -> Token:
-    """
-    for given token return token with evaluated type (sometimes depends on previous token)
-
-    :param token: token to give it a type
-    :param prev_token: previous token
-    :return: typed token
-    """
+    # for given token return token with evaluated type (sometimes depends on previous token)
     if not isinstance(token, str) or not isinstance(prev_token, str):
         return None
 
@@ -59,11 +53,7 @@ def __give_type(token: str, prev_token: str) -> Token:
     return typed_token
 
 def __give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
-    """
-    gives each given token a type
-    :param tokens_raw: nested array of tokens without type;
-    :return: array of tokens with added types
-    """
+    # gives each given token a type
     if not isinstance(tokens_raw, list):
         return None
 
@@ -95,11 +85,7 @@ def __give_types_for_tokens(tokens_raw: list[list[str]]) -> list[TokenList]:
 
 
 def __in_string(line: str, index_needed: int) -> bool:
-    """
-    :param line: line to check in
-    :param index_needed: check symbol at index_needed
-    :return: True if symbol in index_needed is inside string, otherwise False
-    """
+    # returns True if symbol in index_needed is inside string, otherwise False
     if line is None or index_needed is None:
         return False
 
@@ -122,11 +108,7 @@ def __in_string(line: str, index_needed: int) -> bool:
     return False
 
 def __clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
-    """
-    deletes whitespace, eol, comments
-    :param lines_raw: unprocessed lines of text from .min file
-    :return: array of 'cleared' lines with parallel array of line numbers for each line
-    """
+    # deletes whitespace, eol, comments
     if not isinstance(lines_raw, list):
         return None, None
 
@@ -160,42 +142,22 @@ def __clear_lines(lines_raw: list[str]) -> tuple[list[str], list[int]]:
 
 
 def __is_keyword(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a keyword, otherwise False
-    """
     return token in KEYWORDS
 
 
 def __is_operator(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is an operator, otherwise False
-    """
     return token in OPERATORS
 
 
 def __is_type(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a type, otherwise False
-    """
     return token in INNER_TYPES
 
 
 def __is_boolean(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a boolean, otherwise False
-    """
     return token in BOOLEANS
 
 
 def __is_integer(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a integer, otherwise False
-    """
     if token is None:
         return False
 
@@ -210,10 +172,6 @@ def __is_integer(token: str) -> bool:
 
 
 def __is_float(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a float, otherwise False
-    """
     if token is None:
         return False
 
@@ -227,10 +185,6 @@ def __is_float(token: str) -> bool:
 
 
 def __is_string(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a string, otherwise False
-    """
     if token is None:
         return False
 
@@ -238,10 +192,6 @@ def __is_string(token: str) -> bool:
 
 
 def __is_separator(token: str) -> bool:
-    """
-    :param token: token as string
-    :return: True if token is a separator, otherwise False
-    """
     return token == ','
 
 # endregion

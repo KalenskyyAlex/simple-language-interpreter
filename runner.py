@@ -1,3 +1,7 @@
+"""
+Python Script used to read and interpret users input into actions in interpreter
+"""
+
 import sys
 from interpreter.interpreter import print_code, execute
 from interpreter.lexer import print_tokens
