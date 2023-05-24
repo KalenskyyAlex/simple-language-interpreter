@@ -373,86 +373,50 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
     return operated_segment
 
 
-def __nest_vertical(block: list[Node | TokenList], line_number) -> list[Node | Block]:
-    """
-    nest code segment by if/else/while constructions
-    :param block: array of tokens, several lines of code
-    :param line_number: number of first line from block, given for error handling
-    :return: nested block of code
-    """
-    return []
-# TODO rewrite __nest_vertical in more adequate way
-# def __nest_vertical(block: TokenList, line_number: int) -> Any:
-#     """
-#     __nest code segment by if/else/while constructions
-#     :param block: array of tokens, several lines of code
-#     :param line_number: number of first line from block, given for error handling
-#     :return: nested block of code
-#     """
-#     new_block = []
-#     writing_inner_block = False
-#     block_nesting = 0
-#     inner_block: Node
-#     writing_else = False
-#
-#     tokens_count = len(block)
-#     for index in range(tokens_count):
-#         line = block[index]
-#
-#         if not writing_inner_block:
-#             if not isinstance(line, dict):
-#                 reveal_type(line)
-#                 if WHILE in line:
-#                     operation = line[0]
-#                     condition = line[1:]
-#                     inner_block = Node(operation, line_number, left=condition)
-#
-#                     block_nesting += 1
-#                     writing_inner_block = True
-#                 elif IF in line:
-#                     operation = line[0]
-#                     condition = line[1:]
-#
-#                     # TODO there is no way to fit if-statement in Node
-#
-#                     # inner_block
-#                     #     'left': condition,
-#                     #     'operation': operation,
-#                     #     'right': [],
-#                     #     'else': [],
-#                     #     'line': line_number
-#                     # }
-#                     block_nesting += 1
-#                     writing_inner_block = True
-#                 else:
-#                     new_block.append(line)
-#             else:
-#                 new_block.append(line)
-#         else:
-#             if not isinstance(line, dict):
-#                 if ['if', 'kwd'] in line or \
-#                         ['while', 'kwd'] in line:
-#                     block_nesting += 1
-#                 elif ['end', 'kwd'] in line:
-#                     block_nesting -= 1
-#                 elif block_nesting == 1 and ['else', 'kwd'] in line:
-#                     writing_else = True
-#                     continue
-#
-#                 if block_nesting == 0:
-#                     writing_inner_block = False
-#                     writing_else = False
-#                     inner_block['right'] = __nest_vertical(inner_block['right'], line_number)
-#                     new_block.append(inner_block)
-#                 elif writing_else:
-#                     inner_block['else'].append(line)
-#                 else:
-#                     inner_block['right'].append(line)
-#             else:
-#                 inner_block['right'].append(line)
-#
-#         line_number += 1
-#     return new_block
+def __nest_vertical(block: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
+    # nest code segment by if/else/while constructions
+    new_block: list[Node | Block] = []
+
+    index = 0
+    lines_count = len(block)
+    while index < lines_count:
+        line = block[index]
+        line_number = line_numbers[index]
+        if isinstance(line, Node):
+            new_block.append(line)
+        else:
+            if any(keyword in line for keyword in [WHILE, IF, ELSE]):
+                operator = line[0]
+                condition = parse_line(line[1:], line_number)
+                index += 1
+                start = index
+                nesting_level = 1
+                body = []
+                while nesting_level != 0 and index < lines_count:
+                    line = block[index]
+                    if any(keyword in line for keyword in [WHILE, IF]):
+                        nesting_level += 1
+                    elif END in line:
+                        nesting_level -= 1
+                    index += 1
+                    body.append(line)
+
+                if nesting_level != 0:
+                    raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
+
+                body = __nest_vertical(body, line_numbers[start:index])
+                inner_block = Block(operator, condition, body, start - 1)
+                if operator == ELSE:
+                    if isinstance(new_block[-1], Block):
+                        new_block[-1].next_block = inner_block
+                    else:
+                        raise SyntaxError(f'MISSING IF TO MATCH ELSE EXPRESSION AT LINE {line_number}')
+                else:
+                    new_block.append(inner_block)
+
+        index += 1
+
+    return new_block
 
 # endregion
 
@@ -509,7 +473,6 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
     args, name = __parse_start(block[0], line_numbers[0])
     body: list[Node] = []
 
-    # block = __nest_vertical # TODO
     block = block[1:]
     line_numbers = line_numbers[1:]
 
@@ -522,6 +485,8 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
         processed_line = parse_line(line, line_number)
         if processed_line is not None:
             body.append(processed_line)
+
+    body = __nest_vertical(body, line_numbers)
 
     return Function(name, args, body, line_numbers[0])
 
