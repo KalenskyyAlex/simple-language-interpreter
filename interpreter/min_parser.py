@@ -415,35 +415,38 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
         line_number = line_numbers[index]
         if isinstance(line, Node):
             new_block.append(line)
-        else:
-            if any(keyword in line for keyword in [WHILE, IF, ELSE]):
-                operator, condition = __create_block_header(line, line_number)
-                index += 1
-                start = index
-                nesting_level = 1
-                body = []
-                while nesting_level != 0 and index < lines_count:
-                    line = block[index]
-                    if isinstance(line, list) and WHILE in line or IF in line:
+            continue
+
+        if any(keyword in line for keyword in [WHILE, IF, ELSE]):
+            operator, condition = __create_block_header(line, line_number)
+            index += 1
+            start = index
+            nesting_level = 1
+            body = []
+            while nesting_level != 0 and index < lines_count:
+                line = block[index]
+                if isinstance(line, list):
+                    if WHILE in line or IF in line:
                         nesting_level += 1
-                    elif isinstance(line, list) and END in line:
+                    elif END in line:
                         nesting_level -= 1
-                    index += 1
-                    body.append(line)
 
-                if nesting_level != 0:
-                    raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
+                index += 1
+                body.append(line)
 
-                nested_body = __nest_blocks(body, line_numbers[start:index])
-                inner_block = Block(operator, condition, nested_body, start - 1)
-                if operator == ELSE:
-                    if not isinstance(new_block[-1], Block):
-                        raise SyntaxError(f'MISSING IF TO MATCH ELSE EXPRESSION AT LINE' +
-                                          f'{line_number}')
+            if nesting_level != 0:
+                raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
 
-                    new_block[-1].next_block = inner_block
-                else:
-                    new_block.append(inner_block)
+            nested_body = __nest_blocks(body, line_numbers[start:index])
+            inner_block = Block(operator, condition, nested_body, start - 1)
+            if operator == ELSE:
+                if not isinstance(new_block[-1], Block):
+                    raise SyntaxError(f'MISSING IF TO MATCH ELSE EXPRESSION AT LINE' +
+                                      f'{line_number}')
+
+                new_block[-1].next_block = inner_block
+            else:
+                new_block.append(inner_block)
 
         index += 1
 
