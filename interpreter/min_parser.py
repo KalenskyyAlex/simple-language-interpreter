@@ -383,7 +383,7 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
         elif token in operators:
             left = __parse_helper(operated_segment[:index], line_number, __parse_by, operators)
             if not left:
-                if token == PLUS or token == MINUS:
+                if token in [PLUS, MINUS]:
                     left = [Token('int', 0)]
                 else:
                     raise SyntaxError(f'MISSING OPERAND BEFORE {token.value} AT LINE {line_number}')

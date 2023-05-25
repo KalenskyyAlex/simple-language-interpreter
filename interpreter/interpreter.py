@@ -169,8 +169,8 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
         right = expression[2] if isinstance(expression[2], list) else[expression[2]]
         if left.value in callables.keys():
             if isinstance(left.value, str) and isinstance(right, list):
-                right = [execute_line(arg, callables, nesting_level, line_number, visible_variables)[0]
-                         for arg in right]
+                right = [execute_line(arg, callables, nesting_level, line_number,
+                                      visible_variables)[0] for arg in right]
                 right = [__unpack_var(arg, line_number, nesting_level, visible_variables)
                          for arg in right]
                 return execute_function(left.value, callables, right), True
