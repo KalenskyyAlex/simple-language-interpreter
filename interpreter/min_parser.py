@@ -89,6 +89,17 @@ def __extract_inlist_tokens_from_node(node: Node) -> Node:
 
     return node
 
+def __extract_inlist_tokens_from_block(block: Block) -> Block:
+    lines_count = len(block.body)
+    for index in range(lines_count):
+        line = block.body[index]
+        if isinstance(line, Node):
+            block.body[index] = __extract_inlist_tokens_from_node(line)
+        elif isinstance(line, Block):
+            block.body[index] = __extract_inlist_tokens_from_block(line)
+
+    return block
+
 def __extract_inlist_tokens_from_tree(tree: list[Function | Node]) -> list[Function | Node]:
     # extracts all one-in-list Tokens from tree
     tree_length = len(tree)
@@ -97,12 +108,22 @@ def __extract_inlist_tokens_from_tree(tree: list[Function | Node]) -> list[Funct
         if isinstance(element, Node):
             tree[index] = __extract_inlist_tokens_from_node(element)
         elif isinstance(element, Function):
-            new_body = [__extract_inlist_tokens_from_node(n) for n in element.body]
-            new_args = [__extract_inlist_tokens_from_node(n) for n in element.args]
+            new_body: list[Node | Block] = []
+            for line in element.body:
+                if isinstance(line, Node):
+                    new_body.append(__extract_inlist_tokens_from_node(line))
+                elif isinstance(line, Block):
+                    new_body.append(__extract_inlist_tokens_from_block(line))
+
+            new_args: list[Node] = [__extract_inlist_tokens_from_node(n) for n in element.args]
+
             name = element.name
             line_number = element.line_number
 
-            tree[index] = Function(name, new_args, new_body, line_number)
+            if all(isinstance(node, Node) for node in new_args):
+                tree[index] = Function(name, new_args, new_body, line_number)
+            else:
+                raise TypeError('BLOCK DETECTED IN FUNCTION ARGUMENTS')
         else:
             raise TypeError('UNKNOWN ELEMENTS IN PARSED TREE')
 
@@ -124,7 +145,6 @@ def __create_use_node(line: TokenList, line_number: int) -> Node:
 
 def __validate_start_syntax(line: TokenList, line_number: int) -> None:
     # raise SYNTAX ERROR if syntax with 'start' keyword is incorrect
-
     if not isinstance(line[0], Token) or not isinstance(line[1], Token):
         raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: NO BRACKETS ARE ALLOWED')
 
@@ -373,7 +393,18 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
     return operated_segment
 
 
-def __nest_vertical(block: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
+def __create_block_header(line, line_number) -> tuple[Token, Optional[Node]]:
+    operator = line[0]
+    if not isinstance(operator, Token):
+        raise SyntaxError(f'WRONG BLOCK HEADER AT LINE {line_number}')
+    if operator in [WHILE, IF, ELSE]:
+        raise SyntaxError(f'WRONG OPERATOR IN BLOCK HEADER AT LINE {line_number}')
+
+    condition = parse_line(line[1:], line_number)
+
+    return operator, condition
+
+def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
     # nest code segment by if/else/while constructions
     new_block: list[Node | Block] = []
 
@@ -386,26 +417,26 @@ def __nest_vertical(block: list[Node | TokenList], line_numbers: list[int]) -> l
             new_block.append(line)
         else:
             if any(keyword in line for keyword in [WHILE, IF, ELSE]):
-                operator = line[0]
-                condition = parse_line(line[1:], line_number)
+                operator, condition = __create_block_header(line, line_number)
                 index += 1
                 start = index
                 nesting_level = 1
                 body = []
                 while nesting_level != 0 and index < lines_count:
                     line = block[index]
-                    if any(keyword in line for keyword in [WHILE, IF]):
-                        nesting_level += 1
-                    elif END in line:
-                        nesting_level -= 1
+                    if isinstance(line, list):
+                        if WHILE in line or IF in line:
+                            nesting_level += 1
+                        elif END in line:
+                            nesting_level -= 1
                     index += 1
                     body.append(line)
 
                 if nesting_level != 0:
                     raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
 
-                body = __nest_vertical(body, line_numbers[start:index])
-                inner_block = Block(operator, condition, body, start - 1)
+                nested_body = __nest_blocks(body, line_numbers[start:index])
+                inner_block = Block(operator, condition, nested_body, start - 1)
                 if operator == ELSE:
                     if isinstance(new_block[-1], Block):
                         new_block[-1].next_block = inner_block
@@ -471,24 +502,25 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
     """
     __validate_start_syntax(block[0], line_numbers[0])
     args, name = __parse_start(block[0], line_numbers[0])
-    body: list[Node] = []
+    body: list[Node | TokenList] = []
 
     block = block[1:]
     line_numbers = line_numbers[1:]
 
     for line, line_number in zip(block, line_numbers):
-        if IF in line or \
-                WHILE in line or \
-                END in line:
-            continue
+        if isinstance(line, list):
+            if IF in line or \
+                    WHILE in line or \
+                    END in line:
+                continue
 
         processed_line = parse_line(line, line_number)
         if processed_line is not None:
             body.append(processed_line)
 
-    body = __nest_vertical(body, line_numbers)
+    nested_body: list[Node | Block] = __nest_blocks(body, line_numbers)
 
-    return Function(name, args, body, line_numbers[0])
+    return Function(name, args, nested_body, line_numbers[0])
 
 
 def parse(file_name: str) -> list[Function | Node]:

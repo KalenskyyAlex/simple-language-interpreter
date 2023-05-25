@@ -239,8 +239,8 @@ def __execute_min_function(function_name: str, function: Function, args: list,
 
     args_count = len(function.args)
     for index in range(args_count):
-        line = function.args[index]
-        execute_line(line, callables, 0, function.line_number, visible_variables)
+        arg = function.args[index]
+        execute_line(arg, callables, 0, function.line_number, visible_variables)
 
         visible_variables[0][function.args[index].left.value] = args[index]
 
@@ -249,15 +249,16 @@ def __execute_min_function(function_name: str, function: Function, args: list,
     __validate_args(args, args_needed, function_name)
 
     for line in function.body:
-        response, running = execute_line(copy.deepcopy(line), callables, 0,
-                                         line.line_number, visible_variables)
+        if isinstance(line, Node):
+            response, running = execute_line(copy.deepcopy(line), callables, 0,
+                                             line.line_number, visible_variables)
 
-        if not running:
-            if isinstance(response, Token):
-                return response
+            if not running:
+                if isinstance(response, Token):
+                    return response
 
-            raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
-                               f'AT LINE {line.line_number}')
+                raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
+                                   f'AT LINE {line.line_number}')
 
     return None
 
