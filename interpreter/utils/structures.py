@@ -150,7 +150,7 @@ class Block:
     once created, Block SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
     def __init__(self, __operator: Optional[Token], __condition: Optional[Node],
-                 __body: Optional[list[Node]], __line_number: int,
+                 __body: Optional[list[Node | 'Block']], __line_number: int,
                  next_block: Optional['Block'] = None):
         """
         creates a Block of Nodes
@@ -254,7 +254,7 @@ class Function:
     once created, Function SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
     def __init__(self, __name: Optional[str], __args: Optional[list[Node]],
-                 __body: Optional[list[Node]], __line_number: Optional[int]):
+                 __body: Optional[list[Node | Block]], __line_number: Optional[int]):
         """
         creates Function
 
@@ -312,7 +312,7 @@ class Function:
         return self.__args
 
     @property
-    def body(self) -> list[Node]:
+    def body(self) -> list[Node | Block]:
         """
         body of function should only be accessed via this method
 
