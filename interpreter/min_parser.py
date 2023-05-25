@@ -424,11 +424,10 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                 body = []
                 while nesting_level != 0 and index < lines_count:
                     line = block[index]
-                    if isinstance(line, list):
-                        if WHILE in line or IF in line:
-                            nesting_level += 1
-                        elif END in line:
-                            nesting_level -= 1
+                    if isinstance(line, list) and WHILE in line or IF in line:
+                        nesting_level += 1
+                    elif isinstance(line, list) and END in line:
+                        nesting_level -= 1
                     index += 1
                     body.append(line)
 
@@ -438,10 +437,11 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                 nested_body = __nest_blocks(body, line_numbers[start:index])
                 inner_block = Block(operator, condition, nested_body, start - 1)
                 if operator == ELSE:
-                    if isinstance(new_block[-1], Block):
-                        new_block[-1].next_block = inner_block
-                    else:
-                        raise SyntaxError(f'MISSING IF TO MATCH ELSE EXPRESSION AT LINE {line_number}')
+                    if not isinstance(new_block[-1], Block):
+                        raise SyntaxError(f'MISSING IF TO MATCH ELSE EXPRESSION AT LINE' +
+                                          f'{line_number}')
+
+                    new_block[-1].next_block = inner_block
                 else:
                     new_block.append(inner_block)
 
