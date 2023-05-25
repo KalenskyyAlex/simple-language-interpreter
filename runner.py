@@ -9,7 +9,7 @@ from interpreter.min_parser import print_tree
 
 if __name__ == '__main__':
     # do not output errors traceback from Python
-    sys.tracebacklimit = -1
+    # sys.tracebacklimit = -1
 
     try:
         FIRST_ARG = sys.argv[1]

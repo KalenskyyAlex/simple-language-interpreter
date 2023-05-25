@@ -337,9 +337,9 @@ def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) ->
         elif token in operators:
             left = __parse_calls(operated_segment[:index], [PIPE], line_number)
 
-            right = __parse_by(operated_segment[index + 1:], [COMMA], line_number)
+            right = __parse_helper(operated_segment[index + 1:], line_number, __parse_by, [COMMA])
             if not isinstance(right, Token):
-                right = __parse_calls(right, [PIPE], line_number)
+                right = __parse_helper(right, line_number, __parse_calls, [PIPE])
 
             operated_segment = [Node(token, line_number, right, left)]
             break
@@ -382,8 +382,15 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
             token = __parse_helper(token, line_number, __parse_by, operators)
         elif token in operators:
             left = __parse_helper(operated_segment[:index], line_number, __parse_by, operators)
+            if not left:
+                if token == PLUS or token == MINUS:
+                    left = [Token('int', 0)]
+                else:
+                    raise SyntaxError(f'MISSING OPERAND BEFORE {token.value} AT LINE {line_number}')
 
             right = __parse_helper(operated_segment[index + 1:], line_number, __parse_by, operators)
+            if not right:
+                raise SyntaxError(f'MISSING OPERAND AFTER {token.value} AT LINE {line_number}')
 
             operated_segment = [Node(token, line_number, right, left)]
             break
@@ -416,6 +423,7 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
         line_number = line_numbers[index]
         if isinstance(line, Node):
             new_block.append(line)
+            index += 1
             continue
 
         if any(keyword in line for keyword in [WHILE, IF, ELSE]):
@@ -449,8 +457,7 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
             else:
                 new_block.append(inner_block)
 
-        index += 1
-
+            index += 1
     return new_block
 
 # endregion
@@ -517,13 +524,11 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
                     WHILE in line or \
                     END in line:
                 continue
-
         processed_line = parse_line(line, line_number)
         if processed_line is not None:
             body.append(processed_line)
 
     nested_body: list[Node | Block] = __nest_blocks(body, line_numbers)
-
     return Function(name, args, nested_body, line_numbers[0])
 
 
@@ -544,7 +549,6 @@ def parse(file_name: str) -> list[Function | Node]:
 
     tokens_count = len(tokens)
     for index in range(tokens_count):
-
         line = tokens[index]
         line_number = line_numbers[index]
 
@@ -584,7 +588,7 @@ def parse(file_name: str) -> list[Function | Node]:
         if nested == 0 and in_function_body:
             in_function_body = False
 
-            function = parse_function(body, line_numbers)
+            function = parse_function(body, body_line_numbers)
 
             if not isinstance(function, Function):
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +

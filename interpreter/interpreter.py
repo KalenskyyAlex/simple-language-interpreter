@@ -33,7 +33,7 @@ def __unpack_var(token: Token, line_number: int, nesting_level: int,
     if token.type == 'var':
         found = False
 
-        for index in range(nesting_level):
+        for index in range(nesting_level + 1):
             if token.value in visible_variables[index].keys():
                 token = visible_variables[index][token.value]
                 found = True
@@ -129,7 +129,7 @@ def __execute_var_related_block(expression: Node,
             elif right.value == 'bool':
                 visible_variables[nesting_level][left.value] = Token('bool', False)
             else:
-                visible_variables[nesting_level][left.value] = Token(right.type, 0)
+                visible_variables[nesting_level][left.value] = Token(right.value, 0)
 
             return None, True
 
@@ -137,8 +137,7 @@ def __execute_var_related_block(expression: Node,
                            'WRONG IS OPERATOR USAGE')
     if operator == ASSIGN:
         var_name = left.value
-        type_ = visible_variables[nesting_level][var_name][1]
-
+        type_ = visible_variables[nesting_level][var_name].type
         right = __unpack_var(right, line_number, nesting_level, visible_variables)
 
         # type check
@@ -156,10 +155,10 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
                                  visible_variables: VariablesList,
                                  callables: CallablesList) -> ExecutionResult:
     # executes operations function calling, function returning
-    if not isinstance(expression[0], Token) or \
-            not isinstance(expression[2], list) or \
-            not isinstance(expression[1], Token):
-        raise RuntimeError('FAILED TO USE PIPE OPERATOR ON WRONG OPERANDS' +
+    if not isinstance(expression[0], Token | type(None)) or \
+            not isinstance(expression[2], list | Token) or \
+            not isinstance(expression[1], Token | type(None)):
+        raise RuntimeError('FAILED TO USE PIPE OPERATOR ON WRONG OPERANDS ' +
                            f'AT LINE {line_number}')
 
     left: Token = expression[0]
@@ -167,8 +166,13 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
     operator: Token = expression[1]
 
     if operator == PIPE:
+        right = expression[2] if isinstance(expression[2], list) else[expression[2]]
         if left.value in callables.keys():
             if isinstance(left.value, str) and isinstance(right, list):
+                right = [execute_line(arg, callables, nesting_level, line_number, visible_variables)[0]
+                         for arg in right]
+                right = [__unpack_var(arg, line_number, nesting_level, visible_variables)
+                         for arg in right]
                 return execute_function(left.value, callables, right), True
 
             raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +
@@ -176,14 +180,17 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
 
         raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left.value} ' +
                            'IS NOT FOUND')
+
     if operator == RETURN:
         if right is None:
             return None, False
 
-        if isinstance(right, dict):
+        return_ = right
+        if isinstance(right, Node):
             return_, _ = execute_line(right, callables, nesting_level,
                                       line_number, visible_variables)
 
+        if isinstance(right, Token):
             return return_, False
 
         raise RuntimeError(f'NOT PROCESSABLE RETURN AT LINE {line_number}')
@@ -239,9 +246,8 @@ def __execute_min_function(function_name: str, function: Function, args: list,
 
     args_count = len(function.args)
     for index in range(args_count):
-        arg = function.args[index]
+        arg: Node = function.args[index]
         execute_line(arg, callables, 0, function.line_number, visible_variables)
-
         visible_variables[0][function.args[index].left.value] = args[index]
 
     args_needed: list[str] = list(map(lambda argument: argument.right.value, function.args))
@@ -272,8 +278,8 @@ def __find_callables(tree: list[Function | Node]) -> CallablesList:
             callables[block.name] = block
         elif isinstance(block, Node) and block.operator == USE:
             root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-            path = root_directory + '/libraries/' + block.right + '.py'
-            spec = importlib.util.spec_from_file_location(block.right, path)
+            path = root_directory + '/libraries/' + block.right.value + '.py'
+            spec = importlib.util.spec_from_file_location(block.right.value, path)
 
             if spec is None or spec.loader is None:
                 raise RuntimeError(f'UNABLE TO READ/FIND LIBRARY {block.right} ' +
@@ -317,14 +323,18 @@ def execute_line(line: Node | Token, callables: CallablesList,
     right = line.right
     left = line.left
 
-    right, _ = execute_line(right, callables, nesting_level,
-                            line_number, visible_variables)
-    left, _ = execute_line(left, callables, nesting_level,
-                           line_number, visible_variables)
+    if right is not None:
+        right, _ = execute_line(right, callables, nesting_level,
+                                line_number, visible_variables)
+    if left is not None:
+        left, _ = execute_line(left, callables, nesting_level,
+                               line_number, visible_variables)
 
     if line.operator in [CREATE, ASSIGN]:
         return __execute_var_related_block(Node(line.operator, line_number, right, left),
                                            line_number, nesting_level, visible_variables)
+
+
     if line.operator in [PIPE, RETURN]:
         return __execute_func_related_block([left, line.operator, right],
                                             line_number, nesting_level, visible_variables,
