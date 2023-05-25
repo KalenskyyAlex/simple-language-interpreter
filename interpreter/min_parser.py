@@ -393,7 +393,8 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
     return operated_segment
 
 
-def __create_block_header(line, line_number) -> tuple[Token, Optional[Node]]:
+def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Optional[Node]]:
+    # nest code segment by if/else/while constructions
     operator = line[0]
     if not isinstance(operator, Token):
         raise SyntaxError(f'WRONG BLOCK HEADER AT LINE {line_number}')
