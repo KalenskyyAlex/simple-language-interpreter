@@ -150,8 +150,8 @@ class Block:
     once created, Block SHOULD NOT be changed for purpose of avoiding malfunctioning
     """
     def __init__(self, __operator: Optional[Token], __condition: Optional[Node],
-                 __body: Optional[list[Node | 'Block']], __line_number: int,
-                 next_block: Optional['Block'] = None):
+                 __body: Optional[list[Any]], __line_number: int,
+                 next_block: Optional[Any] = None):
         """
         creates a Block of Nodes
 
