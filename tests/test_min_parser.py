@@ -67,15 +67,16 @@ def test_parse_line_simple_invalid():
     line = [Token('var', 1), CREATE, INT]
     with pytest.raises(SyntaxError):
         parse_line(line, 1)
-def test_parse_line_complex_inputs():
-    line1 = [Token('var', 'num'),
-             ASSIGN,
-             LEFT_BRACKET, Token('int', 1), PLUS, Token('var', 'num2'), MULTIPLY, Token('float', 3.5), RIGHT_BRACKET,
-             DIVIDE,
-             LEFT_BRACKET, Token('int', 3), MODULO, Token('int', 4), RIGHT_BRACKET
-             ]
 
-    expected1 = Node(ASSIGN, 1, Node(
+def test_parse_line_complex_variable_expr():
+    line = [Token('var', 'num'),
+            ASSIGN,
+            LEFT_BRACKET, Token('int', 1), PLUS, Token('var', 'num2'), MULTIPLY, Token('float', 3.5), RIGHT_BRACKET,
+            DIVIDE,
+            LEFT_BRACKET, Token('int', 3), MODULO, Token('int', 4), RIGHT_BRACKET
+            ]
+
+    expected = Node(ASSIGN, 1, Node(
         DIVIDE, 1,
         Node(MODULO, 1, [Token('int', 4)], [Token('int', 3)]),
         Node(PLUS, 1, Node(
@@ -83,7 +84,37 @@ def test_parse_line_complex_inputs():
         ), [Token('int', 1)])
     ), [Token('var', 'num')])
 
-    assert parse_line(line1, 1) == expected1
+    assert parse_line(line, 1) == expected
+
+def test_parse_line_complex_function_expr():
+    line = [Token('fnc', 'out'),
+            PIPE,
+            LEFT_BRACKET, Token('int', 1), MULTIPLY, Token('var', 'num'), RIGHT_BRACKET]
+
+    expected = Node(PIPE, 1, Node(
+        MULTIPLY, 1,
+        [Token('var', 'num')],
+        [Token('int', 1)]
+    ), [Token('fnc', 'out')])
+
+    assert parse_line(line, 1) == expected
+
+def test_parse_line_complex_return_expr():
+    line = [RETURN,
+            LEFT_BRACKET, Token('int', 1), MULTIPLY, Token('var', 'num'), RIGHT_BRACKET,
+            MINUS, Token('int', 5)]
+
+    expected = Node(RETURN, 1, Node(
+        MINUS, 1,
+        [Token('int', 5)],
+        Node(
+            MULTIPLY, 1,
+            [Token('var', 'num')],
+            [Token('int', 1)]
+        )
+    ))
+
+    assert parse_line(line, 1) == expected
 
 # endregion
 

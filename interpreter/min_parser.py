@@ -476,6 +476,8 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
     if line is None or line_number < 1:
         return None
 
+    line = __nest(line, line_number)
+
     if CREATE in line:
         __validate_is_syntax(line, line_number)
         return __create_variable_node(line, line_number)
@@ -487,7 +489,6 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
         return __create_break_node(line_number)
 
     if not line == [END]:
-        line = __nest(line, line_number)
         processed_line = __parse_helper(line, line_number, __parse_by,
                                         [ASSIGN])
         processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
