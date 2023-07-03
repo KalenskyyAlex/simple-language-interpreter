@@ -7,12 +7,10 @@ from interpreter.utils.commons import *  # noqa
 
 # region Testing parse_line
 
-def test_parse_line_dry_run_invalid():
+def test_parse_line_dry_run():
     assert parse_line(None, 1) is None
     assert parse_line([], 0) is None
     assert parse_line([], -1) is None
-    assert True
-
 
 def test_parse_line_simple_inputs():
     line1 = [Token('int', 1), PLUS, Token('int', 2)]
@@ -118,7 +116,81 @@ def test_parse_line_complex_return_expr():
 
 # endregion
 
-# TODO test parse_line
+# region Testing parse
+
+def test_parse_line_dry_run():
+    with pytest.raises(FileNotFoundError):
+        parse(None)
+def test_parse_line_invalid():
+    with pytest.raises(FileNotFoundError):
+        parse('non-existing.file')
+
+def test_parse_valid_file_1():
+    expected = "[" \
+               "{'line': 1, 'left': None, 'operator': 'use', 'right': lib: io}, " \
+               "{'name': 'many_tabs', " \
+               "'args': [" \
+               "{'line': 3, 'left': var: tabs, 'operator': 'is', 'right': typ: int}, " \
+               "{'line': 3, 'left': var: spaces, 'operator': 'is', 'right': typ: float}], " \
+               "'body': [" \
+               "{'line': 4, " \
+               "'left': None, " \
+               "'operator': 'return', " \
+               "'right': {" \
+               "'line': 4, " \
+               "'left': var: tabs, " \
+               "'operator': '+', " \
+               "'right': var: spaces" \
+               "}" \
+               "}" \
+               "], " \
+               "'line': 4}, " \
+               "{'name': 'main', " \
+               "'args': [], " \
+               "'body': [" \
+               "{'line': 7, " \
+               "'left': fnc: out, " \
+               "'operator': '|', " \
+               "'right': {" \
+               "'line': 7, " \
+               "'left': fnc: many_tabs, " \
+               "'operator': '|', " \
+               "'right': {'line': 7, " \
+               "'left': int: 0, " \
+               "'operator': ',', " \
+               "'right': float: 1.0}" \
+               "}" \
+               "}" \
+               "], " \
+               "'line': 7}]"
+
+    assert str(parse('tests/test_scripts/test_1.min')) == expected
+
+def test_parse_valid_file_2():
+    expected = "[" \
+               "{'line': 1, 'left': None, 'operator': 'use', 'right': lib: io}, " \
+               "{'line': 2, 'left': None, 'operator': 'use', 'right': lib: math}, " \
+               "{'name': 'main', " \
+               "'args': [], " \
+               "'body': [" \
+               "{'line': 10, 'left': fnc: out, 'operator': '|', 'right': str: Hello, world}, " \
+               "{'line': 11, 'left': fnc: out, " \
+               "'operator': '|', 'right': str: And tilda(~) can be inside this text}," \
+               " {'line': 12, 'left': fnc: out, 'operator': '|', 'right': " \
+               "{" \
+               "'line': 12, " \
+               "'left': fnc: sqrt, " \
+               "'operator': '|', " \
+               "'right': int: 9}}], " \
+               "'line': 10}]"
+    assert str(parse('tests/test_scripts/test_2.min')) == expected
+
+def test_parse_valid_file_3():
+    expected = "["
+    assert str(parse('tests/test_scripts/test_3.min')) == expected
+
+# endregion
+
 # TODO test __has_nesting
 # TODO test __nest
 # TODO test __operate_separators

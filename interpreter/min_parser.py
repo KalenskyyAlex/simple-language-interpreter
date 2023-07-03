@@ -488,7 +488,7 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
         __validate_break_syntax(line, line_number)
         return __create_break_node(line_number)
 
-    if not line == [END]:
+    if line != [END]:
         processed_line = __parse_helper(line, line_number, __parse_by,
                                         [ASSIGN])
         processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
@@ -539,6 +539,9 @@ def parse(file_name: str) -> list[Function | Node]:
     :param file_name: path to .min file to be processed
     :return: logical tree created
     """
+    if file_name is None:
+        raise FileNotFoundError()
+
     tree: list[Function | Node] = []
     tokens, line_numbers = get_tokens(file_name)
 

@@ -439,8 +439,8 @@ def test_get_tokens_general_1():
 			[Token('kwd', 'end')],
 			[Token('kwd', 'start'), Token('fnc', 'main')],
 			[
-				Token('fnc', 'out'), Token('opr', '|'), Token('opr', '('), Token('fnc', 'many_tabs'),
-				Token('opr', '|'), Token('int', 0), Token('sep', ','), Token('float', 1.0),
+				Token('fnc', 'out'), Token('opr', '|'), Token('fnc', 'many_tabs'),
+				Token('opr', '|'), Token('opr', '('), Token('int', 0), Token('sep', ','), Token('float', 1.0),
 				Token('opr', ')')
 			],
 			[Token('kwd', 'end')]
@@ -564,9 +564,9 @@ def test_print_tokens_general_1():
 		' 6: [kwd: start, fnc: main],\n'                                          \
 		' 7: [fnc: out,\n'                                                        \
 		'     opr: |,\n'                                                          \
-		'     opr: (,\n'                                                          \
 		'     fnc: many_tabs,\n'                                                  \
 		'     opr: |,\n'                                                          \
+		'     opr: (,\n'                                                          \
 		'     int: 0,\n'                                                          \
 		'     sep: ,,\n'                                                          \
 		'     float: 1.0,\n'                                                      \

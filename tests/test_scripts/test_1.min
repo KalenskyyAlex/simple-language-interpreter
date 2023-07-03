@@ -4,6 +4,6 @@
              return    tabs +  spaces
            end
 	start   main
- out |   (many_tabs | 0, 1.0)
+ out | many_tabs | (0, 1.0)
  	end
 
