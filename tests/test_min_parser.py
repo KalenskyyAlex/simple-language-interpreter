@@ -164,7 +164,7 @@ def test_parse_valid_file_1():
                "], " \
                "'line': 7}]"
 
-    assert str(parse('tests/test_scripts/test_1.min')) == expected
+    assert str(parse('./tests/test_scripts/test_1.min')) == expected
 
 def test_parse_valid_file_2():
     expected = "[" \
@@ -183,11 +183,12 @@ def test_parse_valid_file_2():
                "'operator': '|', " \
                "'right': int: 9}}], " \
                "'line': 10}]"
-    assert str(parse('tests/test_scripts/test_2.min')) == expected
+    assert str(parse('./tests/test_scripts/test_2.min')) == expected
 
 def test_parse_valid_file_3():
     expected = "["
-    assert str(parse('tests/test_scripts/test_3.min')) == expected
+    print(parse('./tests/test_scripts/test_3.min'))
+    assert str(parse('./tests/test_scripts/test_3.min')) == expected
 
 # endregion
 

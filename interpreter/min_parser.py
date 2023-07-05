@@ -19,8 +19,8 @@ from .lexer import get_tokens
 from .utils.structures import Token, Node, Function, Block
 from .utils.commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
 from .utils.commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
-from .utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS
-from .utils.commons import WHILE, IF, ELSE, END
+from .utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS, LESS_THAN, MORE_THAN, NO_LESS_THAN
+from .utils.commons import WHILE, IF, ELSE, END, NO_MORE_THAN
 from .utils.commons import TokenList
 
 # endregion
@@ -250,12 +250,8 @@ def __create_return_node(block: TokenList, line_number: int) -> Node:
     if isinstance(right, list) and len(right) == 0:
         right = None
 
-    if isinstance(right, list):
-        right = __parse_helper(right, line_number, __parse_by, [ASSIGN])
-        right = __parse_helper(right, line_number, __parse_calls, [PIPE])
-        right = __parse_helper(right, line_number, __parse_by, [EQUALS])
-        right = __parse_helper(right, line_number, __parse_by, [PLUS, MINUS])
-        right = __parse_helper(right, line_number, __parse_by, [MULTIPLY, DIVIDE, MODULO])
+    if isinstance(right, list) and len(right) > 1:
+        right = parse_line(right, line_number)
 
     return Node(RETURN, line_number, right)
 
@@ -280,7 +276,7 @@ def __has_nesting_raw(line: TokenList) -> bool:
 def __has_nesting_processed(line: TokenList) -> bool:
     # returns True if line has nesting, otherwise False. Is used to check
     # for nesting in already nested line
-    return any(isinstance(token, list) for token in line)
+    return any(isinstance(token, list | Node) for token in line)
 
 
 def __nest(line: TokenList, line_number: int) -> TokenList:
@@ -405,10 +401,10 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
     operator = line[0]
     if not isinstance(operator, Token):
         raise SyntaxError(f'WRONG BLOCK HEADER AT LINE {line_number}')
-    if operator in [WHILE, IF, ELSE]:
+    if operator not in [WHILE, IF, ELSE]:
         raise SyntaxError(f'WRONG OPERATOR IN BLOCK HEADER AT LINE {line_number}')
 
-    condition = parse_line(line[1:], line_number)
+    condition = parse_line(line[1:], line_number) if operator != ELSE else None
 
     return operator, condition
 
@@ -437,27 +433,37 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                 if isinstance(line, list):
                     if WHILE in line or IF in line:
                         nesting_level += 1
-                    elif END in line:
+                    elif END in line or ELSE in line:
                         nesting_level -= 1
 
                 index += 1
                 body.append(line)
 
+            if body[-1][0] in [END, ELSE]:
+                if body[-1][0] == ELSE:
+                    index -= 1
+
+                body = body[:-1]
+
             if nesting_level != 0:
                 raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
 
             nested_body = __nest_blocks(body, line_numbers[start:index])
-            inner_block = Block(operator, condition, nested_body, start - 1)
+            inner_block = Block(operator, condition, nested_body, line_number)
+
             if operator == ELSE:
                 if not isinstance(new_block[-1], Block):
-                    raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE' +
+                    raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE ' +
                                       f'{line_number}')
 
                 new_block[-1].next_block = inner_block
             else:
                 new_block.append(inner_block)
 
-            index += 1
+            continue
+
+        index += 1
+
     return new_block
 
 # endregion
@@ -473,6 +479,9 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
     :param line_number: number of line given for error handling
     :return:
     """
+    if any(kwd in line for kwd in [WHILE, IF, ELSE, END]):
+        return None
+
     if line is None or line_number < 1:
         return None
 
@@ -488,22 +497,19 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
         __validate_break_syntax(line, line_number)
         return __create_break_node(line_number)
 
-    if line != [END]:
-        processed_line = __parse_helper(line, line_number, __parse_by,
-                                        [ASSIGN])
-        processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
-        processed_line = __parse_helper(processed_line, line_number, __parse_by,
-                                        [PLUS, MINUS])
-        processed_line = __parse_helper(processed_line, line_number, __parse_by,
-                                        [MULTIPLY, DIVIDE, MODULO])
+    processed_line = __parse_helper(line, line_number, __parse_by,
+                                    [ASSIGN, EQUALS, LESS_THAN, MORE_THAN,
+                                     NO_LESS_THAN, NO_MORE_THAN])
+    processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
+    processed_line = __parse_helper(processed_line, line_number, __parse_by,
+                                    [PLUS, MINUS])
+    processed_line = __parse_helper(processed_line, line_number, __parse_by,
+                                    [MULTIPLY, DIVIDE, MODULO])
 
-        if isinstance(processed_line, Node):
-            return processed_line
+    if isinstance(processed_line, Node):
+        return processed_line
 
-        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
-
-    return None
-
+    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
 
 def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
     """
@@ -521,10 +527,10 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
 
     for line, line_number in zip(block, line_numbers):
         if isinstance(line, list):
-            if IF in line or \
-                    WHILE in line or \
-                    END in line:
+            if any(kwd in line for kwd in [IF, ELSE, WHILE, END]):
+                body.append(line)
                 continue
+
         processed_line = parse_line(line, line_number)
         if processed_line is not None:
             body.append(processed_line)

@@ -486,8 +486,8 @@ def test_get_tokens_general_3():
 			[Token('kwd', 'else')],
 			[
 				Token('kwd', 'return'), Token('var', 'num'), Token('opr', '*'), Token('opr', '('),
-				Token('fnc', 'factorial'), Token('opr', '|'), Token('var', 'num'), Token('opr', '-'),
-				Token('int', 1), Token('opr', ')')
+				Token('fnc', 'factorial'), Token('opr', '|'), Token('opr', '('), Token('var', 'num'), Token('opr', '-'),
+				Token('int', 1), Token('opr', ')'), Token('opr', ')')
 			],
 			[Token('kwd', 'end')],
 			[Token('kwd', 'end')],
@@ -618,9 +618,11 @@ def test_print_tokens_general_3():
 		'     opr: (,\n'                                                             \
 		'     fnc: factorial,\n'                                                     \
 		'     opr: |,\n'                                                             \
+		'     opr: (,\n'                                                             \
 		'     var: num,\n'                                                           \
 		'     opr: -,\n'                                                             \
 		'     int: 1,\n'                                                             \
+		'     opr: ),\n'                                                             \
 		'     opr: )],\n'                                                            \
 		' 10: [kwd: end],\n'                                                         \
 		' 11: [kwd: end],\n'                                                         \
