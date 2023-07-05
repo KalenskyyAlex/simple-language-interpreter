@@ -439,10 +439,8 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                 index += 1
                 body.append(line)
 
-            if body[-1][0] in [END, ELSE]:
-                if body[-1][0] == ELSE:
-                    index -= 1
-
+            if isinstance(body[-1], list) and body[-1][0] in [END, ELSE]:
+                index -= 1 if body[-1][0] == ELSE else 0
                 body = body[:-1]
 
             if nesting_level != 0:
