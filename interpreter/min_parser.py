@@ -457,9 +457,9 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                                       f'{line_number}')
 
                 new_block[-1].next_block = inner_block
-            else:
-                new_block.append(inner_block)
+                continue
 
+            new_block.append(inner_block)
             continue
 
         index += 1
@@ -567,9 +567,7 @@ def parse(file_name: str) -> list[Function | Node]:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}:' +
                                   ' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
 
-            if IF in line:
-                nested += 1
-            if WHILE in line:
+            if IF in line or WHILE in line:
                 nested += 1
             if END in line:
                 nested -= 1
@@ -588,10 +586,7 @@ def parse(file_name: str) -> list[Function | Node]:
                 nested += 1
                 in_function_body = True
 
-            if IF in line or\
-                    ELSE in line or\
-                    WHILE in line or\
-                    END in line:
+            if any(kwd in line for kwd in [IF, ELSE, WHILE, END]):
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                   'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
 
