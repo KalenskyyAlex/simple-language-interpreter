@@ -186,9 +186,42 @@ def test_parse_valid_file_2():
     assert str(parse('./tests/test_scripts/test_2.min')) == expected
 
 def test_parse_valid_file_3():
-    expected = "["
-    print(parse('./tests/test_scripts/test_3.min'))
+    expected = "[{'line': 3, 'left': None, " \
+               "'operator': 'use', 'right': lib: io}, " \
+               "{'name': 'factorial', 'args': [{'line': 5, " \
+               "'left': var: num, 'operator': 'is', 'right': typ: int}], " \
+               "'body': [{'operator': 'if', 'condition': " \
+               "{'line': 6, 'left': [var: num], 'operator': '==', " \
+               "'right': [int: 0]}, 'body': [{'line': 7, 'left': None, " \
+               "'operator': 'return', 'right': int: 1}]," \
+               " 'next': {'operator': 'else', 'condition': None, " \
+               "'body': [{'line': 9, 'left': None, 'operator': 'return', " \
+               "'right': {'line': 9, 'left': [var: num], 'operator': '*', " \
+               "'right': {'line': 9, 'left': [fnc: factorial], " \
+               "'operator': '|', 'right': {'line': 9, 'left': [var: num], " \
+               "'operator': '-', 'right': [int: 1]}}}}], 'next': None," \
+               " 'line': 8}, 'line': 6}], 'line': 6}, {'name': 'main', " \
+               "'args': [], 'body': [{'line': 14, 'left': fnc: out, " \
+               "'operator': '|', 'right': {'line': 14, 'left': fnc: factorial, " \
+               "'operator': '|', 'right': int: 5}}, {'line': 15, 'left': fnc: out, " \
+               "'operator': '|', 'right': str: \n}], 'line': 14}]"
+
     assert str(parse('./tests/test_scripts/test_3.min')) == expected
+
+def test_parse_valid_file_4():
+    expected = "[{'line': 1, 'left': None, " \
+               "'operator': 'use', 'right': lib: io}, " \
+               "{'name': 'main', 'args': [], 'body': " \
+               "[{'line': 4, 'left': fnc: out, " \
+               "'operator': '|', 'right': str: \n}, " \
+               "{'line': 5, 'left': fnc: out, 'operator': '|', " \
+               "'right': str: \"}, {'line': 6, 'left': " \
+               "fnc: out, 'operator': '|', 'right': str: \\}, " \
+               "{'line': 7, 'left': fnc: out, 'operator': '|', " \
+               "'right': str: \\Hello, \"World!\"\\\n}], 'line': 4}]"
+
+    print(parse('./tests/test_scripts/test_4.min'))
+    assert str(parse('./tests/test_scripts/test_4.min')) == expected
 
 # endregion
 

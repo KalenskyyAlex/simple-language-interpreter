@@ -253,7 +253,7 @@ def test_block_str():
                   [Node(PIPE, 11, Token('fnc', 'out'), Token('str', 'Why?'))], 10, next_block)
 
     assert block.__repr__() == str({
-        'operator': IF,
+        'operator': IF.value,
         'condition': Node(EQUALS, 10, Token('int', 1), Token('int', 2)),
         'body': [Node(PIPE, 11, Token('fnc', 'out'), Token('str', 'Why?'))],
         'next': next_block,
