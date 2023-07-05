@@ -2,8 +2,10 @@
 import pytest
 
 from interpreter.min_interpreter import execute_line
-from interpreter.utils.commons import END, PLUS, MINUS, MULTIPLY, DIVIDE, MODULO, ASSIGN, CREATE, BOOL, INT
-from interpreter.utils.structures import Node, Token
+from interpreter.utils.commons import END, PLUS, MINUS, MULTIPLY, COMMA
+from interpreter.utils.commons import DIVIDE, MODULO, ASSIGN, CREATE
+from interpreter.utils.commons import BOOL, INT, RETURN, PIPE
+from interpreter.utils.structures import Node, Token, Function
 
 
 def test_execute_line_dry_run():
@@ -89,8 +91,21 @@ def test_execute_line_complex_variable_expr():
 
 
 def test_execute_line_complex_function_expr():
-    ...
+    function = Function('add', [
+            Node(CREATE, 1, INT, Token('var', 'a')),
+            Node(CREATE, 1, INT, Token('var', 'b'))
+        ],
+        [
+            Node(RETURN, 1, Node(PLUS, 1, Token('var', 'a'), Token('var', 'b')))
+        ],
+        1
+    )
 
+    callables = {
+        'add': function
+    }
 
-def test_execute_line_complex_return_expr():
-    ...
+    expected1 = Token('int', 10)
+    line1 = Node(PIPE, 1, Node(COMMA, 1, Token('int', 4), Token('int', 6)), Token('fnc', 'add'))
+    result1, _ = execute_line(line1, callables, 0, 1, {})
+    assert expected1 == result1

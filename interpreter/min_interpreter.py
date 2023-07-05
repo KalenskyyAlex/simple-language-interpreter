@@ -64,6 +64,7 @@ def __execute_separator_block(expression: Node,
         args.append(right)
 
     return args, True
+
 def __execute_arithmetical_block(expression: Node,
                                  line_number: int, nesting_level: int,
                                  visible_variables: VariablesList) -> ExecutionResult:
