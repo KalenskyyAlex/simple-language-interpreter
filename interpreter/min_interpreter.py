@@ -316,6 +316,17 @@ def execute_line(line: Node | Token, callables: CallablesList,
     :param visible_variables: pool of variables visible in current nesting level
     :return: (execution_result, function_still_running)
     """
+    if line is None or \
+            callables is None or \
+            nesting_level is None or \
+            line_number is None or \
+            visible_variables is None:
+        raise ValueError('PARAMETERS OF FUNCTION execute_line '
+                         f'CANNOT BE NULL AT LINE {line_number}')
+
+    if line_number < 1 or nesting_level < 0:
+        raise ValueError('NEITHER line_number NOR nesting_level CAN NOT BE NEGATIVE')
+
     # the simplest case
     if isinstance(line, Token):
         return line, True
@@ -333,7 +344,6 @@ def execute_line(line: Node | Token, callables: CallablesList,
     if line.operator in [CREATE, ASSIGN]:
         return __execute_var_related_block(Node(line.operator, line_number, right, left),
                                            line_number, nesting_level, visible_variables)
-
 
     if line.operator in [PIPE, RETURN]:
         return __execute_func_related_block([left, line.operator, right],
