@@ -118,10 +118,10 @@ def test_parse_line_complex_return_expr():
 
 # region Testing parse
 
-def test_parse_line_dry_run():
+def test_parse_dry_run():
     with pytest.raises(FileNotFoundError):
         parse(None)
-def test_parse_line_invalid():
+def test_parse_invalid():
     with pytest.raises(FileNotFoundError):
         parse('non-existing.file')
 
