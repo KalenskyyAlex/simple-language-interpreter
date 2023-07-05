@@ -15,7 +15,7 @@ text in .min file or use as module 'from parser import parse'
 from pprint import pprint
 from typing import Callable, Optional
 
-from .lexer import get_tokens
+from .min_lexer import get_tokens
 from .utils.structures import Token, Node, Function, Block
 from .utils.commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
 from .utils.commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
@@ -477,10 +477,10 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
     :param line_number: number of line given for error handling
     :return:
     """
-    if any(kwd in line for kwd in [WHILE, IF, ELSE, END]):
+    if line is None or line_number < 1:
         return None
 
-    if line is None or line_number < 1:
+    if any(kwd in line for kwd in [WHILE, IF, ELSE, END]):
         return None
 
     line = __nest(line, line_number)

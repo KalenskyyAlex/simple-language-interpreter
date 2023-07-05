@@ -2,7 +2,7 @@
 This module processes raw text given in .min file,
 and divide it on tokens, with recognized types
 
-Run '$python lexer.py' to only create tokens from raw
+Run '$python min_lexer.py' to only create tokens from raw
 text in .min file or use as module 'from lexer import get_tokens'
 """
 

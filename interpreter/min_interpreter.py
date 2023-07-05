@@ -5,7 +5,7 @@ Interpreter does it line by line.
 Interpreter handles runtime errors such as invalid types, missing
 parameters, wrong casting, mathematical errors and so on
 
-Run '$python interpreter.py --help' to see more usage instructions, or use
+Run '$python min_interpreter.py --help' to see more usage instructions, or use
 as module 'from interpreter import execute'
 """
 

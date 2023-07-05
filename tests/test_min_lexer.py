@@ -4,10 +4,10 @@ import contextlib
 
 import pytest
 
-from interpreter.lexer import __is_keyword, __give_type, __give_types_for_tokens
-from interpreter.lexer import __in_string, __is_boolean, __is_float, __is_integer
-from interpreter.lexer import __is_operator, __is_separator, __is_string, __is_type
-from interpreter.lexer import __clear_lines, get_tokens, print_tokens
+from interpreter.min_lexer import __is_keyword, __give_type, __give_types_for_tokens
+from interpreter.min_lexer import __in_string, __is_boolean, __is_float, __is_integer
+from interpreter.min_lexer import __is_operator, __is_separator, __is_string, __is_type
+from interpreter.min_lexer import __clear_lines, get_tokens, print_tokens
 from interpreter.utils.structures import Token
 
 # region Testing is_...() methods

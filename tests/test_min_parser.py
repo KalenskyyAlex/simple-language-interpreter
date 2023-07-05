@@ -121,6 +121,7 @@ def test_parse_line_complex_return_expr():
 def test_parse_dry_run():
     with pytest.raises(FileNotFoundError):
         parse(None)
+
 def test_parse_invalid():
     with pytest.raises(FileNotFoundError):
         parse('non-existing.file')
@@ -224,12 +225,3 @@ def test_parse_valid_file_4():
     assert str(parse('./tests/test_scripts/test_4.min')) == expected
 
 # endregion
-
-# TODO test __has_nesting
-# TODO test __nest
-# TODO test __operate_separators
-# TODO test __parse_calls
-# TODO test __parse_helper
-# TODO test operate_...
-# TODO test parse
-# TODO test print_tree
