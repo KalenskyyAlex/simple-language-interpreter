@@ -19,7 +19,8 @@ from typing import Callable, Optional, Any
 
 from .min_parser import parse
 from .utils.structures import Token, Node, Function
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, MORE_THAN, LESS_THAN, \
+    NO_MORE_THAN, NO_LESS_THAN
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
 
@@ -104,6 +105,36 @@ def __execute_arithmetical_block(expression: Node,
 
     new_type = 'int' if int(result) == result else 'float'
     return Token(new_type, result), True
+
+def __execute_logical_block(expression: Node,
+                            line_number: int, nesting_level: int,
+                            visible_variables: VariablesList) -> ExecutionResult:
+    # executes processed [operand] [operation] [operand]-like block of code
+    # if none of known operators present raises a runtime error
+    # if any of types doesn't match raises a runtime error
+    left: Token = expression.left
+    right: Token = expression.right
+    operator: Token = expression.operator
+
+    left = __unpack_var(left, line_number, nesting_level, visible_variables)
+    right = __unpack_var(right, line_number, nesting_level, visible_variables)
+
+    result: bool = False
+    try:
+        if operator == EQUALS:
+            result = left.value == right.value
+        elif operator == MORE_THAN:
+            result = left.value > right.value
+        elif operator == LESS_THAN:
+            result = left.value < right.value
+        elif operator == NO_MORE_THAN:
+            result = left.value <= right.value
+        elif operator == NO_LESS_THAN:
+            result = left.value >= right.value
+    except TypeError:
+        raise TypeError(f'{left.type} AND {right.type} CAN NOT BE COMPARED')
+
+    return Token('bool', result), True
 
 def __execute_var_related_block(expression: Node,
                                 line_number: int, nesting_level: int,
