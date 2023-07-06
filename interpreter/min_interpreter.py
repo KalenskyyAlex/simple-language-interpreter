@@ -19,8 +19,8 @@ from typing import Callable, Optional, Any
 
 from .min_parser import parse
 from .utils.structures import Token, Node, Function
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, MORE_THAN, LESS_THAN, \
-    NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS
+from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
 
@@ -133,8 +133,8 @@ def __execute_logical_block(expression: Node,
             result = left.value >= right.value  # type: ignore
         elif operator == NOT_EQUALS:
             result = left.value != right.value  # type: ignore
-    except TypeError:
-        raise TypeError(f'{left.type} AND {right.type} CAN NOT BE COMPARED')
+    except TypeError as error:
+        raise TypeError(f'{left.type} AND {right.type} CAN NOT BE COMPARED') from error
 
     return Token('bool', result), True
 
