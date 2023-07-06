@@ -175,7 +175,7 @@ def __execute_var_related_block(expression: Node,
         right = __unpack_var(right, line_number, nesting_level, visible_variables)
 
         # type check
-        if right.type == type_:
+        if right.type == type_ or right.type == 'int' and type_ == 'float':
             visible_variables[nesting_level][var_name] = right
             return None, True
 

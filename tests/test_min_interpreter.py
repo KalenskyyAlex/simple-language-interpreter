@@ -1,7 +1,7 @@
 # pylint: skip-file
 import pytest
 
-from interpreter.min_interpreter import execute_line
+from interpreter.min_interpreter import execute_line, execute
 from interpreter.utils.commons import END, PLUS, MINUS, MULTIPLY, COMMA, EQUALS, NOT_EQUALS, MORE_THAN, LESS_THAN, \
     NO_MORE_THAN, NO_LESS_THAN
 from interpreter.utils.commons import DIVIDE, MODULO, ASSIGN, CREATE
@@ -142,3 +142,19 @@ def test_execute_line_complex_function_expr():
     line1 = Node(PIPE, 1, Node(COMMA, 1, Token('int', 4), Token('int', 6)), Token('fnc', 'add'))
     result1, _ = execute_line(line1, callables, 0, 1, {})
     assert expected1 == result1
+
+
+def test_execute_general_1():
+    execute('./tests/test_scripts/test_1.min')  # TODO
+
+
+def test_execute_general_2():
+    execute('./tests/test_scripts/test_2.min')  # TODO
+
+
+def test_execute_general_3():
+    # execute('./tests/test_scripts/test_3.min')  # TODO
+    pass
+
+def test_execute_general_4():
+    execute('./tests/test_scripts/test_4.min')  # TODO
