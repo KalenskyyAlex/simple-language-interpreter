@@ -122,17 +122,17 @@ def __execute_logical_block(expression: Node,
     result: bool = False
     try:
         if operator == EQUALS:
-            result = left.value == right.value
+            result = left.value == right.value  # type: ignore
         elif operator == MORE_THAN:
-            result = left.value > right.value
+            result = left.value > right.value  # type: ignore
         elif operator == LESS_THAN:
-            result = left.value < right.value
+            result = left.value < right.value  # type: ignore
         elif operator == NO_MORE_THAN:
-            result = left.value <= right.value
+            result = left.value <= right.value  # type: ignore
         elif operator == NO_LESS_THAN:
-            result = left.value >= right.value
+            result = left.value >= right.value  # type: ignore
         elif operator == NOT_EQUALS:
-            result = left.value != right.value
+            result = left.value != right.value  # type: ignore
     except TypeError:
         raise TypeError(f'{left.type} AND {right.type} CAN NOT BE COMPARED')
 
@@ -163,7 +163,7 @@ def __execute_var_related_block(expression: Node,
             elif right.value == 'bool':
                 visible_variables[nesting_level][left.value] = Token('bool', False)
             else:
-                visible_variables[nesting_level][left.value] = Token(right.value, 0)
+                visible_variables[nesting_level][left.value] = Token(str(right.value), 0)
 
             return None, True
 
@@ -196,7 +196,7 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
                            f'AT LINE {line_number}')
 
     left: Token = expression[0]
-    right: list[Token] = expression[2]
+    right: list[Token] | Token = expression[2]
     operator: Token = expression[1]
 
     if operator == PIPE:
@@ -224,7 +224,7 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
             return_, _ = execute_line(right, callables, nesting_level,
                                       line_number, visible_variables)
 
-        if isinstance(right, Token):
+        if isinstance(return_, Token):
             return return_, False
 
         raise RuntimeError(f'NOT PROCESSABLE RETURN AT LINE {line_number}')
