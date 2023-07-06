@@ -7,12 +7,10 @@ from interpreter.utils.commons import *  # noqa
 
 # region Testing parse_line
 
-def test_parse_line_dry_run_invalid():
+def test_parse_line_dry_run():
     assert parse_line(None, 1) is None
     assert parse_line([], 0) is None
     assert parse_line([], -1) is None
-    assert True
-
 
 def test_parse_line_simple_inputs():
     line1 = [Token('int', 1), PLUS, Token('int', 2)]
@@ -67,15 +65,16 @@ def test_parse_line_simple_invalid():
     line = [Token('var', 1), CREATE, INT]
     with pytest.raises(SyntaxError):
         parse_line(line, 1)
-def test_parse_line_complex_inputs():
-    line1 = [Token('var', 'num'),
-             ASSIGN,
-             LEFT_BRACKET, Token('int', 1), PLUS, Token('var', 'num2'), MULTIPLY, Token('float', 3.5), RIGHT_BRACKET,
-             DIVIDE,
-             LEFT_BRACKET, Token('int', 3), MODULO, Token('int', 4), RIGHT_BRACKET
-             ]
 
-    expected1 = Node(ASSIGN, 1, Node(
+def test_parse_line_complex_variable_expr():
+    line = [Token('var', 'num'),
+            ASSIGN,
+            LEFT_BRACKET, Token('int', 1), PLUS, Token('var', 'num2'), MULTIPLY, Token('float', 3.5), RIGHT_BRACKET,
+            DIVIDE,
+            LEFT_BRACKET, Token('int', 3), MODULO, Token('int', 4), RIGHT_BRACKET
+            ]
+
+    expected = Node(ASSIGN, 1, Node(
         DIVIDE, 1,
         Node(MODULO, 1, [Token('int', 4)], [Token('int', 3)]),
         Node(PLUS, 1, Node(
@@ -83,16 +82,146 @@ def test_parse_line_complex_inputs():
         ), [Token('int', 1)])
     ), [Token('var', 'num')])
 
-    assert parse_line(line1, 1) == expected1
+    assert parse_line(line, 1) == expected
+
+def test_parse_line_complex_function_expr():
+    line = [Token('fnc', 'out'),
+            PIPE,
+            LEFT_BRACKET, Token('int', 1), MULTIPLY, Token('var', 'num'), RIGHT_BRACKET]
+
+    expected = Node(PIPE, 1, Node(
+        MULTIPLY, 1,
+        [Token('var', 'num')],
+        [Token('int', 1)]
+    ), [Token('fnc', 'out')])
+
+    assert parse_line(line, 1) == expected
+
+def test_parse_line_complex_return_expr():
+    line = [RETURN,
+            LEFT_BRACKET, Token('int', 1), MULTIPLY, Token('var', 'num'), RIGHT_BRACKET,
+            MINUS, Token('int', 5)]
+
+    expected = Node(RETURN, 1, Node(
+        MINUS, 1,
+        [Token('int', 5)],
+        Node(
+            MULTIPLY, 1,
+            [Token('var', 'num')],
+            [Token('int', 1)]
+        )
+    ))
+
+    assert parse_line(line, 1) == expected
 
 # endregion
 
-# TODO test parse_line
-# TODO test __has_nesting
-# TODO test __nest
-# TODO test __operate_separators
-# TODO test __parse_calls
-# TODO test __parse_helper
-# TODO test operate_...
-# TODO test parse
-# TODO test print_tree
+# region Testing parse
+
+def test_parse_dry_run():
+    with pytest.raises(FileNotFoundError):
+        parse(None)
+
+def test_parse_invalid():
+    with pytest.raises(FileNotFoundError):
+        parse('non-existing.file')
+
+def test_parse_valid_file_1():
+    expected = "[" \
+               "{'line': 1, 'left': None, 'operator': 'use', 'right': lib: io}, " \
+               "{'name': 'many_tabs', " \
+               "'args': [" \
+               "{'line': 3, 'left': var: tabs, 'operator': 'is', 'right': typ: int}, " \
+               "{'line': 3, 'left': var: spaces, 'operator': 'is', 'right': typ: float}], " \
+               "'body': [" \
+               "{'line': 4, " \
+               "'left': None, " \
+               "'operator': 'return', " \
+               "'right': {" \
+               "'line': 4, " \
+               "'left': var: tabs, " \
+               "'operator': '+', " \
+               "'right': var: spaces" \
+               "}" \
+               "}" \
+               "], " \
+               "'line': 4}, " \
+               "{'name': 'main', " \
+               "'args': [], " \
+               "'body': [" \
+               "{'line': 7, " \
+               "'left': fnc: out, " \
+               "'operator': '|', " \
+               "'right': {" \
+               "'line': 7, " \
+               "'left': fnc: many_tabs, " \
+               "'operator': '|', " \
+               "'right': {'line': 7, " \
+               "'left': int: 0, " \
+               "'operator': ',', " \
+               "'right': float: 1.0}" \
+               "}" \
+               "}" \
+               "], " \
+               "'line': 7}]"
+
+    assert str(parse('./tests/test_scripts/test_1.min')) == expected
+
+def test_parse_valid_file_2():
+    expected = "[" \
+               "{'line': 1, 'left': None, 'operator': 'use', 'right': lib: io}, " \
+               "{'line': 2, 'left': None, 'operator': 'use', 'right': lib: math}, " \
+               "{'name': 'main', " \
+               "'args': [], " \
+               "'body': [" \
+               "{'line': 10, 'left': fnc: out, 'operator': '|', 'right': str: Hello, world}, " \
+               "{'line': 11, 'left': fnc: out, " \
+               "'operator': '|', 'right': str: And tilda(~) can be inside this text}," \
+               " {'line': 12, 'left': fnc: out, 'operator': '|', 'right': " \
+               "{" \
+               "'line': 12, " \
+               "'left': fnc: sqrt, " \
+               "'operator': '|', " \
+               "'right': int: 9}}], " \
+               "'line': 10}]"
+    assert str(parse('./tests/test_scripts/test_2.min')) == expected
+
+def test_parse_valid_file_3():
+    expected = "[{'line': 3, 'left': None, " \
+               "'operator': 'use', 'right': lib: io}, " \
+               "{'name': 'factorial', 'args': [{'line': 5, " \
+               "'left': var: num, 'operator': 'is', 'right': typ: int}], " \
+               "'body': [{'operator': 'if', 'condition': " \
+               "{'line': 6, 'left': var: num, 'operator': '==', " \
+               "'right': int: 0}, 'body': [{'line': 7, 'left': None, " \
+               "'operator': 'return', 'right': int: 1}]," \
+               " 'next': {'operator': 'else', 'condition': None, " \
+               "'body': [{'line': 9, 'left': None, 'operator': 'return', " \
+               "'right': {'line': 9, 'left': var: num, 'operator': '*', " \
+               "'right': {'line': 9, 'left': fnc: factorial, " \
+               "'operator': '|', 'right': {'line': 9, 'left': var: num, " \
+               "'operator': '-', 'right': int: 1}}}}], 'next': None," \
+               " 'line': 8}, 'line': 6}], 'line': 6}, {'name': 'main', " \
+               "'args': [], 'body': [{'line': 14, 'left': fnc: out, " \
+               "'operator': '|', 'right': {'line': 14, 'left': fnc: factorial, " \
+               "'operator': '|', 'right': int: 5}}, {'line': 15, 'left': fnc: out, " \
+               "'operator': '|', 'right': str: \n}], 'line': 14}]"
+
+    assert str(parse('./tests/test_scripts/test_3.min')) == expected
+
+def test_parse_valid_file_4():
+    expected = "[{'line': 1, 'left': None, " \
+               "'operator': 'use', 'right': lib: io}, " \
+               "{'name': 'main', 'args': [], 'body': " \
+               "[{'line': 4, 'left': fnc: out, " \
+               "'operator': '|', 'right': str: \n}, " \
+               "{'line': 5, 'left': fnc: out, 'operator': '|', " \
+               "'right': str: \"}, {'line': 6, 'left': " \
+               "fnc: out, 'operator': '|', 'right': str: \\}, " \
+               "{'line': 7, 'left': fnc: out, 'operator': '|', " \
+               "'right': str: \\Hello, \"World!\"\\\n}], 'line': 4}]"
+
+    print(parse('./tests/test_scripts/test_4.min'))
+    assert str(parse('./tests/test_scripts/test_4.min')) == expected
+
+# endregion

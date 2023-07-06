@@ -1,4 +1,5 @@
 use io
+use math
 
 start print_num | num is int
     out | "The number is: "
@@ -36,4 +37,9 @@ start main
     index1 = sum | index2, 3
 
     print_num | index1
+
+    root is float
+    root = sqrt | 9
+    out | root
+    out | "\n"
 end

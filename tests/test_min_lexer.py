@@ -4,10 +4,10 @@ import contextlib
 
 import pytest
 
-from interpreter.lexer import __is_keyword, __give_type, __give_types_for_tokens
-from interpreter.lexer import __in_string, __is_boolean, __is_float, __is_integer
-from interpreter.lexer import __is_operator, __is_separator, __is_string, __is_type
-from interpreter.lexer import __clear_lines, get_tokens, print_tokens
+from interpreter.min_lexer import __is_keyword, __give_type, __give_types_for_tokens
+from interpreter.min_lexer import __in_string, __is_boolean, __is_float, __is_integer
+from interpreter.min_lexer import __is_operator, __is_separator, __is_string, __is_type
+from interpreter.min_lexer import __clear_lines, get_tokens, print_tokens
 from interpreter.utils.structures import Token
 
 # region Testing is_...() methods
@@ -439,8 +439,8 @@ def test_get_tokens_general_1():
 			[Token('kwd', 'end')],
 			[Token('kwd', 'start'), Token('fnc', 'main')],
 			[
-				Token('fnc', 'out'), Token('opr', '|'), Token('opr', '('), Token('fnc', 'many_tabs'),
-				Token('opr', '|'), Token('int', 0), Token('sep', ','), Token('float', 1.0),
+				Token('fnc', 'out'), Token('opr', '|'), Token('fnc', 'many_tabs'),
+				Token('opr', '|'), Token('opr', '('), Token('int', 0), Token('sep', ','), Token('float', 1.0),
 				Token('opr', ')')
 			],
 			[Token('kwd', 'end')]
@@ -486,8 +486,8 @@ def test_get_tokens_general_3():
 			[Token('kwd', 'else')],
 			[
 				Token('kwd', 'return'), Token('var', 'num'), Token('opr', '*'), Token('opr', '('),
-				Token('fnc', 'factorial'), Token('opr', '|'), Token('var', 'num'), Token('opr', '-'),
-				Token('int', 1), Token('opr', ')')
+				Token('fnc', 'factorial'), Token('opr', '|'), Token('opr', '('), Token('var', 'num'), Token('opr', '-'),
+				Token('int', 1), Token('opr', ')'), Token('opr', ')')
 			],
 			[Token('kwd', 'end')],
 			[Token('kwd', 'end')],
@@ -564,9 +564,9 @@ def test_print_tokens_general_1():
 		' 6: [kwd: start, fnc: main],\n'                                          \
 		' 7: [fnc: out,\n'                                                        \
 		'     opr: |,\n'                                                          \
-		'     opr: (,\n'                                                          \
 		'     fnc: many_tabs,\n'                                                  \
 		'     opr: |,\n'                                                          \
+		'     opr: (,\n'                                                          \
 		'     int: 0,\n'                                                          \
 		'     sep: ,,\n'                                                          \
 		'     float: 1.0,\n'                                                      \
@@ -618,9 +618,11 @@ def test_print_tokens_general_3():
 		'     opr: (,\n'                                                             \
 		'     fnc: factorial,\n'                                                     \
 		'     opr: |,\n'                                                             \
+		'     opr: (,\n'                                                             \
 		'     var: num,\n'                                                           \
 		'     opr: -,\n'                                                             \
 		'     int: 1,\n'                                                             \
+		'     opr: ),\n'                                                             \
 		'     opr: )],\n'                                                            \
 		' 10: [kwd: end],\n'                                                         \
 		' 11: [kwd: end],\n'                                                         \

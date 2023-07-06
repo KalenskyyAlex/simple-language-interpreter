@@ -227,7 +227,7 @@ class Block:
         return self.__line_number
 
     def __str__(self) -> str:
-        return {'operator': self.__operator,
+        return {'operator': self.__operator.value,
                 'condition': self.__condition,
                 'body': self.__body,
                 'next': self.next_block,

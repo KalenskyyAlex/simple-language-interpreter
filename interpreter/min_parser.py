@@ -15,12 +15,12 @@ text in .min file or use as module 'from parser import parse'
 from pprint import pprint
 from typing import Callable, Optional
 
-from .lexer import get_tokens
+from .min_lexer import get_tokens
 from .utils.structures import Token, Node, Function, Block
 from .utils.commons import TOKEN_TYPES, USE, START, PIPE, CREATE, COMMA, RETURN, BREAK
 from .utils.commons import ASSIGN, PLUS, MINUS, DIVIDE, MODULO, MULTIPLY
-from .utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS
-from .utils.commons import WHILE, IF, ELSE, END
+from .utils.commons import LEFT_BRACKET, RIGHT_BRACKET, EQUALS, LESS_THAN, MORE_THAN, NO_LESS_THAN
+from .utils.commons import WHILE, IF, ELSE, END, NO_MORE_THAN
 from .utils.commons import TokenList
 
 # endregion
@@ -93,10 +93,14 @@ def __extract_inlist_tokens_from_block(block: Block) -> Block:
     lines_count = len(block.body)
     for index in range(lines_count):
         line = block.body[index]
+
         if isinstance(line, Node):
             block.body[index] = __extract_inlist_tokens_from_node(line)
         elif isinstance(line, Block):
             block.body[index] = __extract_inlist_tokens_from_block(line)
+
+    if block.next_block:
+        block.next_block = __extract_inlist_tokens_from_block(block.next_block)
 
     return block
 
@@ -250,12 +254,8 @@ def __create_return_node(block: TokenList, line_number: int) -> Node:
     if isinstance(right, list) and len(right) == 0:
         right = None
 
-    if isinstance(right, list):
-        right = __parse_helper(right, line_number, __parse_by, [ASSIGN])
-        right = __parse_helper(right, line_number, __parse_calls, [PIPE])
-        right = __parse_helper(right, line_number, __parse_by, [EQUALS])
-        right = __parse_helper(right, line_number, __parse_by, [PLUS, MINUS])
-        right = __parse_helper(right, line_number, __parse_by, [MULTIPLY, DIVIDE, MODULO])
+    if isinstance(right, list) and len(right) > 1:
+        right = parse_line(right, line_number)
 
     return Node(RETURN, line_number, right)
 
@@ -280,7 +280,7 @@ def __has_nesting_raw(line: TokenList) -> bool:
 def __has_nesting_processed(line: TokenList) -> bool:
     # returns True if line has nesting, otherwise False. Is used to check
     # for nesting in already nested line
-    return any(isinstance(token, list) for token in line)
+    return any(isinstance(token, list | Node) for token in line)
 
 
 def __nest(line: TokenList, line_number: int) -> TokenList:
@@ -337,9 +337,9 @@ def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) ->
         elif token in operators:
             left = __parse_calls(operated_segment[:index], [PIPE], line_number)
 
-            right = __parse_by(operated_segment[index + 1:], [COMMA], line_number)
+            right = __parse_helper(operated_segment[index + 1:], line_number, __parse_by, [COMMA])
             if not isinstance(right, Token):
-                right = __parse_calls(right, [PIPE], line_number)
+                right = __parse_helper(right, line_number, __parse_calls, [PIPE])
 
             operated_segment = [Node(token, line_number, right, left)]
             break
@@ -382,8 +382,15 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
             token = __parse_helper(token, line_number, __parse_by, operators)
         elif token in operators:
             left = __parse_helper(operated_segment[:index], line_number, __parse_by, operators)
+            if not left:
+                if token in [PLUS, MINUS]:
+                    left = [Token('int', 0)]
+                else:
+                    raise SyntaxError(f'MISSING OPERAND BEFORE {token.value} AT LINE {line_number}')
 
             right = __parse_helper(operated_segment[index + 1:], line_number, __parse_by, operators)
+            if not right:
+                raise SyntaxError(f'MISSING OPERAND AFTER {token.value} AT LINE {line_number}')
 
             operated_segment = [Node(token, line_number, right, left)]
             break
@@ -393,14 +400,18 @@ def __parse_by(segment: TokenList, operators: TokenList, line_number: int) -> To
     return operated_segment
 
 
-def __create_block_header(line, line_number) -> tuple[Token, Optional[Node]]:
+def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Optional[Node]]:
+    # nest code segment by if/else/while constructions
     operator = line[0]
     if not isinstance(operator, Token):
         raise SyntaxError(f'WRONG BLOCK HEADER AT LINE {line_number}')
-    if operator in [WHILE, IF, ELSE]:
+    if operator not in [WHILE, IF, ELSE]:
         raise SyntaxError(f'WRONG OPERATOR IN BLOCK HEADER AT LINE {line_number}')
 
-    condition = parse_line(line[1:], line_number)
+    condition = parse_line(line[1:], line_number) if operator != ELSE else None
+
+    if condition:
+        condition = __extract_inlist_tokens_from_node(condition)
 
     return operator, condition
 
@@ -415,6 +426,7 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
         line_number = line_numbers[index]
         if isinstance(line, Node):
             new_block.append(line)
+            index += 1
             continue
 
         if any(keyword in line for keyword in [WHILE, IF, ELSE]):
@@ -428,25 +440,32 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                 if isinstance(line, list):
                     if WHILE in line or IF in line:
                         nesting_level += 1
-                    elif END in line:
+                    elif END in line or ELSE in line:
                         nesting_level -= 1
 
                 index += 1
                 body.append(line)
 
+            if isinstance(body[-1], list) and body[-1][0] in [END, ELSE]:
+                index -= 1 if body[-1][0] == ELSE else 0
+                body = body[:-1]
+
             if nesting_level != 0:
                 raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
 
             nested_body = __nest_blocks(body, line_numbers[start:index])
-            inner_block = Block(operator, condition, nested_body, start - 1)
+            inner_block = Block(operator, condition, nested_body, line_number)
+
             if operator == ELSE:
                 if not isinstance(new_block[-1], Block):
-                    raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE' +
+                    raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE ' +
                                       f'{line_number}')
 
                 new_block[-1].next_block = inner_block
-            else:
-                new_block.append(inner_block)
+                continue
+
+            new_block.append(inner_block)
+            continue
 
         index += 1
 
@@ -468,6 +487,11 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
     if line is None or line_number < 1:
         return None
 
+    if any(kwd in line for kwd in [WHILE, IF, ELSE, END]):
+        return None
+
+    line = __nest(line, line_number)
+
     if CREATE in line:
         __validate_is_syntax(line, line_number)
         return __create_variable_node(line, line_number)
@@ -478,23 +502,19 @@ def parse_line(line: TokenList, line_number: int) -> Optional[Node]:
         __validate_break_syntax(line, line_number)
         return __create_break_node(line_number)
 
-    if not line == [END]:
-        line = __nest(line, line_number)
-        processed_line = __parse_helper(line, line_number, __parse_by,
-                                        [ASSIGN])
-        processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
-        processed_line = __parse_helper(processed_line, line_number, __parse_by,
-                                        [PLUS, MINUS])
-        processed_line = __parse_helper(processed_line, line_number, __parse_by,
-                                        [MULTIPLY, DIVIDE, MODULO])
+    processed_line = __parse_helper(line, line_number, __parse_by,
+                                    [ASSIGN, EQUALS, LESS_THAN, MORE_THAN,
+                                     NO_LESS_THAN, NO_MORE_THAN])
+    processed_line = __parse_helper(processed_line, line_number, __parse_calls, [PIPE])
+    processed_line = __parse_helper(processed_line, line_number, __parse_by,
+                                    [PLUS, MINUS])
+    processed_line = __parse_helper(processed_line, line_number, __parse_by,
+                                    [MULTIPLY, DIVIDE, MODULO])
 
-        if isinstance(processed_line, Node):
-            return processed_line
+    if isinstance(processed_line, Node):
+        return processed_line
 
-        raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
-
-    return None
-
+    raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: FAILED TO OPERATE LINE')
 
 def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
     """
@@ -512,9 +532,8 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
 
     for line, line_number in zip(block, line_numbers):
         if isinstance(line, list):
-            if IF in line or \
-                    WHILE in line or \
-                    END in line:
+            if any(kwd in line for kwd in [IF, ELSE, WHILE, END]):
+                body.append(line)
                 continue
 
         processed_line = parse_line(line, line_number)
@@ -522,7 +541,6 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
             body.append(processed_line)
 
     nested_body: list[Node | Block] = __nest_blocks(body, line_numbers)
-
     return Function(name, args, nested_body, line_numbers[0])
 
 
@@ -532,6 +550,9 @@ def parse(file_name: str) -> list[Function | Node]:
     :param file_name: path to .min file to be processed
     :return: logical tree created
     """
+    if file_name is None:
+        raise FileNotFoundError()
+
     tree: list[Function | Node] = []
     tokens, line_numbers = get_tokens(file_name)
 
@@ -543,7 +564,6 @@ def parse(file_name: str) -> list[Function | Node]:
 
     tokens_count = len(tokens)
     for index in range(tokens_count):
-
         line = tokens[index]
         line_number = line_numbers[index]
 
@@ -552,9 +572,7 @@ def parse(file_name: str) -> list[Function | Node]:
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}:' +
                                   ' CAN NOT ASSIGN FUNCTION IN FUNCTION\'S BODY')
 
-            if IF in line:
-                nested += 1
-            if WHILE in line:
+            if IF in line or WHILE in line:
                 nested += 1
             if END in line:
                 nested -= 1
@@ -573,17 +591,14 @@ def parse(file_name: str) -> list[Function | Node]:
                 nested += 1
                 in_function_body = True
 
-            if IF in line or\
-                    ELSE in line or\
-                    WHILE in line or\
-                    END in line:
+            if any(kwd in line for kwd in [IF, ELSE, WHILE, END]):
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +
                                   'CAN NOT USE KEYWORD OUTSIDE OF FUNCTION\'S BODY')
 
         if nested == 0 and in_function_body:
             in_function_body = False
 
-            function = parse_function(body, line_numbers)
+            function = parse_function(body, body_line_numbers)
 
             if not isinstance(function, Function):
                 raise SyntaxError(f'INVALID SYNTAX AT LINE {line_number}: ' +

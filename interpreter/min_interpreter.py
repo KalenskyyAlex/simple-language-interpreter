@@ -5,7 +5,7 @@ Interpreter does it line by line.
 Interpreter handles runtime errors such as invalid types, missing
 parameters, wrong casting, mathematical errors and so on
 
-Run '$python interpreter.py --help' to see more usage instructions, or use
+Run '$python min_interpreter.py --help' to see more usage instructions, or use
 as module 'from interpreter import execute'
 """
 
@@ -19,7 +19,8 @@ from typing import Callable, Optional, Any
 
 from .min_parser import parse
 from .utils.structures import Token, Node, Function
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS
+from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
 
@@ -33,7 +34,7 @@ def __unpack_var(token: Token, line_number: int, nesting_level: int,
     if token.type == 'var':
         found = False
 
-        for index in range(nesting_level):
+        for index in range(nesting_level + 1):
             if token.value in visible_variables[index].keys():
                 token = visible_variables[index][token.value]
                 found = True
@@ -64,6 +65,7 @@ def __execute_separator_block(expression: Node,
         args.append(right)
 
     return args, True
+
 def __execute_arithmetical_block(expression: Node,
                                  line_number: int, nesting_level: int,
                                  visible_variables: VariablesList) -> ExecutionResult:
@@ -104,6 +106,38 @@ def __execute_arithmetical_block(expression: Node,
     new_type = 'int' if int(result) == result else 'float'
     return Token(new_type, result), True
 
+def __execute_logical_block(expression: Node,
+                            line_number: int, nesting_level: int,
+                            visible_variables: VariablesList) -> ExecutionResult:
+    # executes processed [operand] [operation] [operand]-like block of code
+    # if none of known operators present raises a runtime error
+    # if any of types doesn't match raises a runtime error
+    left: Token = expression.left
+    right: Token = expression.right
+    operator: Token = expression.operator
+
+    left = __unpack_var(left, line_number, nesting_level, visible_variables)
+    right = __unpack_var(right, line_number, nesting_level, visible_variables)
+
+    result: bool = False
+    try:
+        if operator == EQUALS:
+            result = left.value == right.value  # type: ignore
+        elif operator == MORE_THAN:
+            result = left.value > right.value  # type: ignore
+        elif operator == LESS_THAN:
+            result = left.value < right.value  # type: ignore
+        elif operator == NO_MORE_THAN:
+            result = left.value <= right.value  # type: ignore
+        elif operator == NO_LESS_THAN:
+            result = left.value >= right.value  # type: ignore
+        elif operator == NOT_EQUALS:
+            result = left.value != right.value  # type: ignore
+    except TypeError as error:
+        raise TypeError(f'{left.type} AND {right.type} CAN NOT BE COMPARED') from error
+
+    return Token('bool', result), True
+
 def __execute_var_related_block(expression: Node,
                                 line_number: int, nesting_level: int,
                                 visible_variables: VariablesList) -> ExecutionResult:
@@ -129,7 +163,7 @@ def __execute_var_related_block(expression: Node,
             elif right.value == 'bool':
                 visible_variables[nesting_level][left.value] = Token('bool', False)
             else:
-                visible_variables[nesting_level][left.value] = Token(right.type, 0)
+                visible_variables[nesting_level][left.value] = Token(str(right.value), 0)
 
             return None, True
 
@@ -137,12 +171,11 @@ def __execute_var_related_block(expression: Node,
                            'WRONG IS OPERATOR USAGE')
     if operator == ASSIGN:
         var_name = left.value
-        type_ = visible_variables[nesting_level][var_name][1]
-
+        type_ = visible_variables[nesting_level][var_name].type
         right = __unpack_var(right, line_number, nesting_level, visible_variables)
 
         # type check
-        if right.type == type_:
+        if right.type == type_ or right.type == 'int' and type_ == 'float':
             visible_variables[nesting_level][var_name] = right
             return None, True
 
@@ -156,19 +189,24 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
                                  visible_variables: VariablesList,
                                  callables: CallablesList) -> ExecutionResult:
     # executes operations function calling, function returning
-    if not isinstance(expression[0], Token) or \
-            not isinstance(expression[2], list) or \
-            not isinstance(expression[1], Token):
-        raise RuntimeError('FAILED TO USE PIPE OPERATOR ON WRONG OPERANDS' +
+    if not isinstance(expression[0], Token | type(None)) or \
+            not isinstance(expression[2], list | Token) or \
+            not isinstance(expression[1], Token | type(None)):
+        raise RuntimeError('FAILED TO USE PIPE OPERATOR ON WRONG OPERANDS ' +
                            f'AT LINE {line_number}')
 
     left: Token = expression[0]
-    right: list[Token] = expression[2]
+    right: list[Token] | Token = expression[2]
     operator: Token = expression[1]
 
     if operator == PIPE:
+        right = expression[2] if isinstance(expression[2], list) else[expression[2]]
         if left.value in callables.keys():
             if isinstance(left.value, str) and isinstance(right, list):
+                right = [execute_line(arg, callables, nesting_level, line_number,
+                                      visible_variables)[0] for arg in right]
+                right = [__unpack_var(arg, line_number, nesting_level, visible_variables)
+                         for arg in right]
                 return execute_function(left.value, callables, right), True
 
             raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +
@@ -176,14 +214,17 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
 
         raise RuntimeError(f'COMPILATION ERROR AT LINE {line_number}: FUNCTION {left.value} ' +
                            'IS NOT FOUND')
+
     if operator == RETURN:
         if right is None:
             return None, False
 
-        if isinstance(right, dict):
+        return_ = right
+        if isinstance(right, Node):
             return_, _ = execute_line(right, callables, nesting_level,
                                       line_number, visible_variables)
 
+        if isinstance(return_, Token):
             return return_, False
 
         raise RuntimeError(f'NOT PROCESSABLE RETURN AT LINE {line_number}')
@@ -239,9 +280,8 @@ def __execute_min_function(function_name: str, function: Function, args: list,
 
     args_count = len(function.args)
     for index in range(args_count):
-        arg = function.args[index]
+        arg: Node = function.args[index]
         execute_line(arg, callables, 0, function.line_number, visible_variables)
-
         visible_variables[0][function.args[index].left.value] = args[index]
 
     args_needed: list[str] = list(map(lambda argument: argument.right.value, function.args))
@@ -272,8 +312,8 @@ def __find_callables(tree: list[Function | Node]) -> CallablesList:
             callables[block.name] = block
         elif isinstance(block, Node) and block.operator == USE:
             root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-            path = root_directory + '/libraries/' + block.right + '.py'
-            spec = importlib.util.spec_from_file_location(block.right, path)
+            path = root_directory + '/libraries/' + block.right.value + '.py'
+            spec = importlib.util.spec_from_file_location(block.right.value, path)
 
             if spec is None or spec.loader is None:
                 raise RuntimeError(f'UNABLE TO READ/FIND LIBRARY {block.right} ' +
@@ -310,6 +350,17 @@ def execute_line(line: Node | Token, callables: CallablesList,
     :param visible_variables: pool of variables visible in current nesting level
     :return: (execution_result, function_still_running)
     """
+    if line is None or \
+            callables is None or \
+            nesting_level is None or \
+            line_number is None or \
+            visible_variables is None:
+        raise ValueError('PARAMETERS OF FUNCTION execute_line '
+                         f'CANNOT BE NULL AT LINE {line_number}')
+
+    if line_number < 1 or nesting_level < 0:
+        raise ValueError('NEITHER line_number NOR nesting_level CAN NOT BE NEGATIVE')
+
     # the simplest case
     if isinstance(line, Token):
         return line, True
@@ -317,14 +368,17 @@ def execute_line(line: Node | Token, callables: CallablesList,
     right = line.right
     left = line.left
 
-    right, _ = execute_line(right, callables, nesting_level,
-                            line_number, visible_variables)
-    left, _ = execute_line(left, callables, nesting_level,
-                           line_number, visible_variables)
+    if right is not None:
+        right, _ = execute_line(right, callables, nesting_level,
+                                line_number, visible_variables)
+    if left is not None:
+        left, _ = execute_line(left, callables, nesting_level,
+                               line_number, visible_variables)
 
     if line.operator in [CREATE, ASSIGN]:
         return __execute_var_related_block(Node(line.operator, line_number, right, left),
                                            line_number, nesting_level, visible_variables)
+
     if line.operator in [PIPE, RETURN]:
         return __execute_func_related_block([left, line.operator, right],
                                             line_number, nesting_level, visible_variables,
@@ -332,6 +386,10 @@ def execute_line(line: Node | Token, callables: CallablesList,
     if line.operator == COMMA:
         return __execute_separator_block(Node(line.operator, line_number, right, left),
                                          line_number, nesting_level, visible_variables)
+
+    if line.operator in [EQUALS, MORE_THAN, NO_MORE_THAN, LESS_THAN, NO_LESS_THAN, NOT_EQUALS]:
+        return __execute_logical_block(Node(line.operator, line_number, right, left),
+                                       line_number, nesting_level, visible_variables)
 
     return __execute_arithmetical_block(Node(line.operator, line_number, right, left),
                                         line_number, nesting_level, visible_variables)
