@@ -2,7 +2,8 @@
 import pytest
 
 from interpreter.min_interpreter import execute_line
-from interpreter.utils.commons import END, PLUS, MINUS, MULTIPLY, COMMA
+from interpreter.utils.commons import END, PLUS, MINUS, MULTIPLY, COMMA, EQUALS, NOT_EQUALS, MORE_THAN, LESS_THAN, \
+    NO_MORE_THAN, NO_LESS_THAN
 from interpreter.utils.commons import DIVIDE, MODULO, ASSIGN, CREATE
 from interpreter.utils.commons import BOOL, INT, RETURN, PIPE
 from interpreter.utils.structures import Node, Token, Function
@@ -46,6 +47,38 @@ def test_execute_line_simple_arithmetical_inputs():
     line5 = Node(MODULO, 1, Token('int', 2), Token('float', 7.5))
     result5, _ = execute_line(line5, {}, 0, 1, {})
     assert result5 == expected5
+
+
+def test_execute_line_simple_logical_expr():
+    expected1 = Token('bool', True)
+    line1 = Node(EQUALS, 1, Token('int', 2), Token('float', 2.0))
+    result1, _ = execute_line(line1, {}, 0, 1, {})
+    assert result1 == expected1
+
+    expected2 = Token('bool', False)
+    line2 = Node(NOT_EQUALS, 1, Token('int', 3), Token('int', 3))
+    result2, _ = execute_line(line2, {}, 0, 1, {})
+    assert result2 == expected2
+
+    expected3 = Token('bool', True)
+    line3 = Node(MORE_THAN, 1, Token('int', -1), Token('int', 2))
+    result3, _ = execute_line(line3, {}, 0, 1, {})
+    assert result3 == expected3
+
+    expected4 = Token('bool', False)
+    line4 = Node(LESS_THAN, 1, Token('int', -1), Token('int', 2))
+    result4, _ = execute_line(line4, {}, 0, 1, {})
+    assert result4 == expected4
+
+    expected5 = Token('bool', True)
+    line5 = Node(NO_MORE_THAN, 1, Token('int', 3), Token('int', 2))
+    result5, _ = execute_line(line5, {}, 0, 1, {})
+    assert result5 == expected5
+
+    expected6 = Token('bool', True)
+    line6 = Node(NO_LESS_THAN, 1, Token('int', 3), Token('int', 2))
+    result6, _ = execute_line(line6, {}, 0, 1, {})
+    assert result5 == expected6
 
 
 def test_execute_line_simple_invalid():
@@ -109,5 +142,3 @@ def test_execute_line_complex_function_expr():
     line1 = Node(PIPE, 1, Node(COMMA, 1, Token('int', 4), Token('int', 6)), Token('fnc', 'add'))
     result1, _ = execute_line(line1, callables, 0, 1, {})
     assert expected1 == result1
-
-

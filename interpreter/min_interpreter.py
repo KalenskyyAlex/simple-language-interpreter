@@ -20,7 +20,7 @@ from typing import Callable, Optional, Any
 from .min_parser import parse
 from .utils.structures import Token, Node, Function
 from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, MORE_THAN, LESS_THAN, \
-    NO_MORE_THAN, NO_LESS_THAN
+    NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
 
@@ -131,6 +131,8 @@ def __execute_logical_block(expression: Node,
             result = left.value <= right.value
         elif operator == NO_LESS_THAN:
             result = left.value >= right.value
+        elif operator == NOT_EQUALS:
+            result = left.value != right.value
     except TypeError:
         raise TypeError(f'{left.type} AND {right.type} CAN NOT BE COMPARED')
 
@@ -384,6 +386,10 @@ def execute_line(line: Node | Token, callables: CallablesList,
     if line.operator == COMMA:
         return __execute_separator_block(Node(line.operator, line_number, right, left),
                                          line_number, nesting_level, visible_variables)
+
+    if line.operator in [EQUALS, MORE_THAN, NO_MORE_THAN, LESS_THAN, NO_LESS_THAN, NOT_EQUALS]:
+        return __execute_logical_block(Node(line.operator, line_number, right, left),
+                                       line_number, nesting_level, visible_variables)
 
     return __execute_arithmetical_block(Node(line.operator, line_number, right, left),
                                         line_number, nesting_level, visible_variables)

@@ -192,15 +192,15 @@ def test_parse_valid_file_3():
                "{'name': 'factorial', 'args': [{'line': 5, " \
                "'left': var: num, 'operator': 'is', 'right': typ: int}], " \
                "'body': [{'operator': 'if', 'condition': " \
-               "{'line': 6, 'left': [var: num], 'operator': '==', " \
-               "'right': [int: 0]}, 'body': [{'line': 7, 'left': None, " \
+               "{'line': 6, 'left': var: num, 'operator': '==', " \
+               "'right': int: 0}, 'body': [{'line': 7, 'left': None, " \
                "'operator': 'return', 'right': int: 1}]," \
                " 'next': {'operator': 'else', 'condition': None, " \
                "'body': [{'line': 9, 'left': None, 'operator': 'return', " \
-               "'right': {'line': 9, 'left': [var: num], 'operator': '*', " \
-               "'right': {'line': 9, 'left': [fnc: factorial], " \
-               "'operator': '|', 'right': {'line': 9, 'left': [var: num], " \
-               "'operator': '-', 'right': [int: 1]}}}}], 'next': None," \
+               "'right': {'line': 9, 'left': var: num, 'operator': '*', " \
+               "'right': {'line': 9, 'left': fnc: factorial, " \
+               "'operator': '|', 'right': {'line': 9, 'left': var: num, " \
+               "'operator': '-', 'right': int: 1}}}}], 'next': None," \
                " 'line': 8}, 'line': 6}], 'line': 6}, {'name': 'main', " \
                "'args': [], 'body': [{'line': 14, 'left': fnc: out, " \
                "'operator': '|', 'right': {'line': 14, 'left': fnc: factorial, " \

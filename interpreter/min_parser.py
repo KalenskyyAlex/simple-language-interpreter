@@ -93,10 +93,14 @@ def __extract_inlist_tokens_from_block(block: Block) -> Block:
     lines_count = len(block.body)
     for index in range(lines_count):
         line = block.body[index]
+
         if isinstance(line, Node):
             block.body[index] = __extract_inlist_tokens_from_node(line)
         elif isinstance(line, Block):
             block.body[index] = __extract_inlist_tokens_from_block(line)
+
+    if block.next_block:
+        block.next_block = __extract_inlist_tokens_from_block(block.next_block)
 
     return block
 
@@ -405,6 +409,9 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
         raise SyntaxError(f'WRONG OPERATOR IN BLOCK HEADER AT LINE {line_number}')
 
     condition = parse_line(line[1:], line_number) if operator != ELSE else None
+
+    if condition:
+        condition = __extract_inlist_tokens_from_node(condition)
 
     return operator, condition
 

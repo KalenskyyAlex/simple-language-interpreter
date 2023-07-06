@@ -9,14 +9,14 @@ from .structures import Token, Node, Function
 KEYWORDS = ['start', 'end', 'use', 'return', 'break',
             'while', 'if', 'else', 'elif']
 OPERATORS = ['+', '-', '*', '/', '%', '(', ')', 'is', 'and',
-             'or', 'not', '>', '<', '<=', '>=', '==', '|', '=']
+             'or', 'not', '>', '<', '<=', '>=', '==', '!=', '|', '=']
 BOOLEANS = ['true', 'false']
 NUMERALS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 INNER_TYPES = ['int', 'float', 'str', 'bool']
 TOKEN_TYPES = ['kwd', 'int', 'float', 'str', 'bool', 'opr', 'fnc',
                'var', 'sep', 'lib', 'typ']
 
-SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',']
+SPECIAL_SYMBOLS = ['=', '|', ' ', '+', '-', '/', '*', '%', '(', ')', '>', '<', ',', '!']
 
 PIPE = Token('opr', '|')
 CREATE = Token('opr', 'is')
@@ -31,6 +31,7 @@ LESS_THAN = Token('opr', '<')
 NO_LESS_THAN = Token('opr', '>=')
 NO_MORE_THAN = Token('opr', '<=')
 EQUALS = Token('opr', '==')
+NOT_EQUALS = Token('opr', '!=')
 
 USE = Token('kwd', 'use')
 RETURN = Token('kwd', 'return')
