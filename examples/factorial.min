@@ -13,6 +13,7 @@ start main
 
 	number is int
 	number = in | int
+
 	out | (factorial | number)
 	out | "\n"
 end

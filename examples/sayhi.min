@@ -3,11 +3,11 @@ use io
 start main
 	name is str
 	
-	out | "Hi! What is your name?"
+	out | "Hi! What is your name? "
 	
-	name = in
+	name = in | str
 	
 	out | "Hello, "
 	out | name
-	out | "! Nice to meet you!"
+	out | "! Nice to meet you!\n"
 end

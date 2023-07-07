@@ -37,10 +37,10 @@ def in_(arg: list) -> Token:
         case 'float':
             type_ = 'float'
             result = float(input())
-        case 'float':
+        case 'str':
             type_ = 'str'
             result = input()
-        case 'float':
+        case 'bool':
             type_ = 'bool'
             result = bool(input())
 
