@@ -19,8 +19,8 @@ from typing import Callable, Optional, Any
 
 from .min_parser import parse
 from .utils.structures import Token, Node, Function, Block
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE, ELSE
-from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE
+from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS, ELSE
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
 
