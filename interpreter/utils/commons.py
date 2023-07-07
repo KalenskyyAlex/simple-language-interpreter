@@ -52,6 +52,8 @@ FLOAT = Token('typ', 'float')
 BOOL = Token('typ', 'bool')
 STR = Token('typ', 'str')
 
+TRUE = Token('bool', True)
+FALSE = Token('bool', False)
 
 TokenList = list[Token | Node | list]
 

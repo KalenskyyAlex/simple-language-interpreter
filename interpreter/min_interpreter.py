@@ -18,8 +18,8 @@ import copy
 from typing import Callable, Optional, Any
 
 from .min_parser import parse
-from .utils.structures import Token, Node, Function
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS
+from .utils.structures import Token, Node, Function, Block
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE, ELSE
 from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
@@ -273,6 +273,47 @@ def __execute_py_function(function_name: str, packed_function: PyFunction,
     return None
 
 
+def __execute_body(body: list[Node | Block], callables: CallablesList,
+                   visible_variables: VariablesList, nesting_level: int) -> ExecutionResult:
+    response: Optional[Token]
+    running: bool
+
+    for line in body:
+        if isinstance(line, Node):
+            response, running = execute_line(copy.deepcopy(line), callables, 0,
+                                             line.line_number, visible_variables)
+        elif isinstance(line, Block):
+            response, running = __execute_block(line, callables, visible_variables,
+                                                nesting_level + 1)
+        else:
+            raise RuntimeError(f'CAN NOT EXECUTE AT LINE {line.line_number}')
+
+        if not running:
+            if isinstance(response, Token):
+                return response, False
+
+            raise RuntimeError(f'NON-EXECUTABLE RETURN AT LINE {line.line_number}')
+
+    return None, False
+
+def __execute_block(block: Block, callables: CallablesList,
+                    visible_variables: VariablesList, nesting_level: int) -> ExecutionResult:
+    condition_pass: Token
+
+    if block.operator == ELSE:
+        condition_pass = TRUE
+    else:
+        condition_pass, _ = execute_line(block.condition, callables, nesting_level - 1,
+                                      block.line_number, visible_variables)
+
+    if condition_pass == TRUE:
+        return __execute_body(block.body, callables, visible_variables, nesting_level)
+
+    if block.next_block:
+        return __execute_block(block.next_block, callables, visible_variables, nesting_level)
+
+    return None, True
+
 def __execute_min_function(function_name: str, function: Function, args: list,
                            callables: CallablesList) -> Optional[Token]:
     # execute function line by line
@@ -288,17 +329,10 @@ def __execute_min_function(function_name: str, function: Function, args: list,
 
     __validate_args(args, args_needed, function_name)
 
-    for line in function.body:
-        if isinstance(line, Node):
-            response, running = execute_line(copy.deepcopy(line), callables, 0,
-                                             line.line_number, visible_variables)
+    return_, running = __execute_body(function.body, callables, visible_variables, 0)
 
-            if not running:
-                if isinstance(response, Token):
-                    return response
-
-                raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
-                                   f'AT LINE {line.line_number}')
+    if not running:
+        return return_
 
     return None
 
