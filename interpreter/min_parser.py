@@ -341,7 +341,11 @@ def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) ->
             if not isinstance(right, Token):
                 right = __parse_helper(right, line_number, __parse_calls, [PIPE])
 
-            operated_segment = [Node(token, line_number, right, left)]
+            if not right:
+                operated_segment = [Node(token, line_number, None, left)]
+            else:
+                operated_segment = [Node(token, line_number, right, left)]
+
             break
 
         operated_segment[index] = token

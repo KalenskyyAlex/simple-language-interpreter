@@ -150,8 +150,6 @@ def test_execute_general_1():
 
 def test_execute_general_2():
     execute('./tests/test_scripts/test_2.min')  # TODO
-    assert False
-
 
 def test_execute_general_3():
     execute('./tests/test_scripts/test_3.min')  # TODO

@@ -190,23 +190,24 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
                                  callables: CallablesList) -> ExecutionResult:
     # executes operations function calling, function returning
     if not isinstance(expression[0], Token | type(None)) or \
-            not isinstance(expression[2], list | Token) or \
+            not isinstance(expression[2], list | Token | type(None)) or \
             not isinstance(expression[1], Token | type(None)):
         raise RuntimeError('FAILED TO USE PIPE OPERATOR ON WRONG OPERANDS ' +
                            f'AT LINE {line_number}')
 
     left: Token = expression[0]
-    right: list[Token] | Token = expression[2]
+    right: list[Token] | Token = expression[2] if expression[2] is not None else []
     operator: Token = expression[1]
 
     if operator == PIPE:
-        right = expression[2] if isinstance(expression[2], list) else[expression[2]]
+        right = expression[2] if isinstance(expression[2], list) else [expression[2]]
         if left.value in callables.keys():
             if isinstance(left.value, str) and isinstance(right, list):
                 right = [execute_line(arg, callables, nesting_level, line_number,
-                                      visible_variables)[0] for arg in right]
+                                      visible_variables)[0] for arg in right if arg is not None]
                 right = [__unpack_var(arg, line_number, nesting_level, visible_variables)
-                         for arg in right]
+                         for arg in right if arg is not None]
+
                 return execute_function(left.value, callables, right), True
 
             raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +

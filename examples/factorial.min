@@ -1,14 +1,18 @@
 use io
 
-def factorial | num
+start factorial | num is int
 	if num == 0
 		return 1
 	else
-		return num * (factorial | n - 1)
+		return num * (factorial | (num - 1))
 	end
 end
 
 start main
-	out | (factorial | 5)
+	out | "Enter the number: "
+
+	number is int
+	number = in | int
+	out | (factorial | number)
 	out | "\n"
 end
