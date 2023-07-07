@@ -461,7 +461,7 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
             inner_block = Block(operator, condition, nested_body, line_number)
 
             if operator == ELSE:
-                if not isinstance(new_block[-1], Block):
+                if not isinstance(new_block[-1], Block) and new_block[-1].operator == IF:
                     raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE ' +
                                       f'{line_number}')
 

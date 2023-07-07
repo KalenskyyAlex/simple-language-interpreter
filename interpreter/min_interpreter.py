@@ -19,7 +19,7 @@ from typing import Callable, Optional, Any
 
 from .min_parser import parse
 from .utils.structures import Token, Node, Function, Block
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE, WHILE
 from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS, ELSE
 from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
 from .utils.commons import RETURN, PIPE, USE
@@ -305,10 +305,25 @@ def __execute_block(block: Block, callables: CallablesList,
         condition_pass = TRUE
     else:
         condition_pass, _ = execute_line(block.condition, callables, nesting_level - 1,
-                                      block.line_number, visible_variables)
+                                         block.line_number, visible_variables)
 
     if condition_pass == TRUE:
-        return __execute_body(block.body, callables, visible_variables, nesting_level)
+        if block.operator == WHILE:
+            return_: Optional[Token] = None
+            running: bool = True
+            while condition_pass == TRUE:
+                return_, running = __execute_block(block.body, callables, visible_variables,
+                                                   nesting_level)
+
+                if not running:
+                    return return_, False
+
+                condition_pass, _ = execute_line(block.condition, callables, nesting_level - 1,
+                                                 block.line_number, visible_variables)
+
+            return return_, running
+        else:
+            return __execute_body(block.body, callables, visible_variables, nesting_level)
 
     if block.next_block:
         return __execute_block(block.next_block, callables, visible_variables, nesting_level)
