@@ -18,10 +18,10 @@ import copy
 from typing import Callable, Optional, Any
 
 from .min_parser import parse
-from .utils.structures import Token, Node, Function
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS
-from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS
-from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
+from .utils.structures import Token, Node, Function, Block
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE
+from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS, ELSE
+from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE, WHILE
 from .utils.commons import RETURN, PIPE, USE
 
 # endregion
@@ -190,23 +190,24 @@ def __execute_func_related_block(expression: list[Token | list[Token]],
                                  callables: CallablesList) -> ExecutionResult:
     # executes operations function calling, function returning
     if not isinstance(expression[0], Token | type(None)) or \
-            not isinstance(expression[2], list | Token) or \
+            not isinstance(expression[2], list | Token | type(None)) or \
             not isinstance(expression[1], Token | type(None)):
         raise RuntimeError('FAILED TO USE PIPE OPERATOR ON WRONG OPERANDS ' +
                            f'AT LINE {line_number}')
 
     left: Token = expression[0]
-    right: list[Token] | Token = expression[2]
+    right: list[Token] | Token = expression[2] if expression[2] is not None else []
     operator: Token = expression[1]
 
     if operator == PIPE:
-        right = expression[2] if isinstance(expression[2], list) else[expression[2]]
+        right = expression[2] if isinstance(expression[2], list) else [expression[2]]
         if left.value in callables.keys():
             if isinstance(left.value, str) and isinstance(right, list):
                 right = [execute_line(arg, callables, nesting_level, line_number,
-                                      visible_variables)[0] for arg in right]
+                                      visible_variables)[0] for arg in right if arg is not None]
                 right = [__unpack_var(arg, line_number, nesting_level, visible_variables)
-                         for arg in right]
+                         for arg in right if arg is not None]
+
                 return execute_function(left.value, callables, right), True
 
             raise RuntimeError('CANNOT EXECUTE FUNCTION WITH NON-STRING NAME ' +
@@ -273,6 +274,64 @@ def __execute_py_function(function_name: str, packed_function: PyFunction,
     return None
 
 
+def __execute_body(body: list[Node | Block], callables: CallablesList,
+                   visible_variables: VariablesList, nesting_level: int) -> ExecutionResult:
+    response: Optional[Token]
+    running: bool
+
+    for line in body:
+        if isinstance(line, Node):
+            response, running = execute_line(copy.deepcopy(line), callables, 0,
+                                             line.line_number, visible_variables)
+        elif isinstance(line, Block):
+            response, running = __execute_block(line, callables, visible_variables,
+                                                nesting_level + 1)
+        else:
+            raise RuntimeError(f'CAN NOT EXECUTE AT LINE {line.line_number}')
+
+        if not running:
+            if isinstance(response, Token | type(None)):
+                return response, False
+
+            raise RuntimeError(f'NON-EXECUTABLE RETURN AT LINE {line.line_number}')
+
+    return None, True
+
+def __execute_block(block: Block, callables: CallablesList,
+                    visible_variables: VariablesList, nesting_level: int) -> ExecutionResult:
+    condition_pass: Token
+
+    if block.operator == ELSE:
+        condition_pass = TRUE
+    else:
+        condition_pass, _ = execute_line(block.condition, callables, nesting_level - 1,
+                                         block.line_number, visible_variables)
+
+    visible_variables[nesting_level] = {}
+
+    if condition_pass == TRUE:
+        if block.operator == WHILE:
+            return_: Optional[Token] = None
+            running: bool = True
+            while condition_pass == TRUE:
+                return_, running = __execute_body(block.body, callables, visible_variables,
+                                                  nesting_level)
+
+                if not running:
+                    return return_, False
+
+                condition_pass, _ = execute_line(block.condition, callables, nesting_level - 1,
+                                                 block.line_number, visible_variables)
+
+            return return_, running
+
+        return __execute_body(block.body, callables, visible_variables, nesting_level)
+
+    if block.next_block:
+        return __execute_block(block.next_block, callables, visible_variables, nesting_level)
+
+    return None, True
+
 def __execute_min_function(function_name: str, function: Function, args: list,
                            callables: CallablesList) -> Optional[Token]:
     # execute function line by line
@@ -288,17 +347,10 @@ def __execute_min_function(function_name: str, function: Function, args: list,
 
     __validate_args(args, args_needed, function_name)
 
-    for line in function.body:
-        if isinstance(line, Node):
-            response, running = execute_line(copy.deepcopy(line), callables, 0,
-                                             line.line_number, visible_variables)
+    return_, running = __execute_body(function.body, callables, visible_variables, 0)
 
-            if not running:
-                if isinstance(response, Token):
-                    return response
-
-                raise RuntimeError(f'NOT PROCESSABLE RETURN IN FUNC {function_name} ' +
-                                   f'AT LINE {line.line_number}')
+    if not running:
+        return return_
 
     return None
 

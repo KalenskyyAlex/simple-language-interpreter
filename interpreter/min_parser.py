@@ -341,7 +341,11 @@ def __parse_calls(segment: TokenList, operators: TokenList, line_number: int) ->
             if not isinstance(right, Token):
                 right = __parse_helper(right, line_number, __parse_calls, [PIPE])
 
-            operated_segment = [Node(token, line_number, right, left)]
+            if not right:
+                operated_segment = [Node(token, line_number, None, left)]
+            else:
+                operated_segment = [Node(token, line_number, right, left)]
+
             break
 
         operated_segment[index] = token
@@ -415,61 +419,71 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
 
     return operator, condition
 
-def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
-    # nest code segment by if/else/while constructions
-    new_block: list[Node | Block] = []
+def __find_end_else_indexes(body: list, start: int,
+                            end: int) -> tuple[Optional[int], Optional[int]]:
+    else_line_index: Optional[int] = None
+    end_line_index: Optional[int] = None
+    for index in range(start, end):
+        line = body[index]
+        if isinstance(line, list) and ELSE in line:
+            else_line_index = index
+        if isinstance(line, list) and END in line:
+            end_line_index = index
+            break
 
-    index = 0
-    lines_count = len(block)
-    while index < lines_count:
-        line = block[index]
-        line_number = line_numbers[index]
-        if isinstance(line, Node):
-            new_block.append(line)
-            index += 1
-            continue
+    return else_line_index, end_line_index
 
-        if any(keyword in line for keyword in [WHILE, IF, ELSE]):
-            operator, condition = __create_block_header(line, line_number)
-            index += 1
-            start = index
-            nesting_level = 1
-            body = []
-            while nesting_level != 0 and index < lines_count:
-                line = block[index]
-                if isinstance(line, list):
-                    if WHILE in line or IF in line:
-                        nesting_level += 1
-                    elif END in line or ELSE in line:
-                        nesting_level -= 1
+def __nest_blocks(raw_body: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
+    while True:
+        last_while_if_index = None
+        lines_count = len(raw_body)
 
-                index += 1
-                body.append(line)
+        for index in range(lines_count - 1, -1, -1):
+            line = raw_body[index]
+            if isinstance(line, list):
+                if IF in line or WHILE in line:
+                    last_while_if_index = index
+                    break
 
-            if isinstance(body[-1], list) and body[-1][0] in [END, ELSE]:
-                index -= 1 if body[-1][0] == ELSE else 0
-                body = body[:-1]
+        if last_while_if_index is None:
+            break
 
-            if nesting_level != 0:
+        line = raw_body[last_while_if_index]
+        line_number = line_numbers[last_while_if_index]
+
+        operator, condition = __create_block_header(line, line_number)  # type: ignore
+        if operator == IF:
+            else_line_index, end_line_index = __find_end_else_indexes(raw_body,
+                                                                      last_while_if_index,
+                                                                      lines_count)
+
+            else_block = None
+            if else_line_index is not None:
+                else_block = Block(ELSE, None, raw_body[else_line_index + 1:end_line_index],
+                                   line_numbers[else_line_index])
+
+            if end_line_index is None:
                 raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
 
-            nested_body = __nest_blocks(body, line_numbers[start:index])
-            inner_block = Block(operator, condition, nested_body, line_number)
+            if_block = Block(IF, condition, raw_body[last_while_if_index + 1:else_line_index],
+                             line_number, else_block)
 
-            if operator == ELSE:
-                if not isinstance(new_block[-1], Block):
-                    raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE ' +
-                                      f'{line_number}')
+            raw_body = raw_body[:last_while_if_index] + raw_body[end_line_index + 1:]
+            line_numbers = line_numbers[:last_while_if_index] + line_numbers[end_line_index + 1:]
+            raw_body.insert(last_while_if_index, if_block)  # type: ignore
+        else:
+            for index in range(last_while_if_index, lines_count):
+                line = raw_body[index]
+                if isinstance(line, list) and END in line:
+                    block_body = raw_body[last_while_if_index + 1:index]
+                    raw_body = raw_body[:last_while_if_index] + raw_body[index + 1:]
+                    line_numbers = line_numbers[:last_while_if_index] + line_numbers[index + 1:]
 
-                new_block[-1].next_block = inner_block
-                continue
+                    block = Block(WHILE, condition, block_body, line_number)
+                    raw_body.insert(last_while_if_index, block)  # type: ignore
+                    break
 
-            new_block.append(inner_block)
-            continue
-
-        index += 1
-
-    return new_block
+    return raw_body  # type: ignore
 
 # endregion
 

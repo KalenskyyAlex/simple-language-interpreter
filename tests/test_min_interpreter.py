@@ -151,10 +151,8 @@ def test_execute_general_1():
 def test_execute_general_2():
     execute('./tests/test_scripts/test_2.min')  # TODO
 
-
 def test_execute_general_3():
-    # execute('./tests/test_scripts/test_3.min')  # TODO
-    pass
+    execute('./tests/test_scripts/test_3.min')  # TODO
 
 def test_execute_general_4():
     execute('./tests/test_scripts/test_4.min')  # TODO

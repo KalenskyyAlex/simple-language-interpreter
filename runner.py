@@ -27,7 +27,7 @@ if __name__ == '__main__':
             unknown_token = any(flag for flag in flags if flag not in available_flags)
 
             if unknown_token:
-                print('Unknown token: Try typing min_interpreter.py --help to see usage info')
+                print('Unknown flag: Try typing runner.py --help to see usage info')
             else:
                 if '-c' in flags:
                     print_code(FIRST_ARG)
@@ -40,4 +40,4 @@ if __name__ == '__main__':
                 print("Produced output:")
                 execute(FIRST_ARG)
     except (FileNotFoundError, IndexError):
-        print('Try typing min_interpreter.py --help to see usage info')
+        print('Try typing runner.py --help to see usage info')
