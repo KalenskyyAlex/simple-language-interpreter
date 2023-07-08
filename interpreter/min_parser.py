@@ -419,6 +419,18 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
 
     return operator, condition
 
+def __find_end_else_indexes(body: list, start: int, end: int) -> tuple[int, int]:
+    else_line_index: Optional[int] = None
+    end_line_index: Optional[int] = None
+    for index in range(start, end):
+        line = body[index]
+        if isinstance(line, list) and ELSE in line:
+            else_line_index = index
+        if isinstance(line, list) and END in line:
+            end_line_index = index
+            break
+
+    return else_line_index, end_line_index
 
 def __nest_blocks(raw_body: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
     while True:
@@ -440,15 +452,9 @@ def __nest_blocks(raw_body: list[Node | TokenList], line_numbers: list[int]) -> 
 
         operator, condition = __create_block_header(line, line_number)  # type: ignore
         if operator == IF:
-            else_line_index: Optional[int] = None
-            end_line_index: Optional[int] = None
-            for index in range(last_while_if_index, lines_count):
-                line = raw_body[index]
-                if isinstance(line, list) and ELSE in line:
-                    else_line_index = index
-                if isinstance(line, list) and END in line:
-                    end_line_index = index
-                    break
+            else_line_index, end_line_index = __find_end_else_indexes(raw_body,
+                                                                      last_while_if_index,
+                                                                      lines_count)
 
             else_block = None
             if else_line_index is not None:
