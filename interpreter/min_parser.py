@@ -465,7 +465,9 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
                     raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE ' +
                                       f'{line_number}')
 
-                new_block[-1].next_block = inner_block
+                if isinstance(new_block[-1], Block):
+                    new_block[-1].next_block = inner_block
+
                 continue
 
             new_block.append(inner_block)

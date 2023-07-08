@@ -19,9 +19,9 @@ from typing import Callable, Optional, Any
 
 from .min_parser import parse
 from .utils.structures import Token, Node, Function, Block
-from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE, WHILE
+from .utils.commons import PyFunction, CallablesList, VariablesList, ExecutionResult, EQUALS, TRUE
 from .utils.commons import MORE_THAN, LESS_THAN, NO_MORE_THAN, NO_LESS_THAN, NOT_EQUALS, ELSE
-from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE
+from .utils.commons import COMMA, PLUS, MINUS, DIVIDE, MULTIPLY, MODULO, ASSIGN, CREATE, WHILE
 from .utils.commons import RETURN, PIPE, USE
 
 # endregion
@@ -322,8 +322,8 @@ def __execute_block(block: Block, callables: CallablesList,
                                                  block.line_number, visible_variables)
 
             return return_, running
-        else:
-            return __execute_body(block.body, callables, visible_variables, nesting_level)
+
+        return __execute_body(block.body, callables, visible_variables, nesting_level)
 
     if block.next_block:
         return __execute_block(block.next_block, callables, visible_variables, nesting_level)
