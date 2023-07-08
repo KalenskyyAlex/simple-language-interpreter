@@ -419,65 +419,8 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
 
     return operator, condition
 
-def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
-    # nest code segment by if/else/while constructions
-    new_block: list[Node | Block] = []
 
-    index = 0
-    lines_count = len(block)
-    while index < lines_count:
-        line = block[index]
-        line_number = line_numbers[index]
-        if isinstance(line, Node):
-            new_block.append(line)
-            index += 1
-            continue
-
-        if any(keyword in line for keyword in [WHILE, IF, ELSE]):
-            operator, condition = __create_block_header(line, line_number)
-            index += 1
-            start = index
-            nesting_level = 1
-            body = []
-            while nesting_level != 0 and index < lines_count:  # TODO
-                line = block[index]  # TODO
-                if isinstance(line, list):  # TODO
-                    if WHILE in line or IF in line:  # TODO
-                        nesting_level += 1  # TODO
-                    elif END in line or ELSE in line:  # TODO
-                        nesting_level -= 1  # TODO
-
-                index += 1  # TODO
-                body.append(line)  # TODO
-
-            if isinstance(body[-1], list) and body[-1][0] in [END, ELSE]:
-                index -= 1 if body[-1][0] == ELSE else 0
-                body = body[:-1]
-
-            if nesting_level != 0:
-                raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
-
-            nested_body = __nest_blocks(body, line_numbers[start:index])
-            inner_block = Block(operator, condition, nested_body, line_number)
-
-            if operator == ELSE:
-                if not isinstance(new_block[-1], Block) and new_block[-1].operator == IF:
-                    raise SyntaxError('MISSING IF TO MATCH ELSE EXPRESSION AT LINE ' +
-                                      f'{line_number}')
-
-                if isinstance(new_block[-1], Block):
-                    new_block[-1].next_block = inner_block
-
-                continue
-
-            new_block.append(inner_block)
-            continue
-
-        index += 1
-
-    return new_block
-
-def __nest_blocks_new(raw_body: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
+def __nest_blocks(raw_body: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
     while True:
         last_while_if_index = None
         lines_count = len(raw_body)
@@ -534,9 +477,6 @@ def __nest_blocks_new(raw_body: list[Node | TokenList], line_numbers: list[int])
                     break
 
     return raw_body  # type: ignore
-
-def __fill_nested_block():
-    pass
 
 # endregion
 
@@ -607,7 +547,7 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
         if processed_line is not None:
             body.append(processed_line)
 
-    nested_body: list[Node | Block] = __nest_blocks_new(body, line_numbers)
+    nested_body: list[Node | Block] = __nest_blocks(body, line_numbers)
     return Function(name, args, nested_body, line_numbers[0])
 
 
