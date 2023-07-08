@@ -1,0 +1,16 @@
+use io
+
+start main
+	counter is int
+	counter = 10
+
+	while counter > 0
+		out | counter
+		out | "\n"
+		counter = counter -1
+	end
+
+	if counter == 0
+		out | "Hello, World!\n"
+	end
+end

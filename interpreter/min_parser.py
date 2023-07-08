@@ -439,16 +439,16 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
             start = index
             nesting_level = 1
             body = []
-            while nesting_level != 0 and index < lines_count:
-                line = block[index]
-                if isinstance(line, list):
-                    if WHILE in line or IF in line:
-                        nesting_level += 1
-                    elif END in line or ELSE in line:
-                        nesting_level -= 1
+            while nesting_level != 0 and index < lines_count:  # TODO
+                line = block[index]  # TODO
+                if isinstance(line, list):  # TODO
+                    if WHILE in line or IF in line:  # TODO
+                        nesting_level += 1  # TODO
+                    elif END in line or ELSE in line:  # TODO
+                        nesting_level -= 1  # TODO
 
-                index += 1
-                body.append(line)
+                index += 1  # TODO
+                body.append(line)  # TODO
 
             if isinstance(body[-1], list) and body[-1][0] in [END, ELSE]:
                 index -= 1 if body[-1][0] == ELSE else 0

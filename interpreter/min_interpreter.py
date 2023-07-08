@@ -290,12 +290,12 @@ def __execute_body(body: list[Node | Block], callables: CallablesList,
             raise RuntimeError(f'CAN NOT EXECUTE AT LINE {line.line_number}')
 
         if not running:
-            if isinstance(response, Token):
+            if isinstance(response, Token | type(None)):
                 return response, False
 
             raise RuntimeError(f'NON-EXECUTABLE RETURN AT LINE {line.line_number}')
 
-    return None, False
+    return None, True
 
 def __execute_block(block: Block, callables: CallablesList,
                     visible_variables: VariablesList, nesting_level: int) -> ExecutionResult:
@@ -312,8 +312,8 @@ def __execute_block(block: Block, callables: CallablesList,
             return_: Optional[Token] = None
             running: bool = True
             while condition_pass == TRUE:
-                return_, running = __execute_block(block.body, callables, visible_variables,
-                                                   nesting_level)
+                return_, running = __execute_body(block.body, callables, visible_variables,
+                                                  nesting_level)
 
                 if not running:
                     return return_, False
