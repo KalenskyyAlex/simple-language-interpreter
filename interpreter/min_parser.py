@@ -419,7 +419,8 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
 
     return operator, condition
 
-def __find_end_else_indexes(body: list, start: int, end: int) -> tuple[Optional[int], Optional[int]]:
+def __find_end_else_indexes(body: list, start: int,
+                            end: int) -> tuple[Optional[int], Optional[int]]:
     else_line_index: Optional[int] = None
     end_line_index: Optional[int] = None
     for index in range(start, end):
