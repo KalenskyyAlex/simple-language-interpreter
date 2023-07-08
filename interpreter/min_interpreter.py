@@ -278,6 +278,7 @@ def __execute_body(body: list[Node | Block], callables: CallablesList,
                    visible_variables: VariablesList, nesting_level: int) -> ExecutionResult:
     response: Optional[Token]
     running: bool
+    visible_variables[nesting_level] = {}
 
     for line in body:
         if isinstance(line, Node):

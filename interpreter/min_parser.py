@@ -477,6 +477,67 @@ def __nest_blocks(block: list[Node | TokenList], line_numbers: list[int]) -> lis
 
     return new_block
 
+def __nest_blocks_new(raw_body: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
+    while True:
+        last_while_if_index = None
+        lines_count = len(raw_body)
+
+        for index in range(lines_count - 1, -1, -1):
+            line = raw_body[index]
+            if isinstance(line, list):
+                if IF in line or WHILE in line:
+                    last_while_if_index = index
+                    break
+
+        if last_while_if_index is None:
+            break
+
+        line = raw_body[last_while_if_index]
+        line_number = line_numbers[last_while_if_index]
+
+        operator, condition = __create_block_header(line, line_number)  # type: ignore
+        if operator == IF:
+            else_line_index: Optional[int] = None
+            end_line_index: Optional[int] = None
+            for index in range(last_while_if_index, lines_count):
+                line = raw_body[index]
+                if isinstance(line, list) and ELSE in line:
+                    else_line_index = index
+                if isinstance(line, list) and END in line:
+                    end_line_index = index
+                    break
+
+            else_block = None
+            if else_line_index is not None:
+                else_block = Block(ELSE, None, raw_body[else_line_index + 1:end_line_index],
+                                   line_numbers[else_line_index])
+
+            if end_line_index is None:
+                raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
+
+            if_block = Block(IF, condition, raw_body[last_while_if_index + 1:else_line_index],
+                             line_number, else_block)
+
+            raw_body = raw_body[:last_while_if_index] + raw_body[end_line_index + 1:]
+            line_numbers = line_numbers[:last_while_if_index] + line_numbers[end_line_index + 1:]
+            raw_body.insert(last_while_if_index, if_block)  # type: ignore
+        else:
+            for index in range(last_while_if_index, lines_count):
+                line = raw_body[index]
+                if isinstance(line, list) and END in line:
+                    block_body = raw_body[last_while_if_index + 1:index]
+                    raw_body = raw_body[:last_while_if_index] + raw_body[index + 1:]
+                    line_numbers = line_numbers[:last_while_if_index] + line_numbers[index + 1:]
+
+                    block = Block(WHILE, condition, block_body, line_number)
+                    raw_body.insert(last_while_if_index, block)  # type: ignore
+                    break
+
+    return raw_body  # type: ignore
+
+def __fill_nested_block():
+    pass
+
 # endregion
 
 # region Public functions
@@ -546,7 +607,7 @@ def parse_function(block: list[TokenList], line_numbers: list[int]) -> Function:
         if processed_line is not None:
             body.append(processed_line)
 
-    nested_body: list[Node | Block] = __nest_blocks(body, line_numbers)
+    nested_body: list[Node | Block] = __nest_blocks_new(body, line_numbers)
     return Function(name, args, nested_body, line_numbers[0])
 
 
