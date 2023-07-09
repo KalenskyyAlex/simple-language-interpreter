@@ -421,7 +421,7 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
 
 def __create_if_else_block(body: list, start: int,
                            end: int, line_numbers: list[int],
-                           condition: Node) -> Block:
+                           condition: Optional[Node]) -> tuple[Block, int]:
     else_line_index: Optional[int] = None
     end_line_index: Optional[int] = None
     for index in range(start, end):
