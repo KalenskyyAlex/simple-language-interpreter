@@ -7,7 +7,7 @@ start main
 	while counter > 0
 		out | counter
 		out | "\n"
-		counter = counter -1
+		counter = counter - 1
 	end
 
 	if counter == 0

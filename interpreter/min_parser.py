@@ -419,8 +419,9 @@ def __create_block_header(line: TokenList, line_number: int) -> tuple[Token, Opt
 
     return operator, condition
 
-def __find_end_else_indexes(body: list, start: int,
-                            end: int) -> tuple[Optional[int], Optional[int]]:
+def __create_if_else_block(body: list, start: int,
+                           end: int, line_numbers: list[int],
+                           condition: Optional[Node]) -> tuple[Block, int]:
     else_line_index: Optional[int] = None
     end_line_index: Optional[int] = None
     for index in range(start, end):
@@ -431,7 +432,21 @@ def __find_end_else_indexes(body: list, start: int,
             end_line_index = index
             break
 
-    return else_line_index, end_line_index
+    else_block = None
+    if else_line_index is not None:
+        else_block = Block(ELSE, None, body[else_line_index + 1:end_line_index],
+                           line_numbers[else_line_index])
+
+    if end_line_index is None:
+        raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_numbers[start]}')
+
+    if else_line_index is None:
+        else_line_index = end_line_index
+
+    if_block = Block(IF, condition, body[start + 1:else_line_index],
+                     line_numbers[start], else_block)
+
+    return if_block, end_line_index
 
 def __nest_blocks(raw_body: list[Node | TokenList], line_numbers: list[int]) -> list[Node | Block]:
     while True:
@@ -453,20 +468,10 @@ def __nest_blocks(raw_body: list[Node | TokenList], line_numbers: list[int]) -> 
 
         operator, condition = __create_block_header(line, line_number)  # type: ignore
         if operator == IF:
-            else_line_index, end_line_index = __find_end_else_indexes(raw_body,
-                                                                      last_while_if_index,
-                                                                      lines_count)
-
-            else_block = None
-            if else_line_index is not None:
-                else_block = Block(ELSE, None, raw_body[else_line_index + 1:end_line_index],
-                                   line_numbers[else_line_index])
-
-            if end_line_index is None:
-                raise SyntaxError(f'MISSING END TO MATCH EXPRESSION AT LINE {line_number}')
-
-            if_block = Block(IF, condition, raw_body[last_while_if_index + 1:else_line_index],
-                             line_number, else_block)
+            if_block, end_line_index = __create_if_else_block(raw_body,
+                                                              last_while_if_index,
+                                                              lines_count, line_numbers,
+                                                              condition)
 
             raw_body = raw_body[:last_while_if_index] + raw_body[end_line_index + 1:]
             line_numbers = line_numbers[:last_while_if_index] + line_numbers[end_line_index + 1:]
