@@ -1,0 +1,11 @@
+.github
+docker
+examples
+tests
+
+README.md
+LICENSE.md
+.coverage
+.coveragerc
+SYNTAX.min
+.gitignore
