@@ -1,7 +1,12 @@
 FROM python:3.11.9-alpine3.19
 
-WORKDIR /omnicom
+ENV FLAGS=''
+ENV ROOT=/omnicom
+ENV INPUT=docker/default_input.min
 
+WORKDIR $ROOT
+
+COPY ${INPUT} $ROOT/${INPUT}
 COPY . .
 
-CMD ["sh"]
+CMD python runner.py $INPUT $FLAGS > output.txt

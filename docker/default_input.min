@@ -1,0 +1,6 @@
+use io
+
+start main
+    out | "Input file is not specified!"
+    out | "\n"
+end
