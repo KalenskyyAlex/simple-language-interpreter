@@ -4,7 +4,7 @@ This library implements standard i/o operations in MINIMUM
 from typing import Optional
 
 from interpreter.utils.structures import Token
-from interpreter.utils.globals import API_MODE
+from interpreter.utils.globals import is_API_mode_enabled
 
 def get_methods():
     """
@@ -30,7 +30,7 @@ def in_(arg: list) -> Token:
     reads from standard input
     :return: string read from standard input
     """
-    if API_MODE:
+    if is_API_mode_enabled():
         with open("input_needed", "w") as f:
             f.write("input_needed")
 
@@ -51,7 +51,7 @@ def in_(arg: list) -> Token:
             result = bool(input())
 
     # clearing file - no input needed no more
-    if API_MODE:
+    if is_API_mode_enabled():
         with open("input_needed", "w"):
             pass
 

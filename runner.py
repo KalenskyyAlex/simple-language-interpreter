@@ -6,11 +6,11 @@ import sys
 from interpreter.min_interpreter import print_code, execute
 from interpreter.min_lexer import print_tokens
 from interpreter.min_parser import print_tree
-from interpreter.utils.globals import API_MODE
+from interpreter.utils.globals import enable_API_mode
 
 if __name__ == '__main__':
     # do not output errors traceback from Python
-    sys.tracebacklimit = -1
+    # sys.tracebacklimit = -1
 
     try:
         FIRST_ARG = sys.argv[1]
@@ -41,7 +41,7 @@ if __name__ == '__main__':
                     print_tree(FIRST_ARG)
 
                 if '-a' in flags:
-                    API_MODE = True
+                    enable_API_mode()
 
                 print("Produced output:")
                 execute(FIRST_ARG)

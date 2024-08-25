@@ -9,4 +9,4 @@ WORKDIR $ROOT
 COPY ${INPUT} $ROOT/${INPUT}
 COPY . .
 
-CMD python runner.py $INPUT $FLAGS > output.txt
+CMD python runner.py $INPUT $FLAGS -a > output.txt
