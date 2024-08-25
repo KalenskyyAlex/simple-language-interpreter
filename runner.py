@@ -6,10 +6,11 @@ import sys
 from interpreter.min_interpreter import print_code, execute
 from interpreter.min_lexer import print_tokens
 from interpreter.min_parser import print_tree
+from interpreter.utils.globals import API_MODE
 
 if __name__ == '__main__':
     # do not output errors traceback from Python
-    # sys.tracebacklimit = -1
+    sys.tracebacklimit = -1
 
     try:
         FIRST_ARG = sys.argv[1]
@@ -20,8 +21,9 @@ if __name__ == '__main__':
             print('\t-c - show executed code')
             print('\t-l - shot lexer result (raw tokens)')
             print('\t-p - show parser result (code tree)')
+            print('\t-a - enable API_MODE (notify about waiting for input when running on server side)')
         else:
-            available_flags = ['-p', '-c', '-l']
+            available_flags = ['-p', '-c', '-l', '-a']
             flags = sys.argv[2:]
 
             unknown_token = any(flag for flag in flags if flag not in available_flags)
@@ -37,6 +39,10 @@ if __name__ == '__main__':
 
                 if '-p' in flags:
                     print_tree(FIRST_ARG)
+
+                if '-a' in flags:
+                    API_MODE = True
+
                 print("Produced output:")
                 execute(FIRST_ARG)
     except (FileNotFoundError, IndexError):

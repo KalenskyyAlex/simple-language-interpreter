@@ -4,6 +4,7 @@ This library implements standard i/o operations in MINIMUM
 from typing import Optional
 
 from interpreter.utils.structures import Token
+from interpreter.utils.globals import API_MODE
 
 def get_methods():
     """
@@ -25,9 +26,14 @@ def out(arg: list) -> None:
 
 def in_(arg: list) -> Token:
     """
+    API_MODE=True: will signal about waiting for input into input_needed
     reads from standard input
     :return: string read from standard input
     """
+    if API_MODE:
+        with open("input_needed", "w") as f:
+            f.write("input_needed")
+
     type_ = None
     result: Optional[int | float | str | bool] = None
     match arg[0]:
@@ -43,6 +49,11 @@ def in_(arg: list) -> Token:
         case 'bool':
             type_ = 'bool'
             result = bool(input())
+
+    # clearing file - no input needed no more
+    if API_MODE:
+        with open("input_needed", "w"):
+            pass
 
     return Token(type_, result)
 
