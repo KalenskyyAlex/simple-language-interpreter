@@ -47,7 +47,7 @@ if __name__ == '__main__':
                 execute(FIRST_ARG)
 
             if '-a' in flags:
-                with open('finished.txt', 'w') as f:
+                with open('finished', 'w') as f:
                     f.write('finished')
 
     except (FileNotFoundError, IndexError):
