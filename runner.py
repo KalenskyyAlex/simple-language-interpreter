@@ -45,5 +45,10 @@ if __name__ == '__main__':
 
                 print("Produced output:")
                 execute(FIRST_ARG)
+
+            if '-a' in flags:
+                with open('finished.txt', 'w') as f:
+                    f.write('finished')
+
     except (FileNotFoundError, IndexError):
         print('Try typing runner.py --help to see usage info')
